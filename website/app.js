@@ -19,26 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlInput = document.getElementById('urlInput');
     const scanBtn = document.getElementById('scanBtn');
     const resultsWrapper = document.getElementById('resultsWrapper');
-    const statusPill = document.querySelector('.status-pill');
 
-    // 1. Live Backend Health Check
-    async function checkBackendHealth() {
-        try {
-            const resp = await fetch(`${API_BASE}/api/health`);
-            if (resp.ok) {
-                if (statusPill) {
-                    statusPill.innerHTML = `<span class="status-dot"></span><span>Online</span>`;
-                }
-            }
-        } catch (e) {
-            if (statusPill) {
-                statusPill.innerHTML = `<span class="status-dot" style="background:#d97706;"></span><span>Offline</span>`;
-            }
-        }
-    }
-    checkBackendHealth();
-
-    // 2. Scan Trigger Handlers
+    // 1. Scan Trigger Handlers
     if (scanBtn) {
         scanBtn.addEventListener('click', () => {
             const url = urlInput ? urlInput.value.trim() : '';
