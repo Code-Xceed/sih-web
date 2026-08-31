@@ -7,6 +7,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const API_BASE = window.location.origin.startsWith('http') ? window.location.origin : '';
     let currentAnalysisResult = null;
 
+    // Interactive 3D Spatial Parallax Tracking
+    window.addEventListener('mousemove', (e) => {
+        const x = (e.clientX / window.innerWidth - 0.5) * 2;
+        const y = (e.clientY / window.innerHeight - 0.5) * 2;
+        document.documentElement.style.setProperty('--mouse-x', x.toFixed(3));
+        document.documentElement.style.setProperty('--mouse-y', y.toFixed(3));
+    });
+
     // Elements
     const urlInput = document.getElementById('urlInput');
     const scanBtn = document.getElementById('scanBtn');

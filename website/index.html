@@ -12,6 +12,100 @@
 </head>
 <body>
 
+    <!-- Interactive Spatial Parallax Background Stage -->
+    <div class="spatial-stage" id="spatialStage">
+        <!-- Deep Layer (Max distance, heavy blur & soft tilt) -->
+        <div class="spatial-card depth-deep pos-1">
+            <div class="card-inner">
+                <span class="icon">⬡</span>
+                <div>SYS.SEC // OK</div>
+            </div>
+        </div>
+        <div class="spatial-card depth-deep pos-2">
+            <div class="card-inner">
+                <span class="icon">⬡</span>
+                <div>NODE 44.A</div>
+            </div>
+        </div>
+        <div class="spatial-card depth-deep pos-7">
+            <div class="card-inner">
+                <div class="tech-header">ADVISORY // 01</div>
+                <div class="tech-code">Check for valid .gov.in TLDs.</div>
+            </div>
+        </div>
+
+        <!-- Mid Layer (Intermediate distance, medium blur) -->
+        <div class="spatial-card depth-mid pos-3">
+            <div class="card-inner">
+                <div class="tech-header">IP ROUTING LOG</div>
+                <div class="tech-code">
+                    &gt; TRACE 192.168.x.x<br>
+                    &gt; HOP 1: SECURE<br>
+                    &gt; HOP 2: VERIFIED
+                </div>
+            </div>
+        </div>
+        <div class="spatial-card depth-mid pos-4">
+            <div class="card-inner">
+                <div class="tech-header">DATA HASH</div>
+                <div class="tech-code">0x9F4B...A210</div>
+            </div>
+        </div>
+        <div class="spatial-card depth-mid pos-8">
+            <div class="card-inner">
+                <div class="tech-header">GUIDELINE: PHISHING</div>
+                <div class="tech-code">
+                    Govt agencies will NEVER ask<br>for your OTP or ATM PIN via SMS.
+                </div>
+            </div>
+        </div>
+        <div class="spatial-card depth-mid pos-10">
+            <div class="card-inner">
+                <div class="tech-header">SSL VERIFICATION</div>
+                <div class="tech-code">
+                    Always ensure the lock icon<br>is present before submitting PII.
+                </div>
+            </div>
+        </div>
+        <div class="spatial-card depth-mid pos-11">
+            <div class="card-inner">
+                <div class="tech-header">DOMAIN HEURISTICS</div>
+                <div class="tech-code">
+                    Scanning for homoglyphs<br>
+                    (e.g., g0v.in vs gov.in)
+                </div>
+            </div>
+        </div>
+
+        <!-- Foreground Layer (Crisp, detailed, dynamic focus) -->
+        <div class="spatial-card depth-front pos-5">
+            <div class="card-inner">
+                <div class="tech-header threat-text">THREAT GAUGE</div>
+                <div class="gauge-bar"><div class="gauge-fill"></div></div>
+                <div class="tech-code">LEVEL: ELEVATED</div>
+            </div>
+        </div>
+        <div class="spatial-card depth-front pos-6">
+            <div class="card-inner">
+                <div class="tech-header">VERIFICATION METRICS</div>
+                <div class="tech-code">
+                    SIG: MATCH<br>
+                    SSL: VALID<br>
+                    BIOMETRIC: PENDING...
+                </div>
+            </div>
+        </div>
+        <div class="spatial-card depth-front pos-9">
+            <div class="card-inner">
+                <div class="tech-header">REPORT CYBERCRIME</div>
+                <div class="tech-code">
+                    Helpline: 1930<br>
+                    Portal: cybercrime.gov.in
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Top Bar / Micro Header -->
         <header class="top-bar">
@@ -25,13 +119,13 @@
             </div>
         </header>
 
-        <!-- Hero Section -->
+        <!-- Hero Section (Exact Match to Design) -->
         <section class="hero-minimal">
             <h1 class="hero-title-large">
-                Phishing Domain<br>Verification Engine
+                <span class="title-fake">Fake</span> Government<br>Portal Detector.
             </h1>
             <p class="hero-tagline">
-                Real-time multi-signal analysis detecting lookalikes, credential harvesting, and fraudulent clones.
+                Algorithmic 6-layer scanner identifying typosquatting, subdomain masquerading, and fraudulent clones targeting Indian citizens.
             </p>
         </section>
 
@@ -43,7 +137,7 @@
                     type="url" 
                     id="urlInput" 
                     class="url-input-clean" 
-                    placeholder="Enter website URL (e.g., https://pmkisan-gov-in-update.online)" 
+                    placeholder="Enter website URL (e.g., https://pmkisan-gov-in-" 
                     autocomplete="off"
                     spellcheck="false"
                 >
