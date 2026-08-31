@@ -80,14 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
             renderRealVerdict(scanResult, normalizedUrl);
 
         } catch (err) {
-            console.warn("FastAPI backend error, attempting client-side fallback:", err);
-            if (typeof PhishDetector !== 'undefined') {
-                const fallbackRes = PhishDetector.analyzeUrl(normalizedUrl);
-                currentAnalysisResult = fallbackRes;
-                renderFallbackVerdict(fallbackRes);
-            } else {
-                showToast("Connection to AI backend failed. Ensure backend is running on port 8000.");
-            }
+            console.warn("FastAPI backend error:", err);
+            showToast("Connection to AI backend failed. Please try again.");
         } finally {
             if (scanBtn) {
                 scanBtn.innerHTML = `<span>Inspect</span> ↵`;
@@ -114,7 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Badge
         const badgeEl = document.getElementById('verdictBadge');
         if (badgeEl) {
             if (res.verdict === 'PHISHING_CLONE') {
@@ -129,7 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Headline & Target
         const urlEl = document.getElementById('urlHeadline');
         if (urlEl) urlEl.textContent = originalUrl || res.url;
 
@@ -153,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 5 Numbered Inspection Steps (Real AI Multi-Signal Breakdown)
+        // 5 Inspection Steps
         const stepsEl = document.getElementById('inspectionSteps');
         if (stepsEl) {
             stepsEl.innerHTML = '';
@@ -234,59 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsWrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    // 5. Fallback Client-Side Renderer
-    function renderFallbackVerdict(res) {
-        if (!resultsWrapper) return;
-        resultsWrapper.style.display = 'block';
-
-        const scoreEl = document.getElementById('scoreNumber');
-        if (scoreEl) {
-            scoreEl.textContent = res.riskScore < 10 ? `0${res.riskScore}` : res.riskScore;
-            scoreEl.style.color = res.riskScore >= 70 ? 'var(--color-threat)' : (res.riskScore >= 35 ? 'var(--color-caution)' : 'var(--color-safe)');
-        }
-
-        const badgeEl = document.getElementById('verdictBadge');
-        if (badgeEl) {
-            badgeEl.textContent = res.verdictLabel;
-            badgeEl.className = 'verdict-badge-clean ' + (res.riskScore >= 70 ? 'badge-threat' : (res.riskScore >= 35 ? 'badge-caution' : 'badge-safe'));
-        }
-
-        const urlEl = document.getElementById('urlHeadline');
-        if (urlEl) urlEl.textContent = res.url;
-
-        const summaryEl = document.getElementById('verdictSummary');
-        if (summaryEl) summaryEl.textContent = res.summary;
-
-        const remediationEl = document.getElementById('remediationText');
-        if (remediationEl) remediationEl.textContent = res.mitigation;
-
-        const stepsEl = document.getElementById('inspectionSteps');
-        if (stepsEl && res.layers) {
-            stepsEl.innerHTML = '';
-            res.layers.forEach((layer, index) => {
-                const step = document.createElement('div');
-                step.className = 'step-card';
-                const stepNum = index < 9 ? `0${index + 1}` : `${index + 1}`;
-                const statusColor = layer.status === 'FAIL' ? 'var(--color-threat)' : (layer.status === 'WARN' ? 'var(--color-caution)' : 'var(--color-safe)');
-                const statusText = layer.status === 'FAIL' ? 'MALICIOUS' : (layer.status === 'WARN' ? 'SUSPICIOUS' : 'PASS');
-
-                step.innerHTML = `
-                    <div class="step-number">${stepNum}</div>
-                    <div class="step-content">
-                        <div class="step-header">
-                            <span class="step-title">${layer.title}</span>
-                            <span class="step-status" style="color: ${statusColor};">[${statusText}]</span>
-                        </div>
-                        <p class="step-desc">${layer.description}</p>
-                    </div>
-                `;
-                stepsEl.appendChild(step);
-            });
-        }
-        resultsWrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-
-    // 6. CERT-In Takedown Dossier Modal
+    // 5. CERT-In Takedown Dossier Modal
     const dossierModal = document.getElementById('dossierModal');
     const modalCloseBtn = document.getElementById('modalCloseBtn');
     const dossierText = document.getElementById('dossierText');

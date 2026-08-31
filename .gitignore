@@ -28,6 +28,8 @@ dist/
 # Logs & Temporary Files
 *.log
 *.sqlite3
+*.zip
 website/backend/screenshots/
 .DS_Store
 Thumbs.db
+
