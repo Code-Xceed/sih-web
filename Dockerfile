@@ -15,7 +15,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend and website
 COPY backend/ ./backend/
 COPY website/ ./website/
-COPY run_backend.py .
 
 ENV PORT=8000
 ENV HOST=0.0.0.0
