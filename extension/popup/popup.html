@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GovShield | Indian Sovereign Phishing Detector (SIH)</title>
+    <title>GovShield | AI Phishing Sentinel</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -11,11 +11,11 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Top Bar / Micro Header -->
+        <!-- Compact Brand Bar -->
         <header class="top-bar">
             <div class="brand-row">
-                <span class="brand-main">GovShield</span>
-                <span class="brand-sub">SIH·26</span>
+                <span class="brand-main"><span class="title-fake">Gov</span>Shield</span>
+                <span class="brand-sub">SENTINEL</span>
             </div>
             <div class="status-pill" id="statusPill">
                 <span class="status-dot"></span>
@@ -53,22 +53,34 @@
                                 <p class="verdict-summary-line" id="verdictSummary">Evaluating domain against national cyber defense baseline...</p>
                             </div>
                         </div>
-                        <div class="verdict-actions">
-                            <button id="btnQuickDossier" class="btn-dossier-pill">
-                                <span>📄</span> Copy Incident Report
-                            </button>
-                        </div>
                     </div>
 
-                    <!-- 5 Numbered Inspection Steps -->
-                    <div class="inspection-steps-grid" id="inspectionSteps">
-                        <!-- Injected dynamically -->
+                    <!-- Expandable Forensic Inspection Steps -->
+                    <div class="forensic-section-header">
+                        <span class="forensic-title">FORENSIC INSPECTION</span>
+                        <button id="toggleDetailsBtn" class="btn-toggle-details" type="button">
+                            <span id="toggleDetailsText">Show Details</span>
+                            <span id="toggleDetailsIcon" class="toggle-icon">▾</span>
+                        </button>
+                    </div>
+
+                    <div class="inspection-steps-container collapsed" id="inspectionStepsContainer">
+                        <div class="inspection-steps-grid" id="inspectionSteps">
+                            <!-- Injected dynamically -->
+                        </div>
                     </div>
 
                     <!-- Citizen Advisory -->
                     <div class="advisory-footer">
                         <span style="font-weight: 700; color: var(--text-pure);">ADVISORY:</span>
                         <span id="remediationText" style="flex: 1;">Citizen advice loading...</span>
+                    </div>
+
+                    <!-- Action Bar -->
+                    <div class="verdict-actions-footer">
+                        <button id="btnQuickDossier" class="btn-dossier-pill" type="button">
+                            <span>📄</span> Copy CERT-In Takedown Report
+                        </button>
                     </div>
                 </div>
             </div>

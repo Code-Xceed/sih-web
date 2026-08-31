@@ -16,12 +16,35 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnQuickDossier = document.getElementById("btnQuickDossier");
   const engineLabel = document.getElementById("engineLabel");
 
-  const dossierModal = document.getElementById("dossierModal");
-  const modalCloseBtn = document.getElementById("modalCloseBtn");
-  const dossierText = document.getElementById("dossierText");
-  const copyDossierBtn = document.getElementById("copyDossierBtn");
+  const toggleDetailsBtn = document.getElementById("toggleDetailsBtn");
+  const toggleDetailsText = document.getElementById("toggleDetailsText");
+  const toggleDetailsIcon = document.getElementById("toggleDetailsIcon");
+  const inspectionStepsContainer = document.getElementById("inspectionStepsContainer");
 
-  let currentScanData = null;
+  let isDetailsExpanded = false;
+
+  function setDetailsExpanded(expanded) {
+    isDetailsExpanded = expanded;
+    if (inspectionStepsContainer) {
+      if (expanded) {
+        inspectionStepsContainer.classList.remove("collapsed");
+      } else {
+        inspectionStepsContainer.classList.add("collapsed");
+      }
+    }
+    if (toggleDetailsText) {
+      toggleDetailsText.textContent = expanded ? "Hide Details" : "Show Details";
+    }
+    if (toggleDetailsIcon) {
+      toggleDetailsIcon.textContent = expanded ? "▴" : "▾";
+    }
+  }
+
+  if (toggleDetailsBtn) {
+    toggleDetailsBtn.addEventListener("click", () => {
+      setDetailsExpanded(!isDetailsExpanded);
+    });
+  }
 
   // 1. Render UI with scan data (Exact replica of website logic)
   function renderScanData(data, url) {
@@ -55,12 +78,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (data.verdict === "PHISHING_CLONE") {
         verdictBadge.textContent = "CRITICAL THREAT";
         verdictBadge.className = "verdict-badge-clean badge-threat";
+        setDetailsExpanded(true); // Auto-expand on threats
       } else if (data.verdict === "SUSPICIOUS") {
         verdictBadge.textContent = "SUSPICIOUS DOMAIN";
         verdictBadge.className = "verdict-badge-clean badge-caution";
+        setDetailsExpanded(true); // Auto-expand on caution
       } else {
         verdictBadge.textContent = data.is_genuine_gov_tld ? "VERIFIED OFFICIAL" : "AUTHENTIC WEB";
         verdictBadge.className = "verdict-badge-clean badge-safe";
+        setDetailsExpanded(false); // Default neat collapse on safe
       }
     }
 
