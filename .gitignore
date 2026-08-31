@@ -1,0 +1,33 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.class
+*.pyc
+
+# Local Python Runtime & Virtual Environments
+python_runtime/
+env/
+venv/
+.venv/
+
+# Environment Variables
+.env
+.env.local
+
+# Node / Frontend Build Artifacts
+node_modules/
+website/node_modules/
+website/frontend/node_modules/
+website/backend/node_modules/
+.next/
+website/frontend/.next/
+out/
+build/
+dist/
+
+# Logs & Temporary Files
+*.log
+*.sqlite3
+website/backend/screenshots/
+.DS_Store
+Thumbs.db
