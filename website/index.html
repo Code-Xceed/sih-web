@@ -119,66 +119,69 @@
             </div>
         </header>
 
-        <!-- Hero Section (Exact Match to Design) -->
-        <section class="hero-minimal">
-            <h1 class="hero-title-large">
-                <span class="title-fake">Fake</span> Government<br>Portal Detector.
-            </h1>
-            <p class="hero-tagline">
-                Algorithmic 6-layer scanner identifying typosquatting, subdomain masquerading, and fraudulent clones targeting Indian citizens.
-            </p>
-        </section>
+        <!-- Centered Hero & Input Content -->
+        <div class="hero-center-container">
+            <!-- Hero Section (Exact Match to Design) -->
+            <section class="hero-minimal">
+                <h1 class="hero-title-large">
+                    <span class="title-fake">Fake</span> Government<br>Portal Detector.
+                </h1>
+                <p class="hero-tagline">
+                    Algorithmic 6-layer scanner identifying typosquatting, subdomain masquerading, and fraudulent clones targeting Indian citizens.
+                </p>
+            </section>
 
-        <!-- URL Scanner Core -->
-        <main class="scanner-section">
-            <!-- Search Box -->
-            <div class="search-box-minimal">
-                <input 
-                    type="url" 
-                    id="urlInput" 
-                    class="url-input-clean" 
-                    placeholder="Enter website URL (e.g., https://pmkisan-gov-in-" 
-                    autocomplete="off"
-                    spellcheck="false"
-                >
-                <button id="scanBtn" class="btn-scan-action">
-                    <span>Inspect</span> ↵
-                </button>
-            </div>
+            <!-- URL Scanner Core -->
+            <main class="scanner-section">
+                <!-- Search Box -->
+                <div class="search-box-minimal">
+                    <input 
+                        type="url" 
+                        id="urlInput" 
+                        class="url-input-clean" 
+                        placeholder="Enter website URL (e.g., https://pmkisan-gov-in-" 
+                        autocomplete="off"
+                        spellcheck="false"
+                    >
+                    <button id="scanBtn" class="btn-scan-action">
+                        <span>Inspect</span> ↵
+                    </button>
+                </div>
 
-            <!-- Dynamic Result Card -->
-            <div id="resultsWrapper" style="display: none;">
-                <div class="verdict-card-minimal">
-                    <!-- Verdict Header -->
-                    <div class="verdict-header-block">
-                        <div class="verdict-number-row">
-                            <div class="giant-score" id="scoreNumber">00</div>
-                            <div class="verdict-text-group">
-                                <span id="verdictBadge" class="verdict-badge-clean badge-threat">CRITICAL THREAT</span>
-                                <div class="target-url-line" id="urlHeadline">https://example.com</div>
-                                <p class="verdict-summary-line" id="verdictSummary">Summary loading...</p>
+                <!-- Dynamic Result Card -->
+                <div id="resultsWrapper" style="display: none;">
+                    <div class="verdict-card-minimal">
+                        <!-- Verdict Header -->
+                        <div class="verdict-header-block">
+                            <div class="verdict-number-row">
+                                <div class="giant-score" id="scoreNumber">00</div>
+                                <div class="verdict-text-group">
+                                    <span id="verdictBadge" class="verdict-badge-clean badge-threat">CRITICAL THREAT</span>
+                                    <div class="target-url-line" id="urlHeadline">https://example.com</div>
+                                    <p class="verdict-summary-line" id="verdictSummary">Summary loading...</p>
+                                </div>
+                            </div>
+                            <div class="verdict-actions">
+                                <button id="btnQuickDossier" class="btn-dossier-pill">
+                                    <span>📄</span> Copy Incident Report
+                                </button>
                             </div>
                         </div>
-                        <div class="verdict-actions">
-                            <button id="btnQuickDossier" class="btn-dossier-pill">
-                                <span>📄</span> Copy Incident Report
-                            </button>
+
+                        <!-- 5 Numbered Inspection Steps (Inspo: Image 2 & 3) -->
+                        <div class="inspection-steps-grid" id="inspectionSteps">
+                            <!-- Injected dynamically -->
+                        </div>
+
+                        <!-- Citizen Advisory -->
+                        <div class="advisory-footer">
+                            <span style="font-weight: 700; color: var(--text-pure);">ADVISORY:</span>
+                            <span id="remediationText" style="flex: 1;">Citizen advice loading...</span>
                         </div>
                     </div>
-
-                    <!-- 5 Numbered Inspection Steps (Inspo: Image 2 & 3) -->
-                    <div class="inspection-steps-grid" id="inspectionSteps">
-                        <!-- Injected dynamically -->
-                    </div>
-
-                    <!-- Citizen Advisory -->
-                    <div class="advisory-footer">
-                        <span style="font-weight: 700; color: var(--text-pure);">ADVISORY:</span>
-                        <span id="remediationText" style="flex: 1;">Citizen advice loading...</span>
-                    </div>
                 </div>
-            </div>
-        </main>
+            </main>
+        </div>
     </div>
 
     <!-- CERT-In Dossier Modal -->
