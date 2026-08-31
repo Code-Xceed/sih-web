@@ -3,7 +3,7 @@
  * SIH 2026 Problem Statement SIH1454
  */
 
-let BACKEND_API_BASE = "https://govshield.onrender.com"; // Production Cloud Endpoint
+let BACKEND_API_BASE = "https://govshield-veje.onrender.com"; // Production Cloud Endpoint
 
 // Check for user-configured custom backend URL in storage
 chrome.storage.local.get(["custom_backend_url"], (res) => {
