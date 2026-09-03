@@ -1157,3 +1157,127 @@ body.lite-mode * {
     font-size: 0.66rem;
     margin-top: 4px;
 }
+
+/* Citizen Safety Vectors & Security Checklist */
+.security-checklist-container {
+    padding: 16px 24px;
+    background: #FAFAFA;
+    border-bottom: 1px solid var(--border-hairline);
+}
+
+.checklist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.checklist-title-badge {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--text-pure);
+    text-transform: uppercase;
+}
+
+.checklist-model-badge {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #4F46E5;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    padding: 3px 8px;
+    border-radius: 6px;
+}
+
+.checklist-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+@media (max-width: 650px) {
+    .checklist-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.chk-card {
+    background: #FFFFFF;
+    border: 1px solid var(--border-hairline);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    transition: all 0.2s ease;
+}
+
+.chk-card.chk-critical {
+    border-color: rgba(220, 38, 38, 0.4);
+    background: rgba(254, 242, 242, 0.7);
+}
+
+.chk-card.chk-caution {
+    border-color: rgba(217, 119, 6, 0.35);
+    background: rgba(255, 251, 235, 0.7);
+}
+
+.chk-card.chk-safe {
+    border-color: rgba(22, 163, 74, 0.3);
+    background: rgba(240, 253, 244, 0.6);
+}
+
+.chk-icon-col {
+    font-size: 1.25rem;
+    line-height: 1;
+    margin-top: 2px;
+}
+
+.chk-body {
+    flex: 1;
+}
+
+.chk-heading-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2px;
+}
+
+.chk-heading {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-pure);
+}
+
+.chk-status-pill {
+    font-size: 0.64rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.pill-critical {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+
+.pill-caution {
+    background: #FEF3C7;
+    color: #D97706;
+}
+
+.pill-safe {
+    background: #DCFCE7;
+    color: #16A34A;
+}
+
+.chk-desc {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    line-height: 1.35;
+}
+

@@ -65,6 +65,7 @@ from modules.reference_database import GENUINE_PORTALS
 from modules.content_similarity import text_similarity, dom_similarity
 from modules.lexical_analyzer import LexicalAnalyzer
 from modules.whois_analyzer import WhoisAnalyzer
+from modules.sovereign_ml import SovereignMLClassifier
 
 app = FastAPI(
     title="GovShield Sentinel Grid — Sovereign Cyber Threat Intelligence & Multi-Layer Phishing Defense",
@@ -98,6 +99,7 @@ fusion_engine = FusionEngine()
 certin_reporter = CertInReporter()
 legacy_lexical = LexicalAnalyzer()
 legacy_whois = WhoisAnalyzer()
+sovereign_ml = SovereignMLClassifier.get_instance()
 
 # High-Performance Production Cache (TTL 180s)
 SCAN_CACHE: Dict[str, Dict[str, Any]] = {}
@@ -813,6 +815,25 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
     )
     fused_verdict["blockchain_proof"] = blockchain_proof
     fused_verdict["is_genuine_gov_tld"] = is_gov_tld
+
+    # Step 14: Sovereign ML Inference (XGBoost + Random Forest Ensemble)
+    ml_res = sovereign_ml.predict(normalized_url)
+    fused_verdict["sovereign_ml"] = {
+        "probability": ml_res["ml_phishing_probability"],
+        "is_model_trained": ml_res["is_model_trained"],
+        "model_architecture": "XGBoost (250 trees) + Random Forest (180 trees) Soft Voting Ensemble",
+        "top_contributing_factors": ml_res["top_contributing_factors"]
+    }
+    fused_verdict["security_checklist"] = ml_res["security_checklist"]
+
+    # Align risk if Sovereign ML signals high-confidence clone
+    if ml_res["ml_phishing_probability"] >= 0.75 and not is_gov_tld and fused_verdict["risk_score"] < 75:
+        fused_verdict["risk_score"] = max(fused_verdict["risk_score"], int(ml_res["ml_phishing_probability"] * 100))
+        if fused_verdict["verdict"] == "LEGITIMATE":
+            fused_verdict["verdict"] = "PHISHING_CLONE"
+        for factor in ml_res["top_contributing_factors"]:
+            if factor not in fused_verdict["reasons"]:
+                fused_verdict["reasons"].append(f"Sovereign ML Alert: {factor}")
 
     # Attach forensic evidence modules for frontend & API clients
     fused_verdict["url"] = normalized_url

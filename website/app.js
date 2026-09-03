@@ -516,6 +516,108 @@ document.addEventListener('DOMContentLoaded', () => {
             proofSec65BVal.textContent = res.incident_id ? `${res.incident_id}` : 'Sec 65B Certified';
         }
 
+        // 7.3 Render Citizen Safety Checklist (OTP, Paywalls, Links, Authority)
+        const checklistGrid = document.getElementById('checklistGrid');
+        const mlModelBadge = document.getElementById('mlModelBadge');
+        if (checklistGrid) {
+            checklistGrid.innerHTML = '';
+            const mlData = res.sovereign_ml || {};
+            const chkData = res.security_checklist || {};
+
+            if (mlModelBadge) {
+                const mlProb = mlData.probability !== undefined ? (mlData.probability * 100).toFixed(1) : (score > 50 ? score : 0.0);
+                mlModelBadge.textContent = `SOVEREIGN AI ML: ${mlProb}% PHISHING PROB`;
+                if (isThreat) {
+                    mlModelBadge.style.color = '#DC2626';
+                    mlModelBadge.style.background = 'rgba(220, 38, 38, 0.1)';
+                    mlModelBadge.style.borderColor = 'rgba(220, 38, 38, 0.3)';
+                } else if (isGov) {
+                    mlModelBadge.style.color = '#16A34A';
+                    mlModelBadge.style.background = 'rgba(22, 163, 74, 0.1)';
+                    mlModelBadge.style.borderColor = 'rgba(22, 163, 74, 0.3)';
+                } else {
+                    mlModelBadge.style.color = '#4F46E5';
+                    mlModelBadge.style.background = 'rgba(99, 102, 241, 0.1)';
+                    mlModelBadge.style.borderColor = 'rgba(99, 102, 241, 0.3)';
+                }
+            }
+
+            const items = [
+                {
+                    key: 'otp_credentials',
+                    fallbackIcon: '🔑',
+                    fallbackTitle: currentLang === 'hi' ? 'OTP एवं गोपनीय पहचान' : 'OTP & Citizen Credentials',
+                    fallbackDesc: isThreat
+                        ? (currentLang === 'hi' ? 'खतरा: अपना OTP, आधार नंबर या पासवर्ड यहाँ बिल्कुल न डालें।' : 'CRITICAL RISK: Never enter OTP, Aadhaar, PAN or passwords.')
+                        : (isGov
+                            ? (currentLang === 'hi' ? 'प्रमाणित: राष्ट्रीय सूचना विज्ञान केंद्र (NIC) सुरक्षित पोर्टल।' : 'SAFE: Official Government authentication gateway.')
+                            : (currentLang === 'hi' ? 'सावधानी: गैर-सरकारी पोर्टल। गोपनीय सरकारी OTP यहाँ साझा न करें।' : 'CAUTION: Non-gov service. Do not enter scheme OTPs.')),
+                    status: isThreat ? 'CRITICAL' : (isGov ? 'SAFE' : 'CAUTION'),
+                    statusText: isThreat ? (currentLang === 'hi' ? 'अति संवेदनशील' : 'CRITICAL') : (isGov ? (currentLang === 'hi' ? 'सुरक्षित' : 'SAFE') : (currentLang === 'hi' ? 'सतर्क रहें' : 'CAUTION'))
+                },
+                {
+                    key: 'paywalls_fees',
+                    fallbackIcon: '💳',
+                    fallbackTitle: currentLang === 'hi' ? 'शुल्क, पंजीकरण एवं पेवॉल' : 'Application Fees & Paywalls',
+                    fallbackDesc: isThreat
+                        ? (currentLang === 'hi' ? 'फर्जी शुल्क: सरकारी कल्याणकारी योजनाएँ कोई आवेदन शुल्क या UPI भुगतान नहीं मांगती हैं।' : 'SCAM ALERT: Welfare schemes never charge registration fees or request UPI transfers.')
+                        : (isGov
+                            ? (currentLang === 'hi' ? 'निःशुल्क: कोई अनधिकृत गेटवे या अवैध शुल्क नहीं है।' : 'SAFE: Verified official benefit disbursal platform.')
+                            : (currentLang === 'hi' ? 'सामान्य: गैर-सरकारी सेवा। किसी भी भुगतान से पूर्व पुष्टि करें।' : 'INFO: Standard commercial platform. Verify transactions independently.')),
+                    status: isThreat ? 'CRITICAL' : (isGov ? 'SAFE' : 'INFO'),
+                    statusText: isThreat ? (currentLang === 'hi' ? 'अवैध वसूली' : 'SCAM FEE') : (isGov ? (currentLang === 'hi' ? 'निःशुल्क/वैध' : 'OFFICIAL') : (currentLang === 'hi' ? 'सामान्य' : 'INFO'))
+                },
+                {
+                    key: 'links_redirects',
+                    fallbackIcon: '🔗',
+                    fallbackTitle: currentLang === 'hi' ? 'लिंक एवं डेटा प्रेषण' : 'Link Routing & Exfiltration',
+                    fallbackDesc: isThreat
+                        ? (currentLang === 'hi' ? 'संदिग्ध लिंक: डेटा अनधिकृत सर्वर या टेलीग्राम बॉट पर भेजा जा सकता है।' : 'ALERT: Form actions route data to unauthorized third-party servers.')
+                        : (isGov
+                            ? (currentLang === 'hi' ? 'सुरक्षित: सभी लिंक राष्ट्रीय सूचना विज्ञान केंद्र नेटवर्क में हैं।' : 'SAFE: All endpoints route within authenticated government servers.')
+                            : (currentLang === 'hi' ? 'सामान्य: कोई दुर्भावनापूर्ण रीडायरेक्ट नहीं पाया गया।' : 'SAFE: Standard public web links.')),
+                    status: isThreat ? 'CRITICAL' : 'SAFE',
+                    statusText: isThreat ? (currentLang === 'hi' ? 'असुरक्षित' : 'SUSPICIOUS') : (currentLang === 'hi' ? 'सत्यापित' : 'VERIFIED')
+                },
+                {
+                    key: 'sovereign_accreditation',
+                    fallbackIcon: '🏛️',
+                    fallbackTitle: currentLang === 'hi' ? 'सरकारी मान्यता एवं अधिकार' : 'Sovereign Accreditation',
+                    fallbackDesc: isGov
+                        ? (currentLang === 'hi' ? 'मान्यता प्राप्त: भारत सरकार (NIC) का अधिकृत डिजिटल पोर्टल (.gov.in)।' : 'AUTHENTIC: Accredited by National Informatics Centre (NIC India).')
+                        : (isThreat
+                            ? (currentLang === 'hi' ? 'अनधिकृत: सरकारी योजनाओं की अवैध नकल करने वाला फर्जी पोर्टल।' : 'IMPERSONATION: Fake lookalike mimicking national schemes without authority.')
+                            : (currentLang === 'hi' ? 'गैर-सरकारी: स्वतंत्र सामान्य व्यावसायिक वेब सेवा।' : 'NON-GOV: Independent legitimate commercial web service.')),
+                    status: isGov ? 'SAFE' : (isThreat ? 'CRITICAL' : 'CAUTION'),
+                    statusText: isGov ? (currentLang === 'hi' ? 'सरकारी अधिकृत' : 'GOV.IN') : (isThreat ? (currentLang === 'hi' ? 'फर्जी नकल' : 'FAKE') : (currentLang === 'hi' ? 'गैर-सरकारी' : 'NON-GOV'))
+                }
+            ];
+
+            items.forEach(item => {
+                const liveChk = chkData[item.key] || {};
+                const heading = liveChk.heading || item.fallbackTitle;
+                const desc = liveChk.description || item.fallbackDesc;
+                const icon = liveChk.icon || item.fallbackIcon;
+                const status = liveChk.status || item.status;
+                const pillClass = status === 'CRITICAL' ? 'pill-critical' : (status === 'SAFE' || status === 'AUTHENTIC_GOV' ? 'pill-safe' : 'pill-caution');
+                const cardClass = status === 'CRITICAL' ? 'chk-critical' : (status === 'SAFE' || status === 'AUTHENTIC_GOV' ? 'chk-safe' : 'chk-caution');
+
+                const card = document.createElement('div');
+                card.className = `chk-card ${cardClass}`;
+                card.innerHTML = `
+                    <div class="chk-icon-col">${icon}</div>
+                    <div class="chk-body">
+                        <div class="chk-heading-row">
+                            <span class="chk-heading">${heading}</span>
+                            <span class="chk-status-pill ${pillClass}">[${item.statusText}]</span>
+                        </div>
+                        <p class="chk-desc">${desc}</p>
+                    </div>
+                `;
+                checklistGrid.appendChild(card);
+            });
+        }
+
         // 5 Inspection Steps
         const stepsEl = document.getElementById('inspectionSteps');
         if (stepsEl) {
