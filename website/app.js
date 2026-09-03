@@ -120,19 +120,24 @@ function initLanguages() {
 }
 
 function setLanguage(langCode) {
+  if (!langCode) return;
   currentLang = langCode;
   try { localStorage.setItem('gs_user_lang', langCode); } catch (_) {}
   const langObj = INDIC_LANGUAGES.find(l => l.code === langCode) || INDIC_LANGUAGES[0];
-  currentLangLabel.textContent = langObj.name;
-  document.documentElement.lang = langCode;
+  if (currentLangLabel) currentLangLabel.textContent = langObj.name;
+  if (document.documentElement) document.documentElement.lang = langCode;
 
   // Update selected class in dropdown
-  const options = langOptionsList.querySelectorAll('.lang-option-item');
-  INDIC_LANGUAGES.forEach((item, idx) => {
-    if (options[idx]) {
-      options[idx].classList.toggle('selected', item.code === langCode);
-    }
-  });
+  if (langOptionsList) {
+    const options = langOptionsList.querySelectorAll('.lang-option-item');
+    options.forEach(btn => {
+      btn.classList.toggle('selected', btn.dataset.langCode === langCode);
+    });
+  }
+
+  // Cancel any running audio speech
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  isSpeaking = false;
 
   renderLocalizedUI();
 }
@@ -152,6 +157,15 @@ function renderLocalizedUI() {
   const brandSubtitleEl = document.getElementById('brandSubtitleEl');
   if (brandSubtitleEl) brandSubtitleEl.textContent = t.brandSubtitle;
 
+  const btnOpenDrawerTop = document.getElementById('btnOpenDrawerTop');
+  if (btnOpenDrawerTop) {
+    btnOpenDrawerTop.innerHTML = `<span>♿</span><span>${t.a11yTitle ? t.a11yTitle.split(' ')[0] : 'Accessibility'}</span>`;
+  }
+  const btnOpenDrawerNav = document.getElementById('btnOpenDrawerNav');
+  if (btnOpenDrawerNav) {
+    btnOpenDrawerNav.textContent = `♿ Options (Ctrl+F2)`;
+  }
+
   // Hero
   const heroHeadingEl = document.getElementById('heroHeadingEl');
   if (heroHeadingEl) heroHeadingEl.textContent = t.heroTitlePrefix;
@@ -159,15 +173,29 @@ function renderLocalizedUI() {
   const heroSubtextEl = document.getElementById('heroSubtextEl');
   if (heroSubtextEl) heroSubtextEl.textContent = t.heroSub;
 
-  if (urlInput) urlInput.placeholder = t.placeholder;
-  if (verifyBtnText) verifyBtnText.textContent = t.verifyBtn;
+  const urlInputEl = document.getElementById('urlInput');
+  if (urlInputEl) urlInputEl.placeholder = t.placeholder;
+
+  const verifyBtnTextEl = document.getElementById('verifyBtnText');
+  if (verifyBtnTextEl) verifyBtnTextEl.textContent = t.verifyBtn;
 
   // Static Verdict & AI Analysis Headings
-  if (threatScoreLabelEl) threatScoreLabelEl.textContent = t.threatScoreLabel || "जोखिम स्कोर (Threat Score)";
+  const threatScoreLabel = document.getElementById('threatScoreLabel');
+  if (threatScoreLabel) threatScoreLabel.textContent = t.threatScoreLabel || "जोखिम स्कोर (Threat Score)";
+  
+  const advisoryTitleLabel = document.getElementById('advisoryTitleLabel');
   if (advisoryTitleLabel) advisoryTitleLabel.textContent = t.advisoryTitle || "सलाह:";
+  
+  const aiAnalysisTitle = document.getElementById('aiAnalysisTitle');
   if (aiAnalysisTitle) aiAnalysisTitle.textContent = t.aiSummaryTitle || "AI डोमेन व वेबपेज विश्लेषण";
+  
+  const chipLabelDomain = document.getElementById('chipLabelDomain');
   if (chipLabelDomain) chipLabelDomain.textContent = t.chipDomain || "🌐 डोमेन प्रकार:";
+  
+  const chipLabelContent = document.getElementById('chipLabelContent');
   if (chipLabelContent) chipLabelContent.textContent = t.chipContent || "📄 पेज का उद्देश्य:";
+  
+  const chipLabelForms = document.getElementById('chipLabelForms');
   if (chipLabelForms) chipLabelForms.textContent = t.chipForms || "🛡️ डेटा चोरी जोखिम:";
 
   // 5 Forensic Layer Titles
@@ -183,12 +211,19 @@ function renderLocalizedUI() {
   if (layer5Title) layer5Title.textContent = t.layer5 || '5. डोमेन पंजीकरण व उम्र (Domain Age)';
 
   // Action Buttons
+  const reportBtnLabel = document.getElementById('reportBtnLabel');
   if (reportBtnLabel) reportBtnLabel.textContent = t.reportBtn || "cybercrime.gov.in पर रिपोर्ट करें";
+  
+  const officialGovBtnLabel = document.getElementById('officialGovBtnLabel');
   if (officialGovBtnLabel) officialGovBtnLabel.textContent = t.officialGovBtn || "आधिकारिक पोर्टल पर जाएं";
+  
+  const dossierBtnLabel = document.getElementById('dossierBtnLabel');
   if (dossierBtnLabel) dossierBtnLabel.textContent = t.dossierBtn || "डोजियर डाउनलोड करें";
+  
+  const helpline1930Label = document.getElementById('helpline1930Label');
   if (helpline1930Label) helpline1930Label.textContent = t.helpline1930 || "1930 पर कॉल करें";
 
-  // Speech Audio button
+  // Speech Audio button - ALWAYS update immediately on language change
   updateSpeechButton();
 
   // Citizen Cards
@@ -219,11 +254,49 @@ function renderLocalizedUI() {
   const card3BtnEl = document.getElementById('card3BtnEl');
   if (card3BtnEl) card3BtnEl.textContent = t.card3Btn || t.card1Btn;
 
+  // Accessibility Drawer Text
+  const a11yDrawerTitle = document.getElementById('a11yDrawerTitle');
+  if (a11yDrawerTitle) a11yDrawerTitle.textContent = `${t.a11yTitle || 'Accessibility Options'} UX4G`;
+  const colorContrastHeading = document.getElementById('colorContrastHeading');
+  if (colorContrastHeading) colorContrastHeading.textContent = t.colorAdjust || 'Color & Contrast';
+  const contentAdjustHeading = document.getElementById('contentAdjustHeading');
+  if (contentAdjustHeading) contentAdjustHeading.textContent = t.contentAdjust || 'Content Adjustment';
+
+  const lblMonochrome = document.getElementById('lblMonochrome');
+  if (lblMonochrome) lblMonochrome.textContent = t.monochrome || 'Monochrome';
+  const lblHighSaturate = document.getElementById('lblHighSaturate');
+  if (lblHighSaturate) lblHighSaturate.textContent = t.highSaturate || 'High Saturate';
+  const lblLowSaturate = document.getElementById('lblLowSaturate');
+  if (lblLowSaturate) lblLowSaturate.textContent = t.lowSaturate || 'Low Saturate';
+  const lblDarkMode = document.getElementById('lblDarkMode');
+  if (lblDarkMode) lblDarkMode.textContent = t.darkMode || 'Dark Mode';
+  const lblInvert = document.getElementById('lblInvert');
+  if (lblInvert) lblInvert.textContent = t.invertColors || 'Invert Colors';
+
+  const lblBiggerText = document.getElementById('lblBiggerText');
+  if (lblBiggerText) lblBiggerText.textContent = t.biggerText || 'Bigger Text';
+  const lblLineHeight = document.getElementById('lblLineHeight');
+  if (lblLineHeight) lblLineHeight.textContent = t.lineHeight || 'Line Height';
+  const lblTextSpacing = document.getElementById('lblTextSpacing');
+  if (lblTextSpacing) lblTextSpacing.textContent = t.textSpacing || 'Text Spacing';
+  const lblHighlightLinks = document.getElementById('lblHighlightLinks');
+  if (lblHighlightLinks) lblHighlightLinks.textContent = t.highlightLinks || 'Highlight Links';
+  const lblDyslexia = document.getElementById('lblDyslexia');
+  if (lblDyslexia) lblDyslexia.textContent = t.dyslexiaFont || 'Dyslexia Font';
+  const lblHideImages = document.getElementById('lblHideImages');
+  if (lblHideImages) lblHideImages.textContent = t.hideImages || 'Hide Images';
+  const lblResetAll = document.getElementById('lblResetAll');
+  if (lblResetAll) lblResetAll.textContent = t.resetAll || 'Reset All Options';
+
   // Footer
   const footerAboutEl = document.getElementById('footerAboutEl');
   if (footerAboutEl) footerAboutEl.textContent = t.footerAbout;
   const footerSIHEl = document.getElementById('footerSIHEl');
   if (footerSIHEl) footerSIHEl.textContent = t.footerSIH;
+  const nationalPortalsHeadingEl = document.getElementById('nationalPortalsHeadingEl');
+  if (nationalPortalsHeadingEl) nationalPortalsHeadingEl.textContent = t.nationalPortalsHeading || 'राष्ट्रीय पोर्टल';
+  const emergencyHelplinesHeadingEl = document.getElementById('emergencyHelplinesHeadingEl');
+  if (emergencyHelplinesHeadingEl) emergencyHelplinesHeadingEl.textContent = t.emergencyHelplinesHeading || 'आपातकालीन हेल्पलाइन';
 
   // If active result, refresh verdict strings
   if (activeResult) {
@@ -234,9 +307,27 @@ function renderLocalizedUI() {
 // -------------------------------------------------------------
 // Live Scan Engine (Backend API + Instant Client Fallback)
 // -------------------------------------------------------------
+let isScanInProgress = false;
+
 async function handleScan(targetUrl) {
-  const url = (targetUrl || urlInput.value || '').trim();
-  if (!url) return;
+  if (isScanInProgress) return;
+
+  const urlInputEl = document.getElementById('urlInput') || urlInput;
+  let url = (targetUrl || (urlInputEl ? urlInputEl.value : '') || '').trim();
+  if (!url) {
+    if (urlInputEl) {
+      urlInputEl.focus();
+      urlInputEl.style.outline = '2px solid var(--gov-red)';
+      setTimeout(() => { if (urlInputEl) urlInputEl.style.outline = ''; }, 1200);
+    }
+    return;
+  }
+
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = 'https://' + url;
+  }
+
+  isScanInProgress = true;
 
   // Reset speech synthesis
   if (window.speechSynthesis) window.speechSynthesis.cancel();
@@ -244,9 +335,12 @@ async function handleScan(targetUrl) {
   updateSpeechButton();
 
   // Set loading state
-  btnVerify.disabled = true;
+  const btnVerifyEl = document.getElementById('btnVerify') || btnVerify;
+  const verifyBtnTextEl = document.getElementById('verifyBtnText') || verifyBtnText;
+  if (btnVerifyEl) btnVerifyEl.disabled = true;
+
   const t = UX4G_STRINGS[currentLang] || UX4G_STRINGS['hi'];
-  verifyBtnText.textContent = t.verifying || "जांच जारी है...";
+  if (verifyBtnTextEl) verifyBtnTextEl.textContent = t.verifying || "जांच जारी है...";
 
   // 1. Instant client-side preflight evaluation
   const clientPreflight = scanWebsiteClientSide(url);
@@ -264,7 +358,6 @@ async function handleScan(targetUrl) {
       activeResult = serverData;
       renderVerdict(serverData);
     } else {
-      // Fallback to client heuristic if server errors
       console.warn("Backend API returned status", response.status, "- using client-side engine");
       activeResult = clientPreflight;
       renderVerdict(clientPreflight);
@@ -274,8 +367,9 @@ async function handleScan(targetUrl) {
     activeResult = clientPreflight;
     renderVerdict(clientPreflight);
   } finally {
-    btnVerify.disabled = false;
-    verifyBtnText.textContent = t.verifyBtn || "सत्यापन करें";
+    isScanInProgress = false;
+    if (btnVerifyEl) btnVerifyEl.disabled = false;
+    if (verifyBtnTextEl) verifyBtnTextEl.textContent = t.verifyBtn || "सत्यापन करें";
   }
 }
 
@@ -490,7 +584,6 @@ function renderVerdict(res) {
   // Trigger Acoustic Sound Chime
   playAcousticAlert(type);
 }
-}
 
 // -------------------------------------------------------------
 // Natural Speech Narration Engine
@@ -508,30 +601,32 @@ function handleSpeakVerdict() {
     return;
   }
 
-  if (!activeResult) return;
-
   const t = UX4G_STRINGS[currentLang] || UX4G_STRINGS['hi'];
-  const score = activeResult.risk_score || 0;
-
-  // 1. Play instant acoustic chime
-  if (score >= 66 || activeResult.verdict === 'PHISHING_CLONE') {
-    playAcousticAlert('threat');
-  } else if (score <= 25 || activeResult.verdict === 'LEGITIMATE') {
-    playAcousticAlert('safe');
-  } else {
-    playAcousticAlert('caution');
-  }
-
-  // 2. Build natural script for selected Indic language
   let textToSpeak = "";
-  if (score >= 66 || activeResult.verdict === 'PHISHING_CLONE') {
-    textToSpeak = t.speechThreat || t.advisoryThreat;
-  } else if (score <= 25 || activeResult.verdict === 'LEGITIMATE') {
-    textToSpeak = t.speechSafe || t.advisorySafe;
+  let soundType = 'safe';
+
+  if (activeResult) {
+    const score = activeResult.risk_score || 0;
+    if (score >= 66 || activeResult.verdict === 'PHISHING_CLONE') {
+      soundType = 'threat';
+      textToSpeak = t.speechThreat || t.advisoryThreat;
+    } else if (score <= 25 || activeResult.verdict === 'LEGITIMATE') {
+      soundType = 'safe';
+      textToSpeak = t.speechSafe || t.advisorySafe;
+    } else {
+      soundType = 'caution';
+      textToSpeak = t.speechCaution || t.advisoryCaution;
+    }
   } else {
-    textToSpeak = t.speechCaution || t.advisoryCaution;
+    // If clicked before scanning, speak localized portal instruction
+    soundType = 'safe';
+    textToSpeak = t.heroSub || "आधार, पैन या बैंक विवरण दर्ज करने से पहले जांचें कि वेबसाइट असली है या फर्जी।";
   }
 
+  // 1. Play audio acoustic chime
+  playAcousticAlert(soundType);
+
+  // 2. Build speech synthesis utterance
   const currentLangObj = INDIC_LANGUAGES.find(l => l.code === currentLang) || INDIC_LANGUAGES[0];
   const utterance = new SpeechSynthesisUtterance(textToSpeak);
   utterance.lang = currentLangObj.bcp47 || 'hi-IN';
@@ -546,6 +641,7 @@ function handleSpeakVerdict() {
 
   isSpeaking = true;
   updateSpeechButton();
+
   window.speechSynthesis.cancel();
   setTimeout(() => {
     window.speechSynthesis.speak(utterance);
@@ -554,12 +650,22 @@ function handleSpeakVerdict() {
 
 function updateSpeechButton() {
   const t = UX4G_STRINGS[currentLang] || UX4G_STRINGS['hi'];
-  if (isSpeaking) {
-    btnSpeechTrigger.classList.add('playing');
-    speechBtnText.textContent = t.stopAudio || "आवाज़ बंद करें";
-  } else {
-    btnSpeechTrigger.classList.remove('playing');
-    speechBtnText.textContent = t.listenAudio || "आवाज़ में सुनें";
+  const trigger = document.getElementById('btnSpeechTrigger');
+  const label = document.getElementById('speechBtnText');
+
+  const text = isSpeaking ? (t.stopAudio || "आवाज़ बंद करें") : (t.listenAudio || "आवाज़ में सुनें");
+  const icon = isSpeaking ? "⏹️" : "🔊";
+
+  if (trigger) {
+    if (isSpeaking) {
+      trigger.classList.add('playing');
+    } else {
+      trigger.classList.remove('playing');
+    }
+    trigger.setAttribute('aria-label', text);
+    trigger.innerHTML = `${icon} <span id="speechBtnText">${text}</span>`;
+  } else if (label) {
+    label.textContent = text;
   }
 }
 
@@ -655,12 +761,12 @@ function initAccessibilityDrawer() {
   }
 
   // Auto-detect system dark/light mode and restore saved theme
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+  const prefersDark = (typeof window !== 'undefined' && window.matchMedia) ? window.matchMedia('(prefers-color-scheme: dark)') : null;
   try {
     const savedTheme = localStorage.getItem('gs_theme');
     if (savedTheme) {
       a11yState.colorMode = savedTheme === 'dark' ? 'darkMode' : 'normal';
-    } else if (prefersDark.matches) {
+    } else if (prefersDark && prefersDark.matches) {
       a11yState.colorMode = 'darkMode';
     }
   } catch (_) {}
@@ -668,14 +774,16 @@ function initAccessibilityDrawer() {
   applyA11y();
 
   // Listen for dynamic system theme change if not manually chosen
-  prefersDark.addEventListener('change', (e) => {
-    try {
-      if (!localStorage.getItem('gs_theme')) {
-        a11yState.colorMode = e.matches ? 'darkMode' : 'normal';
-        applyA11y();
-      }
-    } catch (_) {}
-  });
+  if (prefersDark && prefersDark.addEventListener) {
+    prefersDark.addEventListener('change', (e) => {
+      try {
+        if (!localStorage.getItem('gs_theme')) {
+          a11yState.colorMode = e.matches ? 'darkMode' : 'normal';
+          applyA11y();
+        }
+      } catch (_) {}
+    });
+  }
 
   // Color button triggers
   document.querySelectorAll('[data-color]').forEach(btn => {
@@ -714,23 +822,32 @@ function initAccessibilityDrawer() {
   });
 
   // Open/close drawer listeners
-  const openDrawer = () => { a11yDrawerBackdrop.style.display = 'flex'; };
-  const closeDrawer = () => { a11yDrawerBackdrop.style.display = 'none'; };
+  const openDrawer = () => {
+    const backdrop = document.getElementById('a11yDrawerBackdrop');
+    if (backdrop) backdrop.style.display = 'flex';
+  };
+  const closeDrawer = () => {
+    const backdrop = document.getElementById('a11yDrawerBackdrop');
+    if (backdrop) backdrop.style.display = 'none';
+  };
 
-  btnOpenDrawerTop.addEventListener('click', openDrawer);
-  btnOpenDrawerNav.addEventListener('click', openDrawer);
-  btnFabA11y.addEventListener('click', openDrawer);
-  btnCloseDrawer.addEventListener('click', closeDrawer);
+  if (btnOpenDrawerTop) btnOpenDrawerTop.addEventListener('click', openDrawer);
+  if (btnOpenDrawerNav) btnOpenDrawerNav.addEventListener('click', openDrawer);
+  if (btnFabA11y) btnFabA11y.addEventListener('click', openDrawer);
+  if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', closeDrawer);
 
-  a11yDrawerBackdrop.addEventListener('click', (e) => {
-    if (e.target === a11yDrawerBackdrop) closeDrawer();
-  });
+  if (a11yDrawerBackdrop) {
+    a11yDrawerBackdrop.addEventListener('click', (e) => {
+      if (e.target === a11yDrawerBackdrop) closeDrawer();
+    });
+  }
 
   // Global Keyboard Shortcuts
   window.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key === 'F2') {
       e.preventDefault();
-      if (a11yDrawerBackdrop.style.display === 'flex') {
+      const backdrop = document.getElementById('a11yDrawerBackdrop');
+      if (backdrop && backdrop.style.display === 'flex') {
         closeDrawer();
       } else {
         openDrawer();
@@ -738,47 +855,137 @@ function initAccessibilityDrawer() {
     }
     if (e.key === 'Escape') {
       closeDrawer();
-      dossierModalBackdrop.style.display = 'none';
+      const modal = document.getElementById('dossierModalBackdrop');
+      if (modal) modal.style.display = 'none';
     }
   });
 }
 
 // -------------------------------------------------------------
-// Initialization & Event Binding
+// Universal Initialization & Resilient Event Delegator
 // -------------------------------------------------------------
-document.addEventListener('DOMContentLoaded', () => {
+function initApp() {
   initLanguages();
   initAccessibilityDrawer();
 
   // URL Input Enter key
-  urlInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') handleScan();
-  });
+  const input = document.getElementById('urlInput');
+  if (input) {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleScan();
+      }
+    });
+  }
 
-  // Verify Button
-  btnVerify.addEventListener('click', () => handleScan());
+  // Dossier Modal helpers
+  const openDossier = () => {
+    const dPre = document.getElementById('dossierPreText');
+    const dModal = document.getElementById('dossierModalBackdrop');
+    if (dPre) dPre.textContent = generateDossierText();
+    if (dModal) dModal.style.display = 'flex';
+  };
+  const closeDossier = () => {
+    const dModal = document.getElementById('dossierModalBackdrop');
+    if (dModal) dModal.style.display = 'none';
+  };
 
-  // Audio Button
-  btnSpeechTrigger.addEventListener('click', handleSpeakVerdict);
+  // Direct Event Listeners (Fast Path)
+  const vBtn = document.getElementById('btnVerify');
+  if (vBtn) vBtn.addEventListener('click', () => handleScan());
 
-  // Dossier Modal
-  btnOpenDossier.addEventListener('click', () => {
-    dossierPreText.textContent = generateDossierText();
-    dossierModalBackdrop.style.display = 'flex';
-  });
-  btnCloseDossier.addEventListener('click', () => { dossierModalBackdrop.style.display = 'none'; });
-  btnCloseDossierBottom.addEventListener('click', () => { dossierModalBackdrop.style.display = 'none'; });
-  dossierModalBackdrop.addEventListener('click', (e) => {
-    if (e.target === dossierModalBackdrop) dossierModalBackdrop.style.display = 'none';
-  });
+  const sBtn = document.getElementById('btnSpeechTrigger');
+  if (sBtn) sBtn.addEventListener('click', handleSpeakVerdict);
 
-  // Copy Dossier
-  btnCopyDossier.addEventListener('click', () => {
-    navigator.clipboard.writeText(generateDossierText());
-    copyDossierBtnText.textContent = "✅ कॉपीड (Copied!)";
-    setTimeout(() => { copyDossierBtnText.textContent = "कॉपी करें (Copy Dossier)"; }, 2000);
+  const dBtn = document.getElementById('btnOpenDossier');
+  if (dBtn) dBtn.addEventListener('click', openDossier);
+
+  const cdBtn = document.getElementById('btnCloseDossier');
+  if (cdBtn) cdBtn.addEventListener('click', closeDossier);
+
+  const cdbBtn = document.getElementById('btnCloseDossierBottom');
+  if (cdbBtn) cdbBtn.addEventListener('click', closeDossier);
+
+  const cpBtn = document.getElementById('btnCopyDossier');
+  if (cpBtn) {
+    cpBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(generateDossierText());
+      const label = document.getElementById('copyDossierBtnText');
+      if (label) label.textContent = "✅ कॉपीड (Copied!)";
+      setTimeout(() => {
+        if (label) label.textContent = "कॉपी करें (Copy Dossier)";
+      }, 2000);
+    });
+  }
+
+  // Universal Delegated Click Handler (Guarantees clicks work 100% of the time)
+  document.addEventListener('click', (e) => {
+    // 1. Accessibility / Options Drawer triggers
+    const aTrigger = e.target.closest('#btnOpenDrawerTop, #btnOpenDrawerNav, #btnFabA11y');
+    if (aTrigger) {
+      e.preventDefault();
+      const backdrop = document.getElementById('a11yDrawerBackdrop');
+      if (backdrop) backdrop.style.display = 'flex';
+      return;
+    }
+
+    // 2. Accessibility Drawer Close
+    if (e.target.closest('#btnCloseDrawer')) {
+      e.preventDefault();
+      const backdrop = document.getElementById('a11yDrawerBackdrop');
+      if (backdrop) backdrop.style.display = 'none';
+      return;
+    }
+
+    // 3. Verify / Analyse Button
+    if (e.target.closest('#btnVerify')) {
+      e.preventDefault();
+      handleScan();
+      return;
+    }
+
+    // 4. Audio Speech Button
+    if (e.target.closest('#btnSpeechTrigger')) {
+      e.preventDefault();
+      handleSpeakVerdict();
+      return;
+    }
+
+    // 5. Dossier Modal Open
+    if (e.target.closest('#btnOpenDossier')) {
+      e.preventDefault();
+      openDossier();
+      return;
+    }
+
+    // 6. Dossier Modal Close
+    if (e.target.closest('#btnCloseDossier, #btnCloseDossierBottom')) {
+      e.preventDefault();
+      closeDossier();
+      return;
+    }
+
+    // 7. Backdrop clicks outside
+    const dModal = document.getElementById('dossierModalBackdrop');
+    if (e.target === dModal) {
+      closeDossier();
+      return;
+    }
+    const aBackdrop = document.getElementById('a11yDrawerBackdrop');
+    if (e.target === aBackdrop) {
+      if (aBackdrop) aBackdrop.style.display = 'none';
+      return;
+    }
   });
 
   renderLocalizedUI();
   console.log("GovShield Sentinel Grid 3.0 UX4G Frontend initialized.");
-});
+}
+
+// Guarantee execution whether script runs before or after DOMContentLoaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
