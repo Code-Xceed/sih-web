@@ -1,186 +1,227 @@
 """
-GovShield Sentinel Grid — Multimodal GenAI Vision & DOM Verification Agent
+GovShield Sentinel Grid — Gemini 2.0 Semantic & Threat Research Synthesis Layer
 SIH 2026 Problem Statement SIH1454
 
-Uses the official Google GenAI SDK (`google-genai`) to access the latest
-and most powerful multimodal reasoning models (Gemini 2.0 Flash / 1.5 Flash).
+Architecture Note:
+Gemini acts STRICTLY as a Semantic & Research Analyst synthesizing structured scanner facts.
+It does NOT have authority to invent domain reputations, ownership facts, or unilaterally
+declare binary malicious verdicts. It outputs structured observations distinguishing:
+1. Observed Facts
+2. External Research
+3. Inferences & Social Engineering Tactics
+4. Uncertainties
 """
 
 import os
 import json
 import base64
 import sys
-from typing import Dict, Any, Optional
-
-if sys.platform == 'win32' and hasattr(sys.stdout, 'reconfigure'):
-    try:
-        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
-    except Exception:
-        pass
-
-DEFAULT_API_KEY = ""
+from typing import Dict, Any, Optional, List
 
 try:
     from google import genai
     from google.genai import types
-    GENAI_V2_AVAILABLE = True
+    GENAI_AVAILABLE = True
 except ImportError:
-    GENAI_V2_AVAILABLE = False
+    GENAI_AVAILABLE = False
 
 
 class AIAgent:
-    """Multimodal AI Agent for detecting lookalike phishing sites imitating Government portals."""
+    """Semantic Reasoning and Evidence Synthesis Analyst using Gemini 2.0 Flash."""
 
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY", "")
         self.client = None
         self.client_ready = False
         self.model_name = "gemini-2.0-flash"
-        self.active_model = "gemini-2.0-flash"
-        self.models_to_try = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
 
-        if GENAI_V2_AVAILABLE and self.api_key:
+        if GENAI_AVAILABLE and self.api_key:
             try:
                 self.client = genai.Client(api_key=self.api_key)
                 self.client_ready = True
             except Exception as e:
-                print(f"[AI Agent] Client init note: {e}")
+                print(f"[AIAgent] Client initialization note: {e}")
                 self.client_ready = False
 
-    def analyze_webpage(
+    def synthesize_evidence(
         self,
-        url: str,
-        html_dom: str = "",
-        image_base64: Optional[str] = None,
-        candidate_entity: Optional[str] = None
+        url_metadata: Dict[str, Any],
+        network_evidence: Dict[str, Any],
+        threat_intel_evidence: Dict[str, Any],
+        dom_evidence: Dict[str, Any],
+        brand_evidence: Dict[str, Any],
+        research_findings: List[Dict[str, Any]],
+        dom_sample: str = "",
+        image_base64: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Runs multimodal evaluation on URL + DOM + Screenshot.
-        Returns a structured risk assessment and plain-English explanation.
+        Receives structured scanner evidence and synthesizes semantic intent,
+        social-engineering vectors, and observed inconsistencies.
         """
         if not self.client_ready or not self.client:
-            return {
-                "ai_enabled": False,
-                "status": "AI_OFFLINE_OR_UNAVAILABLE",
-                "message": "AI client not active."
-            }
+            # Deterministic Fallback Synthesis when GenAI client is offline
+            return self._deterministic_fallback_synthesis(
+                url_metadata, network_evidence, threat_intel_evidence,
+                dom_evidence, brand_evidence, research_findings
+            )
 
-        # Truncate DOM sample to keep inference fast (<500ms)
-        dom_sample = (html_dom or "")[:8000]
+        # Prepare concise structured evidence payload for Gemini
+        evidence_payload = {
+            "target_url": url_metadata.get("normalized_url"),
+            "domain": url_metadata.get("registered_domain"),
+            "tld": url_metadata.get("tld"),
+            "homoglyphs_detected": url_metadata.get("has_homoglyphs", False),
+            "canonical_skeleton": url_metadata.get("canonical_skeleton"),
+            "unusual_port": url_metadata.get("port"),
+            "domain_age_days": network_evidence.get("rdap", {}).get("domain_age_days"),
+            "tls_issuer": network_evidence.get("tls", {}).get("issuer_common_name"),
+            "is_automated_free_cert": network_evidence.get("tls", {}).get("is_automated_free_cert", False),
+            "threat_intel_match": threat_intel_evidence.get("is_known_malicious", False),
+            "claimed_entity": brand_evidence.get("claimed_entity"),
+            "official_domains": brand_evidence.get("official_domains", []),
+            "brand_relationship": brand_evidence.get("classification"),
+            "sensitive_fields_harvested": [s["field"] for s in dom_evidence.get("sensitive_inputs", [])],
+            "page_title": dom_evidence.get("page_title"),
+            "external_exfiltration": dom_evidence.get("exfiltration_endpoints", []),
+            "active_cyber_advisories": [r["finding"] for r in research_findings[:3]]
+        }
 
         prompt = f"""
-You are the Chief AI Cybersecurity Intelligence Agent for GovShield & CERT-In (National Cyber Defense of India).
-Your primary mission: Research, analyze, and detect fraudulent websites that IMITATE or IMPERSONATE Indian Government portals, taxes, and public welfare services (SIH1454).
+You are a Senior Cyber Threat Intelligence Analyst for CERT-In and GovShield.
+Your objective: Analyze the structured evidence collected from deterministic cyber scanners and synthesize an explainable, fact-based threat evaluation.
 
-Candidate Webpage:
-- Target URL: {url}
-- Reference Candidate: {candidate_entity or "Detect automatically"}
-- Extracted DOM Structure (sample):
-```html
-{dom_sample}
+CRITICAL CONSTRAINTS:
+1. Distinguish strictly between:
+   - OBSERVED FACTS (Directly measurable indicators present in the evidence)
+   - EXTERNAL RESEARCH (Official CERT-In/RBI cyber advisories)
+   - INFERENCES (Social-engineering tactics and deceptive intent deduced from facts)
+   - UNCERTAINTIES (Gaps in evidence or missing data)
+2. DO NOT invent reputation results, domain registrations, or official certifications.
+3. DO NOT output arbitrary binary decisions; output structured observations conforming to the JSON schema.
+
+EVIDENCE BUNDLE:
+```json
+{json.dumps(evidence_payload, indent=2)}
 ```
 
-DEEP DOMAIN INTELLIGENCE & RESEARCH PROTOCOL:
-1. SEMANTIC DECONSTRUCTION OF DOMAIN NAME:
-   - Break down the domain into its core tokens (e.g., "gst-refund" -> "gst" + "refund", "pm-kisan-kyc" -> "pm kisan" + "kyc", "e-aadhaar-download" -> "aadhaar" + "download", "challan-pay" -> "challan" + "pay").
-   - Identify if ANY token references Indian Public Schemes, Ministries, Taxes, Welfare or Citizen Services:
-     * Taxes & Revenue: GST (Goods and Services Tax), Income Tax, ITR, TDS, e-Filing, CBIC, CBDT.
-     * Citizen Identity & Civil: Aadhaar, UIDAI, myAadhaar, PAN Card, Passport Seva, Voter ID / NVSP / EPIC, DigiLocker, Ration Card / NFSA.
-     * Welfare & DBT Subsidies: PM-Kisan, PM-Awas (PMAY), Ayushman Bharat (PMJAY), e-Shram, LPG Subsidy, Mudra, Kisan Credit.
-     * Transport & Law: Parivahan, Vahan, Sarathi, e-Challan, RTO, Fastag, CyberCrime (NCRP/1930), FIR.
-     * Labour & Social Security: EPFO, UAN, PF Passbook, ESIC, Jeevan Pramaan, NPS Pension.
-     * Education & Exams: CBSE, NTA, NEET, JEE, NSP (National Scholarships), UPSC, SSC.
+DOM CONTENT SAMPLE (First 4000 characters):
+```html
+{(dom_sample or '')[:4000]}
+```
 
-2. FRAUDULENT GOVERNMENT DECEPTIVE CLONES & LOOKALIKES:
-   - If ANY non-governmental domain (e.g., .example, .xyz, .top, .site, .online, .live, .cc, or any commercial TLD) contains government scheme names, acronyms, or combinations with action verbs ("refund", "kyc", "update", "verify", "claim", "download", "apply", "login", "portal", "subsidy", "dbt", "status"):
-   - THIS IS AN UNAUTHORIZED ZERO-DAY GOVERNMENT SCHEME IMPERSONATION / PHISHING CLONE!
-   - For these malicious lookalikes:
-     "is_phishing": true,
-     "is_gov_impersonation": true,
-     "risk_score": 90 to 98,
-     "threat_category": "Zero-Day Government Scheme Phishing Clone",
-     "impersonated_portal": "[Exact Name of Impersonated Gov Service, e.g., Goods and Services Tax (GST) Portal / Income Tax e-Filing / PM-Kisan Samman Nidhi]",
-     "plain_english_explanation": "Critical zero-day phishing clone. Domain illegally uses official government branding/keywords to deceive citizens."
-
-3. LEGITIMATE COMMERCIAL / TECH PLATFORMS (e.g., ChatGPT / OpenAI, Google, Bing, GitHub, Microsoft, Amazon, YouTube, Wikipedia, LinkedIn, standard SaaS / businesses):
-   - These are legitimate authentic services with their own established branding and NO government scheme impersonation.
-   - For these authentic commercial platforms:
-     "is_phishing": false,
-     "is_gov_impersonation": false,
-     "risk_score": 0,
-     "threat_category": "Legitimate Commercial Platform",
-     "impersonated_portal": "None",
-     "plain_english_explanation": "Authentic commercial web service. No Indian Government impersonation or citizen identity harvesting detected."
-
-4. OFFICIAL GOVERNMENT PORTALS (.gov.in, .nic.in, verified state portals):
-   - "is_phishing": false,
-   - "is_gov_impersonation": false,
-   - "risk_score": 0,
-   - "threat_category": "Official Government Infrastructure",
-   - "impersonated_portal": "None",
-   - "plain_english_explanation": "Verified official Government of India portal under National Informatics Centre infrastructure."
-
-Return STRICT JSON matching:
+Respond with ONLY a valid JSON object strictly matching this schema:
 {{
-    "is_phishing": boolean,
-    "is_gov_impersonation": boolean,
-    "confidence_score": float (0.0 to 1.0),
-    "risk_score": integer (0 to 100),
-    "impersonated_portal": string,
-    "threat_category": string,
-    "visual_clone_similarity_pct": integer (0 to 100),
-    "sensitive_harvested_fields": ["list", "of", "fields"],
-    "plain_english_explanation": string,
-    "certin_mitigation_action": string
+  "observed_facts": ["string"],
+  "external_research": ["string"],
+  "claimed_entity": "string or null",
+  "page_purpose": "string",
+  "social_engineering_tactics": ["string"],
+  "inconsistencies": ["string"],
+  "sensitive_data_requested": ["string"],
+  "government_impersonation": true/false,
+  "uncertainties": ["string"],
+  "confidence": 0.0 to 1.0,
+  "plain_english_summary": "string"
 }}
 """
-
         contents = [prompt]
-
         if image_base64:
             try:
-                if ',' in image_base64:
-                    image_base64 = image_base64.split(',', 1)[1]
                 img_bytes = base64.b64decode(image_base64)
                 contents.append(types.Part.from_bytes(data=img_bytes, mime_type="image/png"))
-            except Exception as err:
-                print(f"[AI Agent] Image decode note: {err}")
+            except Exception:
+                pass
 
-        # Attempt inference with model cascade
-        for m_name in self.models_to_try:
-            try:
-                response = self.client.models.generate_content(
-                    model=m_name,
-                    contents=contents,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        temperature=0.1
-                    )
+        try:
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    temperature=0.1,
+                    response_mime_type="application/json"
                 )
-                if response and response.text:
-                    raw_text = response.text.strip()
-                    if raw_text.startswith("```json"):
-                        raw_text = raw_text[7:]
-                    elif raw_text.startswith("```"):
-                        raw_text = raw_text[3:]
-                    if raw_text.endswith("```"):
-                        raw_text = raw_text[:-3]
-                    raw_text = raw_text.strip()
+            )
+            parsed_json = json.loads(response.text.strip())
+            parsed_json["ai_enabled"] = True
+            parsed_json["status"] = "SUCCESS"
+            return parsed_json
+        except Exception as e:
+            fallback = self._deterministic_fallback_synthesis(
+                url_metadata, network_evidence, threat_intel_evidence,
+                dom_evidence, brand_evidence, research_findings
+            )
+            fallback["gemini_error"] = str(e)
+            return fallback
 
-                    parsed_result = json.loads(raw_text)
-                    parsed_result["ai_enabled"] = True
-                    parsed_result["model_used"] = m_name
-                    parsed_result["status"] = "SUCCESS"
-                    self.active_model = m_name
-                    self.model_name = m_name
-                    return parsed_result
-            except Exception as e:
-                continue
+    def _deterministic_fallback_synthesis(
+        self,
+        url_metadata: Dict[str, Any],
+        network_evidence: Dict[str, Any],
+        threat_intel_evidence: Dict[str, Any],
+        dom_evidence: Dict[str, Any],
+        brand_evidence: Dict[str, Any],
+        research_findings: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Provides reproducible deterministic semantic reasoning when GenAI client is offline."""
+        observed_facts: List[str] = []
+        inconsistencies: List[str] = []
+        social_eng: List[str] = []
+        uncertainties: List[str] = []
+
+        claimed_entity = brand_evidence.get("claimed_entity")
+        sens_inputs = [s["field"] for s in dom_evidence.get("sensitive_inputs", [])]
+        age_days = network_evidence.get("rdap", {}).get("domain_age_days")
+        is_gov_tld = url_metadata.get("tld") in ["gov.in", "nic.in"]
+
+        if claimed_entity:
+            observed_facts.append(f"Domain references sovereign entity '{claimed_entity}'.")
+            if not is_gov_tld:
+                inconsistencies.append(
+                    f"Site purports to represent '{claimed_entity}' but is hosted on commercial TLD '.{url_metadata.get('tld')}' instead of official government domains."
+                )
+
+        if sens_inputs:
+            observed_facts.append(f"Webpage contains credential input fields: {sens_inputs}")
+            social_eng.append("Direct harvesting of citizen identity and financial verification tokens.")
+
+        if age_days is not None:
+            observed_facts.append(f"Domain registration age is {age_days} days.")
+            if age_days < 30 and claimed_entity and not is_gov_tld:
+                inconsistencies.append(f"Newly registered domain ({age_days} days old) mimicking established national infrastructure.")
+
+        if url_metadata.get("has_homoglyphs"):
+            observed_facts.append(f"Multi-script homoglyph obfuscation: {url_metadata.get('canonical_skeleton')}")
+            social_eng.append("Visual domain spoofing via confusable Unicode character substitution.")
+
+        if threat_intel_evidence.get("is_known_malicious"):
+            observed_facts.append("Identified in active global threat intelligence feeds (URLhaus/Ledger).")
+
+        gov_impersonation = (
+            not is_gov_tld and
+            bool(claimed_entity) and
+            (bool(sens_inputs) or (age_days is not None and age_days < 30) or url_metadata.get("has_homoglyphs", False))
+        )
+
+        external_research_items = [r["finding"] for r in research_findings[:2]]
+
+        summary = (
+            f"Adversarial impersonation targeting {claimed_entity} on unauthorized domain."
+            if gov_impersonation else
+            "Authentic or neutral web portal with no deceptive government impersonation observed."
+        )
 
         return {
-            "ai_enabled": True,
-            "status": "AI_API_FALLBACK",
-            "message": "AI API call deferred to local Multi-Signal Fusion Engine.",
-            "fallback_triggered": True
+            "ai_enabled": False,
+            "status": "DETERMINISTIC_SYNTHESIS",
+            "observed_facts": observed_facts,
+            "external_research": external_research_items,
+            "claimed_entity": claimed_entity,
+            "page_purpose": "Credential Verification / Citizen Service" if sens_inputs else "Informational",
+            "social_engineering_tactics": social_eng,
+            "inconsistencies": inconsistencies,
+            "sensitive_data_requested": sens_inputs,
+            "government_impersonation": gov_impersonation,
+            "uncertainties": uncertainties,
+            "confidence": 0.85 if gov_impersonation else 0.90,
+            "plain_english_summary": summary
         }

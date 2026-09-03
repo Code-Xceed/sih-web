@@ -127,3 +127,7 @@ class HomoglyphAnalyzer:
             "homoglyph_risk": round(min(risk, 1.0), 2),
             "reasons": reasons
         }
+
+    def analyze_domain(self, host: str) -> Dict[str, Any]:
+        """Alias for inspect() to support standard naming conventions."""
+        return self.inspect(host)

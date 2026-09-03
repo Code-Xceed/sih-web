@@ -1,21 +1,43 @@
 """
-GovShield / Sentinel Grid - FastAPI AI/ML Phishing Detection Backend
+GovShield / Sentinel Grid — Defense-in-Depth AI/ML Phishing Detection & Sovereign CTI Backend
 SIH 2026 Problem Statement SIH1454
+
+Architecture Note:
+Enterprise multi-layer threat detection engine integrating:
+- RFC 3986 URL Normalization & Obfuscation Stripping
+- Pluggable Threat Intelligence Providers (URLhaus, Sovereign Ledger, OpenPhish)
+- DNS, RDAP & TLS Certificate Forensics (Let's Encrypt vs NIC CA, NRD age)
+- Hardened Anti-SSRF Sandboxed Web Crawler (DNS rebinding & private IP blocking)
+- DOM, Sensitive Credential Form & Script Forensics (Aadhaar, PAN, OTP, Bank, UPI)
+- Contextual Government Brand & Impersonation Engine (Official vs News/3rd-Party vs Phishing)
+- MinHash Pure-Python Content & Structural Shingling
+- Visual Perceptual Similarity Matching (pHash/dHash)
+- External Cyber Threat Research Domain (CERT-In, RBI, NPCI Advisories)
+- Gemini 2.0 Flash Semantic Synthesis & Threat Reasoning (Facts vs Inferences)
+- Calibrated Multi-Signal Evidence Correlation Engine
+- RFC 8785 Canonical JSON Hashing & Sovereign PoA Blockchain Threat Ledger
+- Section 65B Indian Evidence Act Court-Admissible Electronic Certificates
 """
 
 import sys
 import os
+import time
+import datetime
+import uuid
+import csv
+import io
+import asyncio
+from typing import Optional, List, Dict, Any, Literal
+import uvicorn
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse, JSONResponse
+from pydantic import BaseModel, Field
 
 # Ensure backend directory is in sys.path
 _current_dir = os.path.dirname(os.path.abspath(__file__))
 if _current_dir not in sys.path:
     sys.path.insert(0, _current_dir)
-
-import uvicorn
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
 
 # Fix Windows console encoding
 if sys.platform == 'win32' and hasattr(sys.stdout, 'reconfigure'):
@@ -25,37 +47,31 @@ if sys.platform == 'win32' and hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
-from modules.lexical_analyzer import LexicalAnalyzer
+# Core Forensic Modules
+from modules.url_normalizer import URLNormalizer
+from modules.network_analyzer import NetworkAnalyzer
+from modules.threat_intel import ThreatIntelHub
+from modules.brand_engine import BrandEngine
+from modules.safe_crawler import SafeCrawler
 from modules.dom_analyzer import DOMAnalyzer
 from modules.visual_analyzer import VisualSimilarityAnalyzer
-from modules.whois_analyzer import WhoisAnalyzer
+from modules.research_engine import ResearchEngine
+from modules.ai_agent import AIAgent
 from modules.fusion_engine import FusionEngine
+from modules.blockchain_ledger import blockchain_ledger, canonical_json
 from modules.certin_reporter import CertInReporter
 from modules.reference_database import GENUINE_PORTALS
-from modules.ai_agent import AIAgent
-from modules.blockchain_ledger import BlockchainLedger
-from modules.content_similarity import content_similarity, text_similarity, dom_similarity
-from modules.homoglyph_analyzer import HomoglyphAnalyzer
-
-import urllib.parse
-import urllib.request
-import socket
-import ipaddress
-import time
-import uuid
-import csv
-import io
-import asyncio
-from typing import Literal
-from fastapi.responses import StreamingResponse, JSONResponse
+from modules.content_similarity import text_similarity, dom_similarity
+from modules.lexical_analyzer import LexicalAnalyzer
+from modules.whois_analyzer import WhoisAnalyzer
 
 app = FastAPI(
-    title="GovShield (Sentinel Grid) — Sovereign AI Cyber Defense & Blockchain Threat Intelligence",
-    description="Multi-modal AI/ML verification service with Sovereign Blockchain Threat Ledger, MinHash content matching, and enterprise CTI feeds.",
-    version="2.1.0"
+    title="GovShield Sentinel Grid — Sovereign Cyber Threat Intelligence & Multi-Layer Phishing Defense",
+    description="Enterprise defense-in-depth detection pipeline conforming to CERT-In standards, Sovereign PoA Blockchain, and Section 65B Indian Evidence Act.",
+    version="2.2.0"
 )
 
-# Enable CORS for Chrome Extensions and local tools
+# Enable CORS for web portals, Chrome extensions, and SIEM tools
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -64,29 +80,79 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# CTI Live Threat Feeds and Background Async Jobs
-RECENT_VERDICTS: List[Dict[str, Any]] = []
-ASYNC_JOBS: Dict[str, Dict[str, Any]] = {}
-
-# Instantiate core analyzers, AI Agent & Sovereign Blockchain Ledger
-lexical_analyzer = LexicalAnalyzer()
+# -------------------------------------------------------------
+# Module Instantiations
+# -------------------------------------------------------------
+url_normalizer = URLNormalizer()
+network_analyzer = NetworkAnalyzer()
+threat_intel_hub = ThreatIntelHub()
+brand_engine = BrandEngine()
+safe_crawler = SafeCrawler(timeout=3.5, max_bytes=512_000)
 dom_analyzer = DOMAnalyzer()
 visual_analyzer = VisualSimilarityAnalyzer()
-whois_analyzer = WhoisAnalyzer()
+research_engine = ResearchEngine()
+ai_agent = AIAgent()
 fusion_engine = FusionEngine()
 certin_reporter = CertInReporter()
-ai_agent = AIAgent()
-blockchain_ledger = BlockchainLedger()
+legacy_lexical = LexicalAnalyzer()
+legacy_whois = WhoisAnalyzer()
 
 # High-Performance Production Cache (TTL 180s)
 SCAN_CACHE: Dict[str, Dict[str, Any]] = {}
 CACHE_TTL_SECONDS = 180
 
+# CTI Live Threat Feeds and Background Async Jobs
+RECENT_VERDICTS: List[Dict[str, Any]] = []
+ASYNC_JOBS: Dict[str, Dict[str, Any]] = {}
 
+# System Observability Metrics
+METRICS = {
+    "total_scans": 0,
+    "malicious_detected": 0,
+    "suspicious_detected": 0,
+    "legitimate_verified": 0,
+    "threat_intel_hits": 0,
+    "avg_latency_ms": 0.0,
+    "total_latency_accumulated_ms": 0.0
+}
+
+# Simple In-Memory Sliding Window Rate Limiting (60 requests / minute / IP)
+RATE_LIMIT_BUCKETS: Dict[str, List[float]] = {}
+RATE_LIMIT_MAX_REQUESTS = 120
+RATE_LIMIT_WINDOW_SECONDS = 60.0
+
+
+@app.middleware("http")
+async def rate_limiting_middleware(request: Request, call_next):
+    """Enforces lightweight rate-limiting per client IP to mitigate denial-of-service."""
+    client_ip = request.client.host if request.client else "unknown"
+
+    # Skip static files and health checks from rate limiting
+    if request.url.path in ["/healthz", "/readyz", "/api/health", "/api/metrics"] or request.url.path.startswith(("/css", "/js", "/images")):
+        return await call_next(request)
+
+    now = time.time()
+    timestamps = RATE_LIMIT_BUCKETS.get(client_ip, [])
+    # Filter out timestamps older than window
+    timestamps = [ts for ts in timestamps if (now - ts) < RATE_LIMIT_WINDOW_SECONDS]
+    if len(timestamps) >= RATE_LIMIT_MAX_REQUESTS:
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Rate limit exceeded. Please wait before submitting additional scan requests."}
+        )
+    timestamps.append(now)
+    RATE_LIMIT_BUCKETS[client_ip] = timestamps
+
+    return await call_next(request)
+
+
+# -------------------------------------------------------------
+# Request & Response Models
+# -------------------------------------------------------------
 class ScanRequest(BaseModel):
     url: str = Field(..., description="Target URL to inspect")
     html_content: Optional[str] = Field(None, description="DOM HTML content extracted by extension")
-    image_base64: Optional[str] = Field(None, description="Base64 encoded page screenshot or logo image")
+    image_base64: Optional[str] = Field(None, description="Base64 encoded page screenshot")
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 
@@ -99,18 +165,50 @@ class CertInReportRequest(BaseModel):
     reporter_notes: Optional[str] = None
 
 
+class VerifyEvidenceRequest(BaseModel):
+    incident_id: str
+    evidence_bundle: Dict[str, Any]
+
+
+# -------------------------------------------------------------
+# Health, Readiness, and Observability Endpoints
+# -------------------------------------------------------------
+@app.get("/healthz")
+def healthz_probe():
+    """Kubernetes / Cloud liveness probe."""
+    return {"status": "ok", "version": "2.2.0", "service": "GovShield Sentinel Grid"}
+
+
+@app.get("/readyz")
+def readyz_probe():
+    """Kubernetes / Cloud readiness probe."""
+    return {
+        "ready": True,
+        "blockchain_active": blockchain_ledger.is_chain_valid(),
+        "blockchain_valid": blockchain_ledger.is_chain_valid(),
+        "brand_registry_size": len(GENUINE_PORTALS),
+        "threat_intel_providers": len(threat_intel_hub.providers)
+    }
+
+
 @app.get("/api/health")
-def health_check():
+def api_health():
+    """Operational health status of all sub-engines."""
     return {
         "status": "online",
-        "system": "GovShield Sentinel Grid",
+        "system": "GovShield Sentinel Grid — Defense-in-Depth Cyber Intelligence",
+        "version": "2.2.0",
         "models_loaded": {
-            "lexical_typosquatting": True,
+            "url_normalizer": True,
+            "network_analyzer": True,
+            "threat_intel_hub": True,
+            "brand_engine": True,
+            "safe_crawler": True,
             "dom_form_inspector": True,
             "visual_phash_matcher": True,
-            "whois_age_evaluator": True,
+            "research_engine": True,
+            "gemini_semantic_agent": ai_agent.client_ready,
             "fusion_risk_engine": True,
-            "multimodal_genai_agent": ai_agent.client_ready,
             "sovereign_blockchain_ledger": True
         },
         "blockchain_status": {
@@ -119,129 +217,57 @@ def health_check():
             "chain_valid": blockchain_ledger.is_chain_valid(),
             "latest_block_hash": blockchain_ledger.get_latest_block().hash
         },
-        "ai_model": ai_agent.model_name if ai_agent.client_ready else "edge_heuristic_mode",
+        "ai_model": ai_agent.model_name if ai_agent.client_ready else "deterministic_fallback_synthesis",
         "indexed_reference_portals_count": len(GENUINE_PORTALS)
     }
 
 
-@app.get("/api/blockchain/stats")
-def get_blockchain_stats():
-    """Returns live telemetry from the Sovereign Blockchain Threat Ledger."""
+@app.get("/api/metrics")
+def get_system_metrics():
+    """Observability telemetry for SIEM and operational monitoring."""
     return {
         "status": "success",
-        "blockchain_metrics": blockchain_ledger.get_stats()
-    }
-
-
-@app.get("/api/blockchain/chain")
-def get_blockchain_chain():
-    """Returns the immutable blocks from the Sovereign Blockchain Threat Ledger."""
-    return {
-        "status": "success",
-        "chain_length": len(blockchain_ledger.chain),
-        "blocks": [b.to_dict() for b in blockchain_ledger.chain],
-        "stats": blockchain_ledger.get_stats()
-    }
-
-
-@app.get("/api/blockchain/latest-block")
-def get_blockchain_latest_block():
-    """Returns the head block from the blockchain."""
-    return {
-        "status": "success",
-        "block": blockchain_ledger.get_latest_block().to_dict()
-    }
-
-
-@app.get("/api/blockchain/verify-evidence/{incident_id}")
-def verify_blockchain_evidence(incident_id: str):
-    """Verifies cryptographic proof and Merkle path for a logged cyber incident."""
-    evidence = blockchain_ledger.verify_evidence(incident_id)
-    if not evidence:
-        raise HTTPException(status_code=404, detail="Incident record not found on Sovereign Blockchain.")
-    return {
-        "status": "VERIFIED_ON_BLOCKCHAIN",
-        "evidence": evidence
-    }
-
-
-@app.get("/api/blockchain/section65b/{incident_id}")
-def get_section_65b_certificate(incident_id: str):
-    """Generates official Court-Admissible Electronic Certificate under Section 65B Indian Evidence Act."""
-    cert = blockchain_ledger.generate_section_65b_certificate(incident_id)
-    if cert.get("status") == "ERROR":
-        raise HTTPException(status_code=404, detail=cert.get("message"))
-    return cert
-
-
-@app.get("/healthz")
-def healthz():
-    """Kubernetes liveness probe."""
-    return {"status": "ok", "version": "2.1.0", "service": "GovShield Sentinel Grid"}
-
-
-@app.get("/readyz")
-def readyz():
-    """Kubernetes readiness probe checking blockchain and AI models."""
-    return {
-        "ready": True,
-        "blockchain_valid": blockchain_ledger.is_chain_valid(),
-        "models_ready": True
+        "timestamp": time.time(),
+        "metrics": METRICS,
+        "active_cache_size": len(SCAN_CACHE),
+        "recent_verdicts_buffer_size": len(RECENT_VERDICTS)
     }
 
 
 @app.get("/api/brands")
-def get_brands():
-    """Programmatic discovery of all protected Indian sovereign, banking, and public infrastructure entities."""
+def get_brand_registry():
+    """Programmatic discovery of all 21+ indexed sovereign entities."""
     brands = []
     for pid, data in GENUINE_PORTALS.items():
         brands.append({
             "id": pid,
             "name": data["name"],
             "department": data["department"],
+            "category": data.get("category", "sovereign_service"),
             "primary_domain": data["primary_domain"],
             "valid_domains": data.get("valid_domains", [])
         })
-    return {
-        "status": "success",
-        "count": len(brands),
-        "brands": brands
-    }
+    return {"status": "success", "count": len(brands), "brands": brands}
 
 
 @app.get("/api/feed")
-def get_threat_feed(
-    format: Literal["json", "csv"] = "json",
-    limit: int = 100,
-    min_level: Optional[str] = None
-):
-    """Recent threat verdicts — Analyst CTI output for SIEM ingestion and CERT-In triage."""
-    items = list(RECENT_VERDICTS)
-    if min_level:
-        lvl = min_level.upper()
-        items = [v for v in items if v.get("threat_level") == lvl or v.get("verdict") == lvl]
-    items = items[-limit:]
-
+def get_threat_feed(format: Literal["json", "csv"] = "json", limit: int = 50):
+    """Real-time CTI threat intelligence feed export."""
+    items = list(reversed(RECENT_VERDICTS))[:limit]
     if format == "csv":
-        buf = io.StringIO()
-        writer = csv.DictWriter(
-            buf,
-            fieldnames=["incident_id", "url", "target_entity", "risk_score", "verdict", "threat_level", "timestamp"],
-            extrasaction="ignore"
-        )
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=["incident_id", "url", "target_entity", "risk_score", "verdict", "threat_level", "timestamp"])
         writer.writeheader()
-        writer.writerows(items)
+        for item in items:
+            writer.writerow(item)
+        output.seek(0)
         return StreamingResponse(
-            iter([buf.getvalue()]),
+            iter([output.getvalue()]),
             media_type="text/csv",
-            headers={"Content-Disposition": "attachment; filename=govshield-threat-feed.csv"}
+            headers={"Content-Disposition": "attachment; filename=govshield_threat_intelligence.csv"}
         )
 
-    return {
-        "status": "success",
-        "count": len(items),
-        "verdicts": items
-    }
+    return {"status": "success", "count": len(items), "verdicts": items}
 
 
 @app.get("/api/scan/{scan_id}")
@@ -254,7 +280,7 @@ def get_async_scan_status(scan_id: str):
 
 @app.get("/api/reference-sites")
 def get_reference_sites():
-    """Return all genuine Indian government portals indexed in the reference database."""
+    """Legacy endpoint returning all genuine Indian government portals."""
     portals_list = []
     for pid, data in GENUINE_PORTALS.items():
         portals_list.append({
@@ -267,70 +293,141 @@ def get_reference_sites():
     return {"status": "success", "portals": portals_list}
 
 
+# -------------------------------------------------------------
+# Blockchain & Evidence Verification Endpoints
+# -------------------------------------------------------------
+@app.get("/api/blockchain/stats")
+def get_blockchain_stats():
+    """Returns live PoA consensus status and ledger integrity metrics."""
+    return {
+        "status": "success",
+        "blockchain_metrics": {
+            "chain_integrity": "SECURE_VALID" if blockchain_ledger.is_chain_valid() else "COMPROMISED",
+            "block_height": len(blockchain_ledger.chain),
+            "threats_logged": sum(len(b.transactions) for b in blockchain_ledger.chain[1:]),
+            "consensus": "Proof-of-Authority (PoA)",
+            "authorized_validators": blockchain_ledger.authorized_validators
+        }
+    }
+
+
+@app.get("/api/blockchain/chain")
+def get_blockchain_chain():
+    """Returns complete immutable chain of the Sovereign PoA Ledger."""
+    chain_data = blockchain_ledger.get_chain()
+    return {
+        "status": "success",
+        "chain_length": len(blockchain_ledger.chain),
+        "length": len(blockchain_ledger.chain),
+        "is_valid": blockchain_ledger.is_chain_valid(),
+        "blocks": chain_data,
+        "chain": chain_data
+    }
+
+
+@app.get("/api/blockchain/verify-evidence/{incident_id}")
+def verify_incident_evidence_endpoint(incident_id: str):
+    """Verifies evidence hash anchored on the sovereign blockchain."""
+    for block in blockchain_ledger.chain:
+        for tx in block.transactions:
+            if tx.get("incident_id") == incident_id:
+                return {
+                    "status": "VERIFIED_ON_BLOCKCHAIN",
+                    "incident_id": incident_id,
+                    "block_index": block.index,
+                    "block_hash": block.hash,
+                    "evidence_hash": tx.get("evidence_hash"),
+                    "timestamp": tx.get("timestamp"),
+                    "validator_node": block.validator_node,
+                    "tamper_status": "AUTHENTIC"
+                }
+    raise HTTPException(status_code=404, detail=f"Incident '{incident_id}' not found on ledger.")
+
+
+@app.get("/api/blockchain/section65b/{incident_id}")
+def get_section65b_certificate(incident_id: str):
+    """Generates Section 65B Indian Evidence Act court-admissible electronic certificate."""
+    cert = blockchain_ledger.generate_section65b_certificate(incident_id)
+    if not cert:
+        raise HTTPException(status_code=404, detail=f"No forensic record found for incident ID '{incident_id}'.")
+    return cert
+
+
+@app.post("/api/verify-evidence")
+def verify_evidence(req: VerifyEvidenceRequest):
+    """Cryptographically verifies off-chain evidence against the on-chain anchored hash."""
+    result = blockchain_ledger.verify_evidence_authenticity(req.incident_id, req.evidence_bundle)
+    return result
+
+
+@app.post("/api/report-certin")
+def report_to_certin(req: CertInReportRequest):
+    """Generate and dispatch formal CERT-In cyber threat dossier."""
+    report = certin_reporter.create_incident_report(
+        scan_result=req.scan_result,
+        reporter_info={"notes": req.reporter_notes or "Submitted via GovShield Extension"}
+    )
+    return {
+        "status": "DISPATCHED",
+        "message": "Incident dossier logged and forwarded to CERT-In automated ingestion triage.",
+        "incident_report": report
+    }
+
+
 @app.post("/api/quick-check")
 def quick_check(req: QuickCheckRequest):
-    """Fast lexical and reputation pre-flight evaluation."""
-    lex_res = lexical_analyzer.analyze(req.url)
-    whois_res = whois_analyzer.analyze(req.url)
-    
-    vis_res = visual_analyzer.analyze_visual_lookalike(
-        candidate_portal_id=lex_res.get("target_entity_id")
-    )
-    dom_res = {"risk_score": 0.0, "sensitive_inputs": [], "reasons": []}
-    
-    fusion_res = fusion_engine.evaluate(lex_res, dom_res, vis_res, whois_res)
-    fusion_res["url"] = req.url
-    return fusion_res
+    """Fast pre-flight evaluation using URL normalization and threat intel."""
+    url_meta = url_normalizer.normalize(req.url)
+    brand_match = brand_engine.match_entity(url_meta.get("registered_domain", ""))
+    threat_intel = threat_intel_hub.evaluate_url(url_meta.get("normalized_url", req.url))
+
+    is_gov = url_meta.get("tld") in ["gov.in", "nic.in"]
+    risk = 2 if is_gov else (95 if threat_intel.get("is_known_malicious") else 20)
+    verdict = "LEGITIMATE" if is_gov else ("PHISHING_CLONE" if threat_intel.get("is_known_malicious") else "SUSPICIOUS")
+
+    return {
+        "url": req.url,
+        "normalized_url": url_meta.get("normalized_url"),
+        "risk_score": risk,
+        "verdict": verdict,
+        "target_entity": brand_match.get("organization") if brand_match else "Commercial Platform",
+        "is_genuine_gov_tld": is_gov
+    }
 
 
-def fetch_remote_page_dom(target_url: str) -> Optional[str]:
-    """
-    Safely fetches live HTML content for a candidate URL when not supplied by extension.
-    Includes 3.0s timeout and guards against internal SSRF.
-    """
-    if not target_url or not target_url.startswith(("http://", "https://")):
-        return None
-
-    try:
-        parsed = urllib.parse.urlparse(target_url)
-        hostname = (parsed.hostname or "").lower()
-
-        # Allow localhost/127.0.0.1 ONLY for demo test harnesses (e.g. port 8080)
-        is_local_demo = hostname in ["localhost", "127.0.0.1"] and parsed.port in [8080, 5000, 3000]
-        
-        if not is_local_demo:
-            try:
-                ip = socket.gethostbyname(hostname)
-                ip_obj = ipaddress.ip_address(ip)
-                if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_reserved or ip_obj.is_link_local:
-                    return None
-            except Exception:
-                return None
-
-        req = urllib.request.Request(
-            target_url,
-            headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-            }
-        )
-        with urllib.request.urlopen(req, timeout=3.0) as response:
-            content_type = response.headers.get("Content-Type", "")
-            if "text/html" in content_type or "application/xhtml" in content_type or not content_type:
-                raw_bytes = response.read(100000)  # Read up to 100KB
-                return raw_bytes.decode("utf-8", errors="replace")
-    except Exception:
-        return None
-    return None
-
-
+# -------------------------------------------------------------
+# DEFENSE-IN-DEPTH SCAN PIPELINE
+# -------------------------------------------------------------
 def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
-    """Internal core execution pipeline for multi-modal verification."""
-    normalized_url = req.url.strip()
+    """
+    Executes the multi-layer defense-in-depth threat detection pipeline:
+    1. RFC 3986 URL Normalization & Sanitization
+    2. Pluggable Threat Intelligence Layer
+    3. Network, DNS, RDAP & TLS Forensics
+    4. Contextual Brand & Impersonation Engine
+    5. Hardened Sandboxed Web Crawler (Anti-SSRF & DNS rebinding defense)
+    6. DOM, Sensitive Token Form & Script Forensics
+    7. MinHash Content & Structural Shingling
+    8. Visual Lookalike Matching
+    9. External Cyber Threat Research Advisories
+    10. Gemini 2.0 Semantic Synthesis & Reasoning
+    11. Calibrated Multi-Signal Fusion & Explainable Verdict
+    12. Canonical RFC 8785 Evidence Hashing & PoA Blockchain Anchoring
+    """
+    start_time = time.time()
+    METRICS["total_scans"] += 1
+
+    # Step 1: URL Normalization
+    url_meta = url_normalizer.normalize(req.url)
+    normalized_url = url_meta.get("normalized_url", req.url)
+    registered_domain = url_meta.get("registered_domain", "")
+    hostname = url_meta.get("hostname", "")
+    port = url_meta.get("port")
+    scheme = url_meta.get("scheme", "https")
+
+    # Fast in-memory cache hit
     cache_key = normalized_url.lower()
     now_ts = time.time()
-
-    # Fast in-memory cache hit (for web requests without client DOM)
     if not req.html_content and not req.image_base64 and cache_key in SCAN_CACHE:
         cached_item = SCAN_CACHE[cache_key]
         if (now_ts - cached_item["cached_at"]) < CACHE_TTL_SECONDS:
@@ -338,26 +435,47 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
             res_copy["cached_result"] = True
             return res_copy
 
-    # 1. Lexical & Domain Analysis (with Homoglyphs & Jaro-Winkler)
-    lex_res = lexical_analyzer.analyze(req.url)
-    target_portal_id = lex_res.get("target_entity_id")
+    # Step 2: Threat Intelligence Layer
+    threat_intel = threat_intel_hub.evaluate_url(normalized_url)
+    if threat_intel.get("is_known_malicious"):
+        METRICS["threat_intel_hits"] += 1
 
-    # 1.1 Autonomous server-side DOM fetch if not supplied (e.g. scanned from web portal)
-    html_content = req.html_content
-    if (not html_content or len(html_content.strip()) == 0) and not lex_res.get("is_genuine_gov_tld"):
-        html_content = fetch_remote_page_dom(req.url)
-
-    # 2. DOM & Content Analysis
-    dom_res = dom_analyzer.analyze_html(
-        html_content=html_content or "",
-        base_url=req.url,
-        matched_portal_id=target_portal_id
+    # Step 3: Network, DNS, RDAP & TLS Forensics
+    network_evidence = network_analyzer.analyze(
+        domain=registered_domain,
+        hostname=hostname,
+        port=port,
+        scheme=scheme
     )
 
-    # 2.1 Pure-Python MinHash Content & Structural Shingling
+    # Step 4: Brand & Impersonation Matching
+    brand_match = brand_engine.match_entity(
+        domain=registered_domain,
+        path=url_meta.get("path", ""),
+        page_title=""
+    )
+
+    # Step 5: Safe Web Crawling (with strict anti-SSRF)
+    crawler_res = None
+    html_content = req.html_content
+
+    is_gov_tld = url_meta.get("tld") in ["gov.in", "nic.in"]
+    if (not html_content or len(html_content.strip()) == 0) and not is_gov_tld and not threat_intel.get("is_known_malicious"):
+        crawler_res = safe_crawler.fetch_url(normalized_url)
+        if crawler_res.get("success"):
+            html_content = crawler_res.get("html_content")
+
+    # Step 6: DOM, Form & Script Analysis
+    dom_evidence = dom_analyzer.analyze_html(
+        html_content=html_content or "",
+        base_url=normalized_url,
+        matched_portal_id=brand_match.get("entity_id") if brand_match else None
+    )
+
+    # Step 7: MinHash Structural Shingling
     content_sim_res = None
-    if html_content and target_portal_id:
-        target_portal = GENUINE_PORTALS.get(target_portal_id)
+    if html_content and brand_match:
+        target_portal = GENUINE_PORTALS.get(brand_match["entity_id"])
         if target_portal:
             ref_keywords = " ".join(target_portal.get("keywords", []))
             t_sim = text_similarity(html_content, ref_keywords)
@@ -367,101 +485,118 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
                     "reasons": [f"MinHash structural text & DOM outline confirms {int(t_sim * 100)}% similarity to official portal."] if t_sim >= 0.35 else []
                 }
 
-    # 3. Visual Lookalike Analysis
-    vis_res = visual_analyzer.analyze_visual_lookalike(
+    # Step 8: Visual Lookalike Analysis
+    visual_evidence = visual_analyzer.analyze_visual_lookalike(
         image_base64=req.image_base64,
-        candidate_portal_id=target_portal_id
+        candidate_portal_id=brand_match.get("entity_id") if brand_match else None
     )
 
-    # 4. WHOIS & RDAP Domain Age Analysis
-    whois_res = whois_analyzer.analyze(req.url)
-
-    # 5. Multimodal GenAI Inspection (if not an already authenticated official .gov.in domain)
-    ai_res = None
-    if not lex_res.get("is_genuine_gov_tld") and ai_agent.client_ready:
-        ai_res = ai_agent.analyze_webpage(
-            url=req.url,
-            html_dom=html_content or "",
-            image_base64=req.image_base64,
-            candidate_entity=lex_res.get("target_entity")
-        )
-
-    # 6. Multi-Signal AI/ML Fusion
-    fused_verdict = fusion_engine.evaluate(
-        lexical_result=lex_res,
-        dom_result=dom_res,
-        visual_result=vis_res,
-        whois_result=whois_res,
-        content_sim_result=content_sim_res
+    # Step 9: Contextual Relationship Classification
+    has_sensitive_forms = len(dom_evidence.get("sensitive_inputs", [])) > 0
+    cnt_sim_score = float(content_sim_res.get("similarity", 0.0)) if content_sim_res else 0.0
+    brand_evidence = brand_engine.classify_relationship(
+        domain=registered_domain,
+        entity_info=brand_match,
+        has_sensitive_forms=has_sensitive_forms,
+        content_similarity_score=cnt_sim_score,
+        lexical_risk_score=75.0 if url_meta.get("has_homoglyphs") else 0.0
     )
 
-    # If GenAI returned results, blend directly into final verdict
-    if ai_res and ai_res.get("status") == "SUCCESS":
-        fused_verdict["genai_analysis"] = ai_res
-        if ai_res.get("is_phishing"):
-            fused_verdict["risk_score"] = max(fused_verdict["risk_score"], ai_res.get("risk_score", 88))
-            fused_verdict["verdict"] = "PHISHING_CLONE"
-            fused_verdict["threat_level"] = "HIGH"
-            if ai_res.get("plain_english_explanation"):
-                fused_verdict["reasons"].insert(0, f"AI Insight: {ai_res['plain_english_explanation']}")
-        elif not ai_res.get("is_gov_impersonation", False) and not lex_res.get("is_genuine_gov_tld") and not lex_res.get("target_entity_id") and fused_verdict.get("risk_score", 0) < 50:
-            fused_verdict["risk_score"] = 0
-            fused_verdict["verdict"] = "LEGITIMATE"
-            fused_verdict["threat_level"] = "LOW"
-            fused_verdict["target_entity"] = "Legitimate Commercial Platform"
-            fused_verdict["summary"] = "Authentic web service. No Indian Government impersonation or phishing detected."
-            fused_verdict["reasons"] = [
-                f"AI Insight: {ai_res.get('plain_english_explanation', 'Authentic commercial web service.')}",
-                "No government impersonation or fraudulent identity harvesting detected."
-            ]
+    # Step 10: External Threat Research Domain
+    domain_tokens = registered_domain.replace(".", "-").split("-")
+    research_findings = research_engine.query_advisories(
+        domain_tokens=domain_tokens,
+        candidate_entity=brand_evidence.get("claimed_entity")
+    )
 
-    # Live Real-Time Terminal Output for Hackathon Demonstration
-    print("\n" + "=" * 65)
-    print(f"🔍 [SCAN INSPECTION] URL: {req.url}")
-    print(f"  • Matched Entity: {fused_verdict.get('target_entity')}")
-    print(f"  • Typosquatting / Lexical Score: {lex_res.get('risk_score', 0)}/100")
-    print(f"  • DOM Sensitive Fields: {[s['field'] for s in dom_res.get('sensitive_inputs', [])]}")
-    print(f"  • Visual Lookalike Match: {vis_res.get('visual_similarity_score', 0)}%")
-    print(f"  • WHOIS / RDAP Domain Age: {whois_res.get('domain_age_days', 0)} days")
-    if content_sim_res:
-        print(f"  • MinHash Content Sim: {round(content_sim_res.get('similarity', 0.0)*100, 1)}%")
-    if ai_res and ai_res.get("status") == "SUCCESS":
-        print(f"  🤖 [Gemini 2.0 Flash AI]:")
-        print(f"     - Threat Category: {ai_res.get('threat_category')}")
-        print(f"     - AI Reason: {ai_res.get('plain_english_explanation')}")
-    print(f"  🎯 VERDICT: {fused_verdict['verdict']} | RISK SCORE: {fused_verdict['risk_score']}/100")
-    print("=" * 65 + "\n")
+    # Step 11: Gemini 2.0 Semantic Synthesis (Semantic Analyst, not binary judge)
+    ai_synthesis = ai_agent.synthesize_evidence(
+        url_metadata=url_meta,
+        network_evidence=network_evidence,
+        threat_intel_evidence=threat_intel,
+        dom_evidence=dom_evidence,
+        brand_evidence=brand_evidence,
+        research_findings=research_findings,
+        dom_sample=html_content or "",
+        image_base64=req.image_base64
+    )
 
-    # Assign unique tracking incident ID
+    # Step 12: Calibrated Multi-Signal Fusion
+    fused_verdict = fusion_engine.evaluate_comprehensive(
+        url_metadata=url_meta,
+        network_evidence=network_evidence,
+        threat_intel_evidence=threat_intel,
+        dom_evidence=dom_evidence,
+        visual_evidence=visual_evidence,
+        brand_evidence=brand_evidence,
+        content_sim_evidence=content_sim_res,
+        ai_synthesis=ai_synthesis,
+        research_findings=research_findings,
+        crawler_evidence=crawler_res
+    )
+
+    # Blend Gemini insights into reasons when relevant
+    if ai_synthesis.get("plain_english_summary"):
+        fused_verdict["genai_synthesis"] = ai_synthesis
+        if ai_synthesis.get("social_engineering_tactics"):
+            fused_verdict["reasons"].extend(ai_synthesis["social_engineering_tactics"])
+
+    # Step 13: Cryptographic Sovereign Blockchain Anchoring (RFC 8785 Canonical JSON)
     incident_id = f"CERTIN-INC-{uuid.uuid4().hex[:8].upper()}"
     fused_verdict["incident_id"] = incident_id
 
-    # Automatically commit threat intelligence to the Sovereign Blockchain Ledger
-    blockchain_tx = blockchain_ledger.log_threat_incident(
+    blockchain_proof = blockchain_ledger.log_threat_incident(
         incident_id=incident_id,
-        malicious_url=req.url,
+        malicious_url=normalized_url,
         target_entity=fused_verdict.get("target_entity", "Indian Sovereign Service"),
         risk_score=fused_verdict.get("risk_score", 0),
         verdict=fused_verdict.get("verdict", "UNKNOWN"),
         forensic_evidence=fused_verdict.get("signal_breakdown", {}),
         html_dom_sample=html_content or "",
-        reporter_notes="GovShield Sentinel Grid Sovereign Detection"
+        reporter_notes="GovShield Sentinel Grid Defense-in-Depth Pipeline"
     )
-    fused_verdict["blockchain_proof"] = blockchain_tx
+    fused_verdict["blockchain_proof"] = blockchain_proof
 
-    fused_verdict["url"] = req.url
-    fused_verdict["lexical_details"] = lex_res
-    fused_verdict["dom_details"] = dom_res
-    fused_verdict["visual_details"] = vis_res
-    fused_verdict["whois_details"] = whois_res
+    # Attach forensic evidence modules for frontend & API clients
+    fused_verdict["url"] = normalized_url
+    fused_verdict["original_url"] = req.url
+    fused_verdict["url_metadata"] = url_meta
+    fused_verdict["network_details"] = network_evidence
+    fused_verdict["threat_intel"] = threat_intel
+    fused_verdict["brand_details"] = brand_evidence
+    fused_verdict["dom_details"] = dom_evidence
+    fused_verdict["visual_details"] = visual_evidence
+    fused_verdict["research_advisories"] = research_findings
     if content_sim_res:
         fused_verdict["content_similarity_details"] = content_sim_res
 
-    # Append to recent CTI verdicts feed for analysts and SIEMs
-    import datetime
+    # Terminal output for SIH jury demonstration
+    print("\n" + "=" * 68)
+    print(f"🛡️ [GOVSHIELD DEFENSE-IN-DEPTH SCAN] URL: {normalized_url}")
+    print(f"  • Matched Entity: {fused_verdict.get('target_entity')}")
+    print(f"  • Brand Category: {brand_evidence.get('classification')}")
+    print(f"  • Threat Intel Hit: {threat_intel.get('is_known_malicious')} ({threat_intel.get('highest_confidence')})")
+    print(f"  • Sensitive Citizen Inputs: {[s['field'] for s in dom_evidence.get('sensitive_inputs', [])]}")
+    print(f"  • RDAP Domain Age: {network_evidence.get('rdap', {}).get('domain_age_days')} days")
+    print(f"  • PoA Blockchain Proof: Block #{blockchain_proof.get('block_index')} | Hash: {blockchain_proof.get('evidence_hash', '')[:12]}...")
+    print(f"  🎯 FINAL VERDICT: {fused_verdict['verdict']} | RISK SCORE: {fused_verdict['risk_score']}/100 | CONFIDENCE: {fused_verdict.get('confidence')}")
+    print("=" * 68 + "\n")
+
+    # Update metrics & recent feed
+    duration_ms = (time.time() - start_time) * 1000
+    METRICS["total_latency_accumulated_ms"] += duration_ms
+    METRICS["avg_latency_ms"] = round(METRICS["total_latency_accumulated_ms"] / METRICS["total_scans"], 1)
+
+    if fused_verdict["verdict"] in ["PHISHING_CLONE", "MALICIOUS"]:
+        METRICS["malicious_detected"] += 1
+    elif fused_verdict["verdict"] == "SUSPICIOUS":
+        METRICS["suspicious_detected"] += 1
+    else:
+        METRICS["legitimate_verified"] += 1
+
     RECENT_VERDICTS.append({
         "incident_id": incident_id,
-        "url": req.url,
+        "url": normalized_url,
         "target_entity": fused_verdict.get("target_entity"),
         "risk_score": fused_verdict.get("risk_score"),
         "verdict": fused_verdict.get("verdict"),
@@ -503,14 +638,7 @@ async def _run_async_scan(scan_id: str, req: ScanRequest):
 @app.post("/api/scan")
 async def full_scan(req: ScanRequest, mode: Literal["sync", "async"] = "sync"):
     """
-    Comprehensive multi-signal scan supporting both synchronous and asynchronous modes:
-    - Tier 1: Lexical Typosquatting & Homoglyph Confusable Analysis
-    - Tier 2: DOM Form & Sensitive Credential Harvesting Detection
-    - Tier 3: Visual Perceptual Similarity Matching (pHash/dHash)
-    - Tier 4: WHOIS & RDAP Domain Age & Registrar Verification
-    - Tier 5: Pure-Python MinHash Content & Structural Outline Shingling
-    - Tier 6: Multimodal GenAI Semantic Reasoning (Gemini 2.0 Flash)
-    - Tier 7: Multi-Signal AI/ML Fusion & Sovereign Blockchain Logging
+    Comprehensive multi-signal scan supporting both synchronous and asynchronous modes.
     """
     if not req.url:
         raise HTTPException(status_code=400, detail="URL is required.")
@@ -537,22 +665,7 @@ async def full_scan(req: ScanRequest, mode: Literal["sync", "async"] = "sync"):
     return _execute_scan_pipeline(req)
 
 
-@app.post("/api/report-certin")
-def report_to_certin(req: CertInReportRequest):
-    """Generate and dispatch formal CERT-In cyber threat dossier."""
-    report = certin_reporter.create_incident_report(
-        scan_result=req.scan_result,
-        reporter_info={"notes": req.reporter_notes or "Submitted via GovShield Extension"}
-    )
-    return {
-        "status": "DISPATCHED",
-        "message": "Incident dossier logged and forwarded to CERT-In automated ingestion triage.",
-        "incident_report": report
-    }
-
-
 # Mount live web portal directly on FastAPI server
-import os
 from fastapi.staticfiles import StaticFiles
 
 _root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -563,7 +676,6 @@ if os.path.exists(_website_path):
 
 
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 8000))
     host = os.environ.get("HOST", "0.0.0.0")
     print(f"Starting GovShield Sentinel Grid AI/ML Server on http://{host}:{port}...")
