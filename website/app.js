@@ -57,9 +57,12 @@ document.addEventListener('DOMContentLoaded', () => {
             noticeThreatHeading: "DO NOT ENTER OTP OR BANK PIN",
             noticeThreatDesc: "This is an illegal scam clone trying to steal citizen funds and identity.",
             noticeSafeHeading: "OFFICIAL & SAFE GOVERNMENT PORTAL",
-            noticeSafeDesc: "Verified authentic Government of India national infrastructure.",
+            noticeSafeDesc: "Verified authentic Government of India national infrastructure (.gov.in / .nic.in).",
+            noticeCommercialHeading: "AUTHENTIC WEB PLATFORM (NON-GOV)",
+            noticeCommercialDesc: "Authentic commercial web service. No government portal impersonation detected.",
             noticeCautionHeading: "SUSPICIOUS UNVERIFIED SITE",
             noticeCautionDesc: "Proceed with caution. Never share sensitive OTPs on unofficial links.",
+            advisoryCommercial: "Authentic non-government web service. Standard web browsing is safe.",
             callNotice: "Call 1930",
             showForensics: "Show Technical Forensic Analysis",
             hideForensics: "Hide Technical Forensic Analysis"
@@ -101,9 +104,12 @@ document.addEventListener('DOMContentLoaded', () => {
             noticeThreatHeading: "OTP या बैंक पासवर्ड बिल्कुल न भरें",
             noticeThreatDesc: "यह फर्जी वेबसाइट है। नागरिकों से आधार, बैंक खाता या OTP चुराने का प्रयास।",
             noticeSafeHeading: "प्रमाणित एवं सुरक्षित सरकारी पोर्टल",
-            noticeSafeDesc: "यह भारत सरकार का अधिकृत एवं सत्यापित डिजिटल पोर्टल है।",
+            noticeSafeDesc: "यह भारत सरकार का अधिकृत एवं सत्यापित डिजिटल पोर्टल है (.gov.in / .nic.in)।",
+            noticeCommercialHeading: "प्रमाणित वेब सेवा (गैर-सरकारी)",
+            noticeCommercialDesc: "वैध और सुरक्षित सामान्य वेब सेवा। किसी सरकारी योजना की नकल नहीं है।",
             noticeCautionHeading: "संदिग्ध और अपुष्ट वेबसाइट",
             noticeCautionDesc: "सतर्क रहें। किसी भी गैर-सरकारी लिंक पर गोपनीय OTP साझा न करें।",
+            advisoryCommercial: "यह एक सुरक्षित गैर-सरकारी वेबसाइट है। सामान्य रूप से उपयोग कर सकते हैं।",
             callNotice: "1930 पर कॉल करें",
             showForensics: "तकनीकी फॉरेंसिक विश्लेषण देखें",
             hideForensics: "तकनीकी फॉरेंसिक विश्लेषण छिपाएँ"
@@ -358,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderRealVerdict(scanResult, normalizedUrl);
 
             // Auto voice advisory prompt on threats for rural accessibility
-            if (scanResult.verdict === 'PHISHING_CLONE') {
+            if (scanResult.verdict === 'PHISHING_CLONE' || scanResult.verdict === 'MALICIOUS' || (scanResult.risk_score && scanResult.risk_score >= 60)) {
                 speakAdvisory(dict.speechWarningThreat);
             }
 
@@ -380,12 +386,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const dict = i18n[currentLang];
         const score = Number(res.risk_score) || 0;
+        const isThreat = res.verdict === 'PHISHING_CLONE' || res.verdict === 'MALICIOUS' || score >= 60;
+        const isSuspicious = !isThreat && (res.verdict === 'SUSPICIOUS' || score >= 25);
+        const isGov = Boolean(res.is_genuine_gov_tld || res.category === 'OFFICIAL_GOVERNMENT_PORTAL' || (originalUrl && (originalUrl.includes('.gov.in') || originalUrl.includes('.nic.in'))));
+
         const scoreEl = document.getElementById('scoreNumber');
         if (scoreEl) {
             scoreEl.textContent = score < 10 ? `0${score}` : score;
-            if (score >= 66) {
+            if (isThreat) {
                 scoreEl.style.color = 'var(--color-threat)';
-            } else if (score >= 26) {
+            } else if (isSuspicious) {
                 scoreEl.style.color = 'var(--color-caution)';
             } else {
                 scoreEl.style.color = 'var(--color-safe)';
@@ -394,14 +404,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const badgeEl = document.getElementById('verdictBadge');
         if (badgeEl) {
-            if (res.verdict === 'PHISHING_CLONE') {
+            if (isThreat) {
                 badgeEl.textContent = dict.criticalThreat;
                 badgeEl.className = 'verdict-badge-clean badge-threat';
-            } else if (res.verdict === 'SUSPICIOUS') {
+            } else if (isSuspicious) {
                 badgeEl.textContent = dict.suspiciousDomain;
                 badgeEl.className = 'verdict-badge-clean badge-caution';
+            } else if (isGov) {
+                badgeEl.textContent = dict.verifiedOfficial;
+                badgeEl.className = 'verdict-badge-clean badge-safe';
             } else {
-                badgeEl.textContent = res.is_genuine_gov_tld ? dict.verifiedOfficial : dict.authenticWeb;
+                badgeEl.textContent = dict.authenticWeb;
                 badgeEl.className = 'verdict-badge-clean badge-safe';
             }
         }
@@ -413,16 +426,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (summaryEl) {
             let summaryText = res.summary || "Scan completed.";
             if (currentLang === 'hi') {
-                if (res.verdict === 'PHISHING_CLONE') {
+                if (isThreat) {
                     summaryText = `गंभीर खतरा! यह वेबसाइट ${res.target_entity || 'सरकारी सेवा'} की नकल कर रही है। नागरिकों से आधार और बैंक विवरण चुराने का प्रयास।`;
-                } else if (res.verdict === 'SUSPICIOUS') {
+                } else if (isSuspicious) {
                     summaryText = `संदिग्ध पोर्टल! ${res.target_entity || 'सरकारी सेवा'} के नाम का अनधिकृत उपयोग।`;
+                } else if (isGov) {
+                    summaryText = "प्रमाणित आधिकारिक सरकारी पोर्टल। राष्ट्रीय सूचना विज्ञान केंद्र (NIC) अवसंरचना पर सुरक्षित।";
                 } else {
-                    summaryText = "सुरक्षित वेबसाइट। सरकारी पोर्टल का कोई अनधिकृत क्लोन नहीं पाया गया।";
+                    summaryText = "वैध एवं सुरक्षित सामान्य वेब सेवा। किसी सरकारी योजना की नकल नहीं है।";
                 }
             } else {
-                if (res.target_entity && res.verdict !== 'LEGITIMATE') {
-                    summaryText = `Deceptive impersonation targeting ${res.target_entity}. ${summaryText}`;
+                if (isThreat && res.target_entity) {
+                    summaryText = `CRITICAL FRAUD: Deceptive impersonation targeting ${res.target_entity}. ${res.summary || ''}`;
+                } else if (!isGov && !isThreat && !isSuspicious) {
+                    summaryText = "Authentic commercial web service. No government portal impersonation or citizen identity theft observed.";
                 }
             }
             summaryEl.textContent = summaryText;
@@ -430,12 +447,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const remediationEl = document.getElementById('remediationText');
         if (remediationEl) {
-            if (res.verdict === 'PHISHING_CLONE') {
+            if (isThreat) {
                 remediationEl.textContent = dict.advisoryThreat;
-            } else if (res.verdict === 'SUSPICIOUS') {
+            } else if (isSuspicious) {
                 remediationEl.textContent = dict.advisorySuspicious;
-            } else {
+            } else if (isGov) {
                 remediationEl.textContent = dict.advisorySafe;
+            } else {
+                remediationEl.textContent = dict.advisoryCommercial;
             }
         }
 
@@ -447,23 +466,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const noticeDialBtn = document.getElementById('noticeDialBtn');
 
         if (villagerBox) {
-            if (res.verdict === 'PHISHING_CLONE') {
+            if (isThreat) {
                 villagerBox.className = 'villager-notice-box notice-threat';
                 if (noticeIcon) noticeIcon.textContent = '🚨';
                 if (noticeHeading) noticeHeading.textContent = dict.noticeThreatHeading;
                 if (noticeDesc) noticeDesc.textContent = dict.noticeThreatDesc;
                 if (noticeDialBtn) noticeDialBtn.style.display = 'inline-flex';
-            } else if (res.verdict === 'SUSPICIOUS') {
+            } else if (isSuspicious) {
                 villagerBox.className = 'villager-notice-box notice-caution';
                 if (noticeIcon) noticeIcon.textContent = '⚠️';
                 if (noticeHeading) noticeHeading.textContent = dict.noticeCautionHeading;
                 if (noticeDesc) noticeDesc.textContent = dict.noticeCautionDesc;
                 if (noticeDialBtn) noticeDialBtn.style.display = 'inline-flex';
-            } else {
+            } else if (isGov) {
                 villagerBox.className = 'villager-notice-box notice-safe';
-                if (noticeIcon) noticeIcon.textContent = '✅';
+                if (noticeIcon) noticeIcon.textContent = '🏛️';
                 if (noticeHeading) noticeHeading.textContent = dict.noticeSafeHeading;
                 if (noticeDesc) noticeDesc.textContent = dict.noticeSafeDesc;
+                if (noticeDialBtn) noticeDialBtn.style.display = 'none';
+            } else {
+                villagerBox.className = 'villager-notice-box notice-safe';
+                if (noticeIcon) noticeIcon.textContent = '🌐';
+                if (noticeHeading) noticeHeading.textContent = dict.noticeCommercialHeading;
+                if (noticeDesc) noticeDesc.textContent = dict.noticeCommercialDesc;
                 if (noticeDialBtn) noticeDialBtn.style.display = 'none';
             }
         }
@@ -534,7 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 {
                     title: dict.step5,
-                    status: (res.verdict === 'PHISHING_CLONE') ? "FAIL" : (res.verdict === 'SUSPICIOUS' ? "WARN" : "PASS"),
+                    status: isThreat ? "FAIL" : (isSuspicious ? "WARN" : "PASS"),
                     description: aiData.plain_english_explanation || (res.reasons && res.reasons.length > 0 ? res.reasons[0] : (currentLang === 'hi' ? "भारत सरकार के संप्रभु साइबर रक्षा आधार पर सत्यापित।" : "Verified against Government of India sovereign defense baseline."))
                 }
             ];

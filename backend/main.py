@@ -812,6 +812,7 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
         reporter_notes="GovShield Sentinel Grid Defense-in-Depth Pipeline"
     )
     fused_verdict["blockchain_proof"] = blockchain_proof
+    fused_verdict["is_genuine_gov_tld"] = is_gov_tld
 
     # Attach forensic evidence modules for frontend & API clients
     fused_verdict["url"] = normalized_url
