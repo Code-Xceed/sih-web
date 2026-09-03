@@ -1481,3 +1481,112 @@ body.ux4g-dark-mode .ux4g-drawer-footer {
 .ux4g-fab-btn:active {
   transform: scale(0.94) !important;
 }
+
+/* =============================================================
+   AI Webpage & Domain Analysis Card (UX4G 3.0 Standard)
+   ============================================================= */
+.ai-analysis-card {
+  background: linear-gradient(135deg, #f8faff 0%, #f1f5fd 100%);
+  border: 1.5px solid #dbeafe;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 14px rgba(92, 60, 246, 0.05);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.ai-analysis-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #5c3cf6 0%, #3b82f6 100%);
+}
+
+.ai-analysis-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ai-analysis-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-sparkle-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.ai-analysis-title {
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: #1e1b4b;
+  margin: 0;
+}
+
+.ai-analysis-subtitle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #6366f1;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ai-confidence-badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  background: #ede9fe;
+  color: #6d28d9;
+  border: 1px solid #c4b5fd;
+  padding: 3px 10px;
+  border-radius: 50px;
+  letter-spacing: 0.3px;
+}
+
+.ai-analysis-summary-text {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: #334155;
+  margin: 0 0 12px 0;
+}
+
+.ai-key-points-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.ai-point-chip {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 7px 11px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+}
+
+.ai-point-chip .chip-label {
+  font-weight: 700;
+  color: #475569;
+}
+
+.ai-point-chip .chip-val {
+  font-weight: 600;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+

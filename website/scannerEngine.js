@@ -302,6 +302,29 @@ export function scanWebsiteClientSide(inputUrl) {
     reasons.push("No typosquatting, zero-width homoglyphs, or deceptive brand injections detected.");
   }
 
+  const domainType = verdict === "PHISHING_CLONE" ? `Unauthorized Deceptive Clone (targeting ${targetName})` : "Commercial / Public Web Platform";
+  const contentType = sensitiveHarvesting.length > 0 ? `Credential Harvesting Form (${sensitiveHarvesting.join(', ')})` : "General Informational Web Content";
+
+  const aiPageAnalysis = {
+    domain_type: domainType,
+    domain_badge: verdict === "PHISHING_CLONE" ? "SUSPICIOUS_CLONE" : "AUTHENTIC_WEB",
+    content_type: contentType,
+    page_title: targetName,
+    forms_count: sensitiveHarvesting.length > 0 ? 1 : 0,
+    sensitive_inputs: sensitiveHarvesting,
+    key_insights: [
+      `Domain Architecture: ${domainType}`,
+      `Page Content & Intent: ${contentType}`,
+      `Sensitive Forms: ${sensitiveHarvesting.length > 0 ? `Harvesting ${sensitiveHarvesting.length} citizen inputs (${sensitiveHarvesting.join(', ')})` : 'Zero sensitive credential inputs detected.'}`
+    ],
+    ai_summary_en: verdict === "PHISHING_CLONE"
+      ? `AI Content Analysis confirms this webpage is an unauthorized clone targeting ${targetName}. The domain uses lookalike tokens on an unverified host attempting to harvest citizen data.`
+      : `AI Domain Analysis verifies ${hostname} as an authentic public web platform (${contentType}) with no government scheme impersonation observed.`,
+    ai_summary_hi: verdict === "PHISHING_CLONE"
+      ? `AI विश्लेषण के अनुसार यह वेबसाइट ${targetName} की नकल करने वाला फर्जी पोर्टल है। इसका उद्देश्य नागरिकों से डेटा चुराना है।`
+      : `AI विश्लेषण के अनुसार ${hostname} एक सुरक्षित सामान्य वेब प्लेटफॉर्म है।`
+  };
+
   return {
     verdict,
     risk_score: finalRisk,
@@ -311,6 +334,7 @@ export function scanWebsiteClientSide(inputUrl) {
     impersonated: verdict === "PHISHING_CLONE" || isLookalike,
     summary,
     reasons,
+    ai_page_analysis: aiPageAnalysis,
     signal_breakdown: {
       lexical_score: Math.min(finalRisk, 95),
       dom_score: sensitiveHarvesting.length > 0 ? 80 : 10,

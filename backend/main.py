@@ -883,6 +883,16 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
             if factor not in fused_verdict["reasons"]:
                 fused_verdict["reasons"].append(f"Sovereign ML Alert: {factor}")
 
+    # Step 15: Generate Explainable Domain & Webpage AI Content Analysis
+    ai_page_analysis = _safe_step(ai_agent.generate_content_synthesis,
+        normalized_url, url_meta, dom_evidence, brand_evidence,
+        threat_intel, ml_res, html_content or "", fused_verdict,
+        default={},
+        label="AI Content Analysis")
+    fused_verdict["ai_page_analysis"] = ai_page_analysis
+    if ai_page_analysis.get("ai_summary_en"):
+        fused_verdict["ai_summary"] = ai_page_analysis["ai_summary_en"]
+
     # Attach forensic evidence modules for frontend & API clients
     fused_verdict["url"] = normalized_url
     fused_verdict["original_url"] = req.url

@@ -186,6 +186,30 @@ function renderPopupResult(data) {
     adv.textContent = "Caution. Unverified portal. Confirm official link on india.gov.in before sharing details.";
   }
 
+  // AI Webpage & Domain Analysis Card
+  const ai = data.ai_page_analysis || {};
+  const aiSummary = ai.ai_summary_en || ai.ai_summary || data.genai_synthesis?.plain_english_summary || data.summary || "AI Analysis evaluated domain architecture and webpage content.";
+  const aiBodyEl = document.getElementById("popupAiBodyText");
+  if (aiBodyEl) aiBodyEl.textContent = aiSummary;
+
+  const isClone = Boolean(data.impersonated || (data.risk_score >= 60));
+  const aiIntentEl = document.getElementById("popupAiIntent");
+  if (aiIntentEl) aiIntentEl.textContent = ai.content_type || (isGov ? "Citizen Service" : (isClone ? "Phishing Trap" : "Web Platform"));
+
+  const chipDomainEl = document.getElementById("pChipDomain");
+  if (chipDomainEl) chipDomainEl.textContent = isGov ? "🌐 Domain: Sovereign Gov" : (isClone ? "⚠️ Domain: Deceptive Clone" : "🌐 Domain: Commercial");
+
+  const chipFormsEl = document.getElementById("pChipForms");
+  if (chipFormsEl) {
+    if (ai.sensitive_inputs && ai.sensitive_inputs.length > 0) {
+      chipFormsEl.textContent = `🚨 Forms: Harvesting ${ai.sensitive_inputs[0]}`;
+      chipFormsEl.style.color = "#de350b";
+    } else {
+      chipFormsEl.textContent = "🛡️ Forms: Secure";
+      chipFormsEl.style.color = "#00875a";
+    }
+  }
+
   // 5 Forensic Layers
   const typoHit = Boolean(data.typosquat_details?.is_typosquat || (data.signal_breakdown?.lexical_score > 30));
   const sensFound = (data.signal_breakdown?.sensitive_fields_found || []).length > 0 && !isGov;

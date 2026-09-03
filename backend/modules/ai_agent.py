@@ -252,7 +252,8 @@ Respond with ONLY a valid JSON object strictly matching this schema:
         brand_evidence: Dict[str, Any],
         threat_intel_evidence: Dict[str, Any],
         sovereign_ml_evidence: Optional[Dict[str, Any]] = None,
-        html_sample: str = ""
+        html_sample: str = "",
+        verdict_data: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Synthesizes an explainable AI summary by analyzing both the domain and HTML DOM content."""
         hostname = (url_metadata.get("hostname") or "").split(":")[0].lower()
@@ -270,6 +271,11 @@ Respond with ONLY a valid JSON object strictly matching this schema:
         is_known_malicious = threat_intel_evidence.get("is_known_malicious", False)
         ml_prob = (sovereign_ml_evidence or {}).get("probability", 0.0)
 
+        v_score = (verdict_data or {}).get("risk_score", 0)
+        v_verdict = (verdict_data or {}).get("verdict", "")
+        is_critical_threat = v_score >= 60 or v_verdict in ["PHISHING_CLONE", "MALICIOUS"] or is_known_malicious or ml_prob >= 0.70 or (claimed_entity and not is_gov_tld)
+        is_suspicious_domain = (v_score >= 26 or v_verdict == "SUSPICIOUS") and not is_critical_threat and not is_gov_tld
+
         # 1. Classify Domain Architecture
         if is_localhost:
             domain_type = "Local Loopback / Private Dev Host"
@@ -277,9 +283,12 @@ Respond with ONLY a valid JSON object strictly matching this schema:
         elif is_gov_tld:
             domain_type = "Official Indian Sovereign Infrastructure (.gov.in)"
             domain_badge = "SOVEREIGN_GOV"
-        elif is_known_malicious or ml_prob >= 0.70 or (claimed_entity and not is_gov_tld):
-            domain_type = f"Unauthorized Deceptive Clone (targeting {claimed_entity or 'Gov Service'})"
-            domain_badge = "SUSPICIOUS_CLONE"
+        elif is_critical_threat:
+            domain_type = f"Deceptive Phishing Clone ({f'targeting {claimed_entity}' if claimed_entity else f'Threat Score {v_score}/100'})"
+            domain_badge = "CRITICAL_PHISHING_CLONE"
+        elif is_suspicious_domain:
+            domain_type = f"Unverified Suspicious Domain (Score {v_score}/100)"
+            domain_badge = "SUSPICIOUS_DOMAIN"
         else:
             domain_type = "Commercial / Public Web Platform"
             domain_badge = "AUTHENTIC_WEB"
@@ -289,6 +298,8 @@ Respond with ONLY a valid JSON object strictly matching this schema:
             content_type = "Developer API Documentation (Swagger / OpenAPI)"
         elif sens_inputs:
             content_type = f"Credential Harvesting Form ({', '.join(sens_inputs)})"
+        elif is_critical_threat:
+            content_type = "Deceptive Phishing Trap / Social Engineering Form"
         elif forms_count > 0:
             content_type = "Interactive Web Form Page"
         elif "search" in url.lower() or "google" in hostname or "bing" in hostname:
@@ -302,15 +313,47 @@ Respond with ONLY a valid JSON object strictly matching this schema:
         if is_localhost:
             summary_en = f"AI Content Analysis confirms this URL is an internal developer endpoint ({content_type}) running locally on {hostname}. The HTML DOM contains API documentation with zero deceptive government scheme branding, citizen credential traps, or external cyber threats."
             summary_hi = f"AI विश्लेषण के अनुसार यह URL एक स्थानीय डेवलपर एंडपॉइंट ({content_type}) है जो लोकलहोस्ट पर चल रहा है। इस पेज पर कोई फर्जी सरकारी योजना या आधार/OTP चुराने वाला फॉर्म नहीं पाया गया।"
-        elif is_known_malicious or ml_prob >= 0.70 or (claimed_entity and not is_gov_tld):
-            summary_en = f"AI Content Analysis confirms this webpage is an unauthorized clone targeting {claimed_entity or 'Government Services'}. The domain uses lookalike tokens on an unverified commercial host. The HTML content {'contains forms attempting to harvest ' + ', '.join(sens_inputs) if sens_inputs else 'mimics official government scheme branding to deceive citizens'}."
-            summary_hi = f"AI विश्लेषण के अनुसार यह वेबसाइट {claimed_entity or 'सरकारी सेवा'} की नकल करने वाला फर्जी पोर्टल है। इसका उद्देश्य नागरिकों से आधार, बैंक या OTP विवरण चुराना है।"
+        elif is_critical_threat:
+            summary_en = f"AI Content Analysis flags this webpage as an unauthorized deceptive portal ({domain_type}). The domain mimics authentic services or uses suspicious host patterns. DO NOT enter passwords, OTPs, Aadhaar, PAN, or banking credentials here."
+            summary_hi = f"AI विश्लेषण के अनुसार यह वेबसाइट एक फर्जी और जोखिम भरी वेबसाइट ({domain_type}) है। यहाँ अपना पासवर्ड, OTP, आधार या बैंक विवरण कभी दर्ज न करें।"
+        elif is_suspicious_domain:
+            summary_en = f"AI Domain Analysis flags {hostname} with suspicious indicators (Risk Score: {v_score}/100). Exercise caution and verify official links on india.gov.in before sharing sensitive personal details."
+            summary_hi = f"AI विश्लेषण के अनुसार {hostname} एक संदिग्ध और अपुष्ट वेबसाइट है। किसी भी प्रकार की गोपनीय जानकारी साझा करने से पहले जांच करें।"
         elif is_gov_tld:
             summary_en = f"AI Verification confirms this is the authentic sovereign portal for {claimed_entity or 'Government of India'}, accredited under the National Informatics Centre (NIC) national registry. The HTML DOM and TLS encryption conform to national sovereign standards."
             summary_hi = f"AI सत्यापन के अनुसार यह {claimed_entity or 'भारत सरकार'} का आधिकारिक एवं सुरक्षित पोर्टल है जो NIC अवसंरचना पर प्रमाणित है।"
         else:
             summary_en = f"AI Domain Analysis verifies {hostname} as an authentic public web platform ({content_type}). The HTML DOM structure shows normal web operations with zero government scheme impersonation, credential harvesting forms, or unauthorized fee demands."
             summary_hi = f"AI विश्लेषण के अनुसार {hostname} एक सुरक्षित सामान्य वेब प्लेटफॉर्म है। इस पर सरकारी योजनाओं की कोई नकल नहीं पाई गई।"
+
+        # 4. Optional Live Gemini 2.0 Flash Enhancement
+        if self.client_ready and self.client and not is_localhost:
+            try:
+                g_prompt = (
+                    f"You are GovShield AI Cyber Analyst. In 2 concise sentences, summarize this domain and webpage for citizens:\n"
+                    f"URL: {url}\n"
+                    f"Hostname: {hostname}\n"
+                    f"Sovereign .gov.in: {is_gov_tld}\n"
+                    f"Target Entity: {claimed_entity or 'None'}\n"
+                    f"Page Title: {page_title}\n"
+                    f"Detected Sensitive Inputs: {sens_inputs}\n"
+                    f"Explain what this page is and advise whether citizens should enter credentials or avoid it."
+                )
+                g_resp = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=[g_prompt],
+                    config=types.GenerateContentConfig(temperature=0.2, max_output_tokens=150)
+                )
+                if g_resp and g_resp.text:
+                    summary_en = g_resp.text.strip()
+            except Exception:
+                pass
+
+        key_insights = [
+            f"Domain Architecture: {domain_type}",
+            f"Page Content & Intent: {content_type}",
+            f"Sensitive Forms: {f'Harvesting {len(sens_inputs)} citizen input fields ({', '.join(sens_inputs)})' if sens_inputs else 'Zero sensitive credential or biometric inputs detected.'}"
+        ]
 
         return {
             "domain_type": domain_type,
@@ -319,8 +362,10 @@ Respond with ONLY a valid JSON object strictly matching this schema:
             "page_title": page_title or "No HTML Title Specified",
             "forms_count": forms_count,
             "sensitive_inputs": sens_inputs,
+            "key_insights": key_insights,
             "ai_summary_en": summary_en,
             "ai_summary_hi": summary_hi,
+            "ai_summary": summary_en,
             "is_localhost": is_localhost
         }
 

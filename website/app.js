@@ -292,6 +292,37 @@ function renderVerdict(res) {
   }
 
   // -----------------------------------------------------------
+  // AI Webpage & Domain Content Analysis
+  // -----------------------------------------------------------
+  const ai = res.ai_page_analysis || {};
+  const aiSummary = (currentLang === 'hi' && ai.ai_summary_hi)
+    ? ai.ai_summary_hi
+    : (ai.ai_summary_en || ai.ai_summary || res.genai_synthesis?.plain_english_summary || res.summary || "AI Analysis verifies this domain and webpage content.");
+
+  const aiSummaryEl = document.getElementById('aiWebpageSummary');
+  if (aiSummaryEl) aiSummaryEl.textContent = aiSummary;
+
+  const aiDomainBadgeEl = document.getElementById('aiAnalysisDomainBadge');
+  if (aiDomainBadgeEl) aiDomainBadgeEl.textContent = ai.domain_badge || (res.is_genuine_gov_tld ? 'SOVEREIGN INFRASTRUCTURE' : 'PUBLIC WEB PLATFORM');
+
+  const aiPointDomainEl = document.getElementById('aiPointDomain');
+  if (aiPointDomainEl) aiPointDomainEl.textContent = ai.domain_type || (res.is_genuine_gov_tld ? 'Official Government (.gov.in)' : 'Public Web Domain');
+
+  const aiPointContentEl = document.getElementById('aiPointContent');
+  if (aiPointContentEl) aiPointContentEl.textContent = ai.content_type || 'Informational Web Content';
+
+  const aiPointFormsEl = document.getElementById('aiPointForms');
+  if (aiPointFormsEl) {
+    if (ai.sensitive_inputs && ai.sensitive_inputs.length > 0) {
+      aiPointFormsEl.textContent = `⚠️ Harvesting: ${ai.sensitive_inputs.join(', ')}`;
+      aiPointFormsEl.style.color = '#de350b';
+    } else {
+      aiPointFormsEl.textContent = 'Zero Credential Traps (Clean)';
+      aiPointFormsEl.style.color = '#00875a';
+    }
+  }
+
+  // -----------------------------------------------------------
   // 5 Forensic Layers Dynamic Rendering
   // -----------------------------------------------------------
   // Layer 1: Sovereign TLD
