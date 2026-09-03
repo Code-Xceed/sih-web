@@ -151,7 +151,7 @@ function renderPopupResult(data) {
   let icon = "✅";
   let title = "VERIFIED AUTHENTIC";
 
-  if (score >= 66 || data.verdict === "PHISHING_CLONE" || data.verdict === "MALICIOUS") {
+  if (score >= 60 || data.verdict === "PHISHING_CLONE" || data.verdict === "MALICIOUS") {
     type = "threat";
     icon = "🚨";
     title = "CRITICAL PHISHING CLONE";
@@ -160,6 +160,9 @@ function renderPopupResult(data) {
     icon = "⚠️";
     title = "SUSPICIOUS UNVERIFIED";
   }
+
+  // Synchronize browser action badge with current scan result
+  syncBadge(score, data.verdict, isGov);
 
   // Header
   const header = document.getElementById("popupVerdictHeader");
@@ -232,4 +235,44 @@ function speakVerdict(data) {
   utterance.onend = () => { isSpeaking = false; };
   isSpeaking = true;
   window.speechSynthesis.speak(utterance);
+}
+
+function syncBadge(score, verdict, isGov) {
+  let text = "OK";
+  let color = "#00875a";
+
+  if (score >= 60 || verdict === "PHISHING_CLONE" || verdict === "MALICIOUS") {
+    text = "RISK";
+    color = "#de350b";
+  } else if (score >= 26 || verdict === "SUSPICIOUS") {
+    text = "SUSP";
+    color = "#f59e0b";
+  } else if (isGov) {
+    text = "GOV";
+    color = "#00875a";
+  }
+
+  if (chrome && chrome.tabs) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const activeTabId = tabs && tabs[0] ? tabs[0].id : null;
+      if (chrome.action) {
+        if (activeTabId) {
+          chrome.action.setBadgeText({ tabId: activeTabId, text: text });
+          chrome.action.setBadgeBackgroundColor({ tabId: activeTabId, color: color });
+        } else {
+          chrome.action.setBadgeText({ text: text });
+          chrome.action.setBadgeBackgroundColor({ color: color });
+        }
+      }
+      if (chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage({
+          action: "UPDATE_BADGE",
+          tabId: activeTabId,
+          risk_score: score,
+          verdict: verdict,
+          is_genuine_gov_tld: isGov
+        }).catch(() => {});
+      }
+    });
+  }
 }
