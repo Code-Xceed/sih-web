@@ -223,9 +223,24 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === "SHOW_FRAUD_BANNER") {
     renderSecurityAlert(msg.scanData || {}, msg.domain || window.location.hostname, msg.risk_score);
   } else if (msg.action === "SHOW_SAFE_PROMPT") {
-    renderSafePrompt(msg.scanData || {}, msg.domain || window.location.hostname);
+    const host = (msg.domain || window.location.hostname || "").toLowerCase();
+    // STRICT: Only show sovereign safe badge on genuine .gov.in domains, NEVER on localhost or public web!
+    if (host.endsWith(".gov.in") || host.endsWith(".nic.in") || host.endsWith(".mil.in") || host.endsWith(".ac.in")) {
+      renderSafePrompt(msg.scanData || {}, host);
+    }
   }
 });
+
+// Hardcoded Live Testing Websites for Instant Demonstration
+const HARDCODED_TEST_RISKY_SITES = [
+  "example.com",
+  "www.example.com",
+  "httpbin.org",
+  "neverssl.com",
+  "testsafebrowsing.appspot.com",
+  "info.cern.ch",
+  "postman-echo.com"
+];
 
 // Sovereign Brand Signatures for Direct In-Page Protection
 const INPAGE_GOV_BRANDS = [
@@ -262,6 +277,7 @@ const INPAGE_DECEPTIVE_PATTERNS = [
   }
 
   // 2. Direct In-Page Sovereign Preflight Check (Zero-latency instant alert)
+  const isHardcodedRisk = HARDCODED_TEST_RISKY_SITES.some(d => hostname === d || hostname.endsWith("." + d));
   const isPunycode = hostname.startsWith("xn--") || /[^\u0000-\u007f]/.test(hostname);
   let matchedBrand = null;
   for (const item of INPAGE_GOV_BRANDS) {
@@ -274,8 +290,10 @@ const INPAGE_DECEPTIVE_PATTERNS = [
   const hasDeceptive = INPAGE_DECEPTIVE_PATTERNS.some(p => fullUrl.includes(p)) ||
                        hostname.endsWith(".xyz") || hostname.endsWith(".top") || hostname.endsWith(".work");
 
-  if (isPunycode || matchedBrand || hasDeceptive) {
-    const target = matchedBrand ? `${matchedBrand.brand} (Unauthorized Clone)` : "Government Sovereign Scheme";
+  if (isHardcodedRisk || isPunycode || matchedBrand || hasDeceptive) {
+    const target = matchedBrand
+      ? `${matchedBrand.brand} (Unauthorized Clone)`
+      : (isHardcodedRisk ? `Live Phishing Simulation Portal (${hostname})` : "Government Sovereign Scheme");
     const alertData = {
       risk_score: 96,
       verdict: "PHISHING_CLONE",

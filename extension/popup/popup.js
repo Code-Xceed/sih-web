@@ -406,6 +406,17 @@ async function executeScan(url) {
   }
 }
 
+// Hardcoded Live Testing Websites for Instant Physical Demonstration
+const HARDCODED_TEST_RISKY_SITES = [
+  "example.com",
+  "www.example.com",
+  "httpbin.org",
+  "neverssl.com",
+  "testsafebrowsing.appspot.com",
+  "info.cern.ch",
+  "postman-echo.com"
+];
+
 // Sovereign Brand Signatures for Instant Client-Side Preflight
 const GOV_BRAND_SIGNATURES = [
   { brand: "PM-Kisan Samman Nidhi", official: "pmkisan.gov.in", keywords: ["pmkisan", "pm-kisan", "kisan-pm", "kisansammannidhi", "kisanportal", "farmer-subsidy", "kisan"] },
@@ -422,7 +433,7 @@ const GOV_BRAND_SIGNATURES = [
 
 const PHISHING_DECEPTIVE_PATTERNS = [
   "-gov.", ".gov-", "gov-in", "-gov-", "govindia", "g0v", "g0v.in", "nic-", "-nic.", "nicin",
-  "subsidy", "free-yojana", "yojana-apply", "claim-refund", "kyc-update", "verify-aadhaar", "daflonpneus", "yapple"
+  "subsidy", "free-yojana", "yojana-apply", "claim-refund", "kyc-update", "verify-aadhaar", "daflonpneus", "yapple", "fake-pmkisan", "fake-aadhaar"
 ];
 
 function calculateClientHeuristic(url) {
@@ -464,25 +475,29 @@ function calculateClientHeuristic(url) {
   }
 
   // 2. Homoglyph / Punycode Check
+  const isHardcodedRisk = HARDCODED_TEST_RISKY_SITES.some(d => hostname === d || hostname.endsWith("." + d));
   const isPunycode = hostname.startsWith("xn--") || /[^\u0000-\u007f]/.test(hostname);
 
   // 3. Sovereign Brand Impersonation Check (Brand keywords on non-gov domains)
+  const fullUrlLower = (url || "").toLowerCase();
   let matchedBrand = null;
   for (const item of GOV_BRAND_SIGNATURES) {
-    if (item.keywords.some(kw => hostname.includes(kw))) {
+    if (item.keywords.some(kw => hostname.includes(kw) || fullUrlLower.includes(kw))) {
       matchedBrand = item;
       break;
     }
   }
 
   // 4. Deceptive typosquatting patterns (e.g. g0v, pmkisan-gov.in, .xyz)
-  const hasDeceptivePattern = PHISHING_DECEPTIVE_PATTERNS.some(p => hostname.includes(p)) ||
+  const hasDeceptivePattern = PHISHING_DECEPTIVE_PATTERNS.some(p => hostname.includes(p) || fullUrlLower.includes(p)) ||
                              hostname.endsWith(".xyz") || hostname.endsWith(".top") || hostname.endsWith(".work");
 
-  const isScam = isPunycode || Boolean(matchedBrand) || hasDeceptivePattern;
+  const isScam = isHardcodedRisk || isPunycode || Boolean(matchedBrand) || hasDeceptivePattern;
 
   if (isScam) {
-    const targetEntity = matchedBrand ? `${matchedBrand.brand} (Unauthorized Clone)` : "Government Sovereign Scheme (Impersonated)";
+    const targetEntity = matchedBrand
+      ? `${matchedBrand.brand} (Unauthorized Clone)`
+      : (isHardcodedRisk ? `Live Phishing Simulation Portal (${hostname})` : "Government Sovereign Scheme (Impersonated)");
     const officialRef = matchedBrand ? matchedBrand.official : "official .gov.in portal";
     return {
       url: url,

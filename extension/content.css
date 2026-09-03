@@ -371,25 +371,28 @@
 }
 
 /* ==========================================================================
-   3. Bottom Green Prompt Toast (For safe & legitimate websites)
+   3. Bottom Green Prompt Toast (For safe & legitimate sovereign websites)
    ========================================================================== */
 .gs-safe-toast {
   position: fixed !important;
-  bottom: 20px !important;
+  bottom: 24px !important;
   right: 24px !important;
   z-index: 2147483647 !important;
-  background: linear-gradient(135deg, #00875a 0%, #006644 100%) !important;
+  background: linear-gradient(135deg, #065f46 0%, #047857 100%) !important;
   color: #ffffff !important;
-  border-radius: 10px !important;
-  padding: 10px 14px !important;
-  box-shadow: 0 6px 22px rgba(0, 135, 90, 0.38), 0 2px 6px rgba(0, 0, 0, 0.15) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.25) !important;
+  border-radius: 12px !important;
+  padding: 12px 18px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(6, 95, 70, 0.4) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.35) !important;
   display: flex !important;
   align-items: center !important;
-  gap: 10px !important;
-  max-width: 420px !important;
+  gap: 14px !important;
+  min-width: 320px !important;
+  max-width: 480px !important;
+  width: auto !important;
   animation: gsSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
   transition: opacity 0.3s ease, transform 0.3s ease !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
 }
 
 @keyframes gsSlideUp {
@@ -403,7 +406,7 @@
 }
 
 .gs-safe-icon-disc {
-  font-size: 20px !important;
+  font-size: 24px !important;
   line-height: 1 !important;
   flex-shrink: 0 !important;
 }
@@ -411,55 +414,65 @@
 .gs-safe-body {
   display: flex !important;
   flex-direction: column !important;
-  gap: 2px !important;
+  gap: 3px !important;
   flex: 1 !important;
+  overflow: hidden !important;
 }
 
 .gs-safe-title-row {
   display: flex !important;
   align-items: center !important;
-  gap: 6px !important;
+  gap: 8px !important;
+  white-space: nowrap !important;
 }
 
 .gs-safe-heading {
-  font-size: 12.5px !important;
+  font-size: 13.5px !important;
   font-weight: 800 !important;
   color: #ffffff !important;
   line-height: 1.2 !important;
+  white-space: nowrap !important;
+  letter-spacing: 0.2px !important;
 }
 
 .gs-safe-status-pill {
   background: #ffffff !important;
-  color: #006644 !important;
-  font-size: 9.5px !important;
+  color: #065f46 !important;
+  font-size: 10px !important;
   font-weight: 900 !important;
-  padding: 1px 5px !important;
-  border-radius: 3px !important;
-  letter-spacing: 0.3px !important;
+  padding: 2px 7px !important;
+  border-radius: 4px !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
 }
 
 .gs-safe-subtitle {
-  font-size: 11px !important;
-  color: #e2e8f0 !important;
-  line-height: 1.2 !important;
+  font-size: 11.5px !important;
+  color: #d1fae5 !important;
+  line-height: 1.3 !important;
   opacity: 0.95 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 .gs-safe-close-btn {
   background: transparent !important;
   border: none !important;
   color: #ffffff !important;
-  font-size: 13px !important;
+  font-size: 15px !important;
   cursor: pointer !important;
-  opacity: 0.7 !important;
-  padding: 2px 5px !important;
-  border-radius: 4px !important;
+  opacity: 0.75 !important;
+  padding: 4px 6px !important;
+  border-radius: 6px !important;
   line-height: 1 !important;
   flex-shrink: 0 !important;
+  margin-left: 4px !important;
 }
 .gs-safe-close-btn:hover {
   opacity: 1 !important;
-  background: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.2) !important;
 }
 
 @media (max-width: 480px) {

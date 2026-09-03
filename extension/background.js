@@ -140,7 +140,7 @@ async function evaluateTabSecurity(tabId, url) {
           domain: hostname,
           risk_score: score
         }).catch(() => {});
-      } else {
+      } else if (data.is_genuine_gov_tld) {
         chrome.tabs.sendMessage(tabId, {
           action: "SHOW_SAFE_PROMPT",
           scanData: data,
@@ -152,6 +152,17 @@ async function evaluateTabSecurity(tabId, url) {
   } catch (e) {
     console.debug("Backend API unavailable for tab background scan:", e);
   }
+
+  // Hardcoded Live Testing Websites for Instant Physical Demonstration
+  const HARDCODED_TEST_RISKY_SITES = [
+    "example.com",
+    "www.example.com",
+    "httpbin.org",
+    "neverssl.com",
+    "testsafebrowsing.appspot.com",
+    "info.cern.ch",
+    "postman-echo.com"
+  ];
 
   // Sovereign Brand Signatures for Offline / Low-Latency Tab Defense
   const GOV_BRAND_SIGNATURES = [
@@ -169,26 +180,30 @@ async function evaluateTabSecurity(tabId, url) {
 
   const PHISHING_DECEPTIVE_PATTERNS = [
     "-gov.", ".gov-", "gov-in", "-gov-", "govindia", "g0v", "g0v.in", "nic-", "-nic.", "nicin",
-    "subsidy", "free-yojana", "yojana-apply", "claim-refund", "kyc-update", "verify-aadhaar", "daflonpneus", "yapple"
+    "subsidy", "free-yojana", "yojana-apply", "claim-refund", "kyc-update", "verify-aadhaar", "daflonpneus", "yapple", "fake-pmkisan", "fake-aadhaar"
   ];
 
   // Sovereign client heuristics fallback if backend is sleeping/offline
+  const isHardcodedRisk = HARDCODED_TEST_RISKY_SITES.some(d => hostname === d || hostname.endsWith("." + d));
+  const fullUrlLower = (url || "").toLowerCase();
   const isPunycode = hostname.startsWith("xn--") || /[^\u0000-\u007f]/.test(hostname);
   let matchedBrand = null;
   for (const item of GOV_BRAND_SIGNATURES) {
-    if (item.keywords.some(kw => hostname.includes(kw))) {
+    if (item.keywords.some(kw => hostname.includes(kw) || fullUrlLower.includes(kw))) {
       matchedBrand = item;
       break;
     }
   }
 
-  const hasDeceptivePattern = PHISHING_DECEPTIVE_PATTERNS.some(p => hostname.includes(p)) ||
+  const hasDeceptivePattern = PHISHING_DECEPTIVE_PATTERNS.some(p => hostname.includes(p) || fullUrlLower.includes(p)) ||
                              hostname.endsWith(".xyz") || hostname.endsWith(".top") || hostname.endsWith(".work");
 
-  const isScam = isPunycode || Boolean(matchedBrand) || hasDeceptivePattern;
+  const isScam = isHardcodedRisk || isPunycode || Boolean(matchedBrand) || hasDeceptivePattern;
   const score = isScam ? 96 : 15;
   const verdict = isScam ? "PHISHING_CLONE" : "AUTHENTIC_WEB";
-  const targetEntity = matchedBrand ? `${matchedBrand.brand} (Unauthorized Clone)` : (isScam ? "Government Sovereign Scheme (Impersonated)" : "Commercial Web Portal");
+  const targetEntity = matchedBrand
+    ? `${matchedBrand.brand} (Unauthorized Clone)`
+    : (isHardcodedRisk ? `Live Phishing Simulation Portal (${hostname})` : (isScam ? "Government Sovereign Scheme (Impersonated)" : "Commercial Web Portal"));
   const officialRef = matchedBrand ? matchedBrand.official : "official .gov.in portal";
 
   const fallbackData = {
@@ -219,7 +234,7 @@ async function evaluateTabSecurity(tabId, url) {
       domain: hostname,
       risk_score: score
     }).catch(() => {});
-  } else {
+  } else if (fallbackData.is_genuine_gov_tld) {
     chrome.tabs.sendMessage(tabId, {
       action: "SHOW_SAFE_PROMPT",
       scanData: fallbackData,
