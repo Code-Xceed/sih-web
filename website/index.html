@@ -124,6 +124,9 @@
                 <button id="btnOpenBlockchain" class="btn-blockchain-pill" type="button">
                     <span>⛓️</span> <span id="lblBlockchain">Blockchain Ledger</span>
                 </button>
+                <a href="http://localhost:8001" target="_blank" class="btn-mode-pill" style="text-decoration: none; color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.1);" title="Test PhishGuard ML Engine on Port 8001">
+                    <span>🧬</span> <span>PhishGuard ML (8001)</span>
+                </a>
                 <button id="btnToggleLiteMode" class="btn-mode-pill" type="button">
                     <span id="liteModeIcon">⚡</span> <span id="lblLiteMode">Bharat Lite</span>
                 </button>
@@ -228,10 +231,13 @@
                         </div>
 
                         <!-- Collapsible Forensic Details for Villager Simplicity -->
-                        <div class="forensics-collapse-header">
+                        <div class="forensics-collapse-header" style="display: flex; gap: 8px; flex-wrap: wrap;">
                             <button id="btnToggleForensics" class="btn-toggle-forensics" type="button">
                                 <span id="lblToggleForensics">Show Technical Forensic Analysis</span> <span id="toggleForensicsArrow">▾</span>
                             </button>
+                            <a id="btnComparePhishGuard" href="http://localhost:8001" target="_blank" class="btn-toggle-forensics" style="text-decoration: none; border-color: rgba(99, 102, 241, 0.4); color: #a5b4fc;" title="Benchmark this URL against PhishGuard 30-feature ML model">
+                                <span>⚔️ Test on PhishGuard (Port 8001)</span>
+                            </a>
                         </div>
 
                         <!-- 5 Numbered Inspection Steps (Collapsible) -->

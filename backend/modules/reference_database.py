@@ -464,6 +464,16 @@ GENUINE_PORTALS = {
             "layout_type": "employment_portal",
             "has_tricolor_header": True
         }
+    },
+    "paypal": {
+        "id": "paypal",
+        "name": "PayPal Global Payment System",
+        "department": "International Digital Payments",
+        "primary_domain": "paypal.com",
+        "valid_domains": ["paypal.com", "paypal.me"],
+        "keywords": ["paypal", "paypal login", "paypal verify", "paypal security"],
+        "aliases": ["paypal", "paypal-login"],
+        "sensitive_fields": ["email", "password", "card_number", "otp"]
     }
 }
 
@@ -475,9 +485,9 @@ GOVERNMENT_BRAND_TOKENS = {
     "samagra", "shikshaabhiyan", "sarvashiksha", "shiksha-abhiyan", "ssc", "pmvbry",
     "ayushman", "pmjay", "pmay", "rationcard", "ration-card", "voterid", "voter-id",
     "voter", "nvsp", "fastag", "jeevanpramaan", "swachhbharat", "digitalindia",
-    # BFSI & Critical National Payment Systems
+    # BFSI & Critical Payment Systems
     "sbi", "statebank", "onlinesbi", "npci", "upi", "bhim", "paytm", "phonepe",
-    "hdfc", "icici", "pnb", "baroda", "canara"
+    "hdfc", "icici", "pnb", "baroda", "canara", "paypal"
 }
 
 GOVERNMENT_ACTION_TOKENS = {

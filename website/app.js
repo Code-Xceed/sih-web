@@ -566,6 +566,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 stepsEl.appendChild(step);
             });
+        const compBtn = document.getElementById('btnComparePhishGuard');
+        if (compBtn && originalUrl) {
+            compBtn.href = `http://localhost:8001?url=${encodeURIComponent(originalUrl)}`;
         }
 
         resultsWrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
