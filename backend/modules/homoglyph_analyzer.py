@@ -7,9 +7,10 @@ Detects deceptive character spoofing techniques where attackers substitute looka
 characters from Cyrillic, Greek, or special unicode scripts to impersonate official
 government, banking, or citizen portal domains (e.g. Cyrillic 'а' in "pаypal" or "gοv.in").
 """
+from __future__ import annotations
 
 import unicodedata
-from typing import Dict, List, Tuple, Set, Optional
+from typing import Dict, List, Tuple, Set, Optional, Any
 
 # Latin look-alikes from Cyrillic, Greek, and common unicode symbol confusables
 CONFUSABLES: Dict[str, str] = {

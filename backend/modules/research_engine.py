@@ -4,9 +4,10 @@ Maintains an authoritative provenance-tracked repository of cyber advisories fro
 
 Generates structured, timestamped research findings with SHA-256 cryptographic provenance.
 """
+from __future__ import annotations
 
 from dataclasses import dataclass, asdict
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 import hashlib
 import datetime
 import time
