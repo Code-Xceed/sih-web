@@ -265,7 +265,7 @@ Respond with ONLY a valid JSON object strictly matching this schema:
         is_localhost = hostname in ["localhost", "127.0.0.1", "0.0.0.0"] or hostname.endswith(".local") or hostname.startswith("192.168.") or hostname.startswith("10.")
 
         page_title = dom_evidence.get("page_title", "")
-        sens_inputs = [s["field"] for s in dom_evidence.get("sensitive_inputs", [])]
+        sens_inputs = [s.get("field", str(s)) if isinstance(s, dict) else str(s) for s in dom_evidence.get("sensitive_inputs", [])]
         forms_count = dom_evidence.get("forms_detected", 0)
         claimed_entity = brand_evidence.get("claimed_entity")
         is_known_malicious = threat_intel_evidence.get("is_known_malicious", False)
@@ -284,7 +284,11 @@ Respond with ONLY a valid JSON object strictly matching this schema:
             domain_type = "Official Indian Sovereign Infrastructure (.gov.in)"
             domain_badge = "SOVEREIGN_GOV"
         elif is_critical_threat:
-            domain_type = f"Deceptive Phishing Clone ({f'targeting {claimed_entity}' if claimed_entity else f'Threat Score {v_score}/100'})"
+            if claimed_entity:
+                threat_detail = f"targeting {claimed_entity}"
+            else:
+                threat_detail = f"Threat Score {v_score}/100"
+            domain_type = f"Deceptive Phishing Clone ({threat_detail})"
             domain_badge = "CRITICAL_PHISHING_CLONE"
         elif is_suspicious_domain:
             domain_type = f"Unverified Suspicious Domain (Score {v_score}/100)"
@@ -294,10 +298,11 @@ Respond with ONLY a valid JSON object strictly matching this schema:
             domain_badge = "AUTHENTIC_WEB"
 
         # 2. Classify HTML Content Intent
+        sens_str = ", ".join(sens_inputs) if sens_inputs else ""
         if "docs" in url.lower() or "swagger" in page_title.lower() or "fastapi" in page_title.lower() or "openapi" in (html_sample or "").lower():
             content_type = "Developer API Documentation (Swagger / OpenAPI)"
         elif sens_inputs:
-            content_type = f"Credential Harvesting Form ({', '.join(sens_inputs)})"
+            content_type = f"Credential Harvesting Form ({sens_str})"
         elif is_critical_threat:
             content_type = "Deceptive Phishing Trap / Social Engineering Form"
         elif forms_count > 0:
@@ -349,10 +354,11 @@ Respond with ONLY a valid JSON object strictly matching this schema:
             except Exception:
                 pass
 
+        sens_forms_msg = f"Harvesting {len(sens_inputs)} citizen input fields ({sens_str})" if sens_inputs else "Zero sensitive credential or biometric inputs detected."
         key_insights = [
             f"Domain Architecture: {domain_type}",
             f"Page Content & Intent: {content_type}",
-            f"Sensitive Forms: {f'Harvesting {len(sens_inputs)} citizen input fields ({', '.join(sens_inputs)})' if sens_inputs else 'Zero sensitive credential or biometric inputs detected.'}"
+            f"Sensitive Forms: {sens_forms_msg}"
         ]
 
         return {
