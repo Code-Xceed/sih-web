@@ -351,8 +351,61 @@ body::before {
     transform: scale(0.99);
 }
 
+/* Quick Test Sample Chips */
+.quick-samples-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+    width: 100%;
+    max-width: 660px;
+}
+
+.quick-samples-label {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: var(--font-mono);
+}
+
+.sample-chip {
+    font-size: 0.76rem;
+    font-weight: 600;
+    padding: 5px 11px;
+    border-radius: var(--radius-pill);
+    background: var(--bg-surface-solid);
+    border: 1px solid var(--border-hairline);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: var(--transition-snappy);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.sample-chip:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-medium);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+.sample-chip.chip-threat:hover {
+    border-color: var(--color-threat);
+    color: var(--color-threat);
+}
+
+.sample-chip.chip-safe:hover {
+    border-color: var(--color-safe);
+    color: var(--color-safe);
+}
+
 /* -------------------------------------------------------------
- * 6. DYNAMIC RESULT VERDICT CARD
+ * 6. DYNAMIC RESULT VERDICT CARD & VILLAGER CLARITY
  * ------------------------------------------------------------- */
 #resultsWrapper {
     width: 100%;
@@ -361,7 +414,7 @@ body::before {
 
 .verdict-card-minimal {
     width: 100%;
-    margin-top: 32px;
+    margin-top: 26px;
     background: var(--bg-surface-solid);
     border: 1px solid var(--border-hairline);
     border-radius: var(--radius-lg);
@@ -370,8 +423,172 @@ body::before {
     text-align: left;
 }
 
+/* High-Visibility Villager Citizen Alert Banner */
+.villager-notice-box {
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 2px solid transparent;
+    transition: var(--transition-smooth);
+}
+
+.villager-notice-box.notice-threat {
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.12) 0%, rgba(185, 28, 28, 0.06) 100%);
+    border-bottom-color: var(--color-threat);
+}
+
+.villager-notice-box.notice-safe {
+    background: linear-gradient(135deg, rgba(22, 163, 74, 0.12) 0%, rgba(21, 128, 61, 0.06) 100%);
+    border-bottom-color: var(--color-safe);
+}
+
+.villager-notice-box.notice-caution {
+    background: linear-gradient(135deg, rgba(217, 119, 6, 0.12) 0%, rgba(180, 83, 9, 0.06) 100%);
+    border-bottom-color: var(--color-caution);
+}
+
+.notice-icon-box {
+    font-size: 2.2rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.notice-text-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.notice-heading {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+}
+
+.villager-notice-box.notice-threat .notice-heading {
+    color: var(--color-threat);
+}
+
+.villager-notice-box.notice-safe .notice-heading {
+    color: var(--color-safe);
+}
+
+.villager-notice-box.notice-caution .notice-heading {
+    color: var(--color-caution);
+}
+
+.notice-desc {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.notice-action-group {
+    flex-shrink: 0;
+}
+
+.btn-notice-dial {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--color-threat);
+    color: #ffffff !important;
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 8px 14px;
+    border-radius: var(--radius-pill);
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+    transition: var(--transition-snappy);
+    white-space: nowrap;
+}
+
+.btn-notice-dial:hover {
+    background: #b91c1c;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(220, 38, 38, 0.45);
+}
+
+.villager-notice-box.notice-safe .btn-notice-dial {
+    display: none;
+}
+
+/* Inline Proof Strip (MinHash & PoA Blockchain) */
+.inline-proof-strip {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 24px;
+    background: rgba(0, 0, 0, 0.025);
+    border-bottom: 1px solid var(--border-hairline);
+}
+
+.proof-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--bg-surface-solid);
+    border: 1px solid var(--border-hairline);
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+}
+
+.proof-icon {
+    font-size: 0.85rem;
+}
+
+.proof-tag {
+    font-weight: 700;
+    color: var(--text-secondary);
+    font-size: 0.68rem;
+}
+
+.proof-val {
+    font-weight: 600;
+    color: var(--text-pure);
+}
+
+/* Forensics Collapse Header */
+.forensics-collapse-header {
+    padding: 10px 24px;
+    display: flex;
+    justify-content: center;
+    border-bottom: 1px dashed var(--border-hairline);
+    background: var(--bg-subtle);
+}
+
+.btn-toggle-forensics {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+    font-weight: 600;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: var(--radius-sm);
+    transition: var(--transition-snappy);
+}
+
+.btn-toggle-forensics:hover {
+    color: var(--text-pure);
+    background: rgba(0, 0, 0, 0.04);
+}
+
 .verdict-header-block {
-    padding: 24px;
+    padding: 22px 24px;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;

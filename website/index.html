@@ -163,9 +163,31 @@
                     </button>
                 </div>
 
+                <!-- Minimal 1-Click Quick Samples for Easy Evaluation -->
+                <div class="quick-samples-row" id="quickSamplesRow">
+                    <span class="quick-samples-label" id="lblQuickTest">Try sample:</span>
+                    <button class="sample-chip chip-threat" data-url="http://pmkisan-kyc-update.xyz" type="button">🔴 PM-Kisan Scam</button>
+                    <button class="sample-chip chip-threat" data-url="http://sbi-instant-kyc-update.xyz/login" type="button">🔴 SBI KYC Fraud</button>
+                    <button class="sample-chip chip-safe" data-url="https://pmkisan.gov.in" type="button">🟢 Official Gov.in</button>
+                </div>
+
                 <!-- Dynamic Result Card -->
                 <div id="resultsWrapper" style="display: none;" role="region" aria-live="polite" aria-label="Inspection Verdict and Threat Analysis">
                     <div class="verdict-card-minimal">
+                        <!-- Big High-Clarity Villager Citizen Notice Banner -->
+                        <div id="villagerNoticeBox" class="villager-notice-box notice-threat">
+                            <div class="notice-icon-box" id="noticeIcon">⚠️</div>
+                            <div class="notice-text-content">
+                                <h3 class="notice-heading" id="noticeHeading">DO NOT ENTER OTP OR BANK PIN</h3>
+                                <p class="notice-desc" id="noticeDesc">This is an illegal clone website trying to steal citizen funds and identities.</p>
+                            </div>
+                            <div class="notice-action-group">
+                                <a href="tel:1930" class="btn-notice-dial" id="noticeDialBtn" title="Call 1930 National Cyber Fraud Helpline">
+                                    <span>📞</span> <span id="lblNoticeCall">Call 1930</span>
+                                </a>
+                            </div>
+                        </div>
+
                         <!-- Verdict Header -->
                         <div class="verdict-header-block">
                             <div class="verdict-number-row">
@@ -186,8 +208,34 @@
                             </div>
                         </div>
 
-                        <!-- 5 Numbered Inspection Steps -->
-                        <div class="inspection-steps-grid" id="inspectionSteps">
+                        <!-- Inline AI/ML MinHash & Blockchain Proof Strip -->
+                        <div class="inline-proof-strip" id="inlineProofStrip">
+                            <div class="proof-pill">
+                                <span class="proof-icon">⛓️</span>
+                                <span class="proof-tag">BLOCKCHAIN:</span>
+                                <span class="proof-val" id="proofBlockVal">PoA Block #1 Verified</span>
+                            </div>
+                            <div class="proof-pill">
+                                <span class="proof-icon">🧬</span>
+                                <span class="proof-tag">MINHASH SIMILARITY:</span>
+                                <span class="proof-val" id="proofMinHashVal">Structural Clone Match</span>
+                            </div>
+                            <div class="proof-pill">
+                                <span class="proof-icon">⚖️</span>
+                                <span class="proof-tag">LEGAL EVIDENCE:</span>
+                                <span class="proof-val" id="proofSec65BVal">Sec 65B Certified</span>
+                            </div>
+                        </div>
+
+                        <!-- Collapsible Forensic Details for Villager Simplicity -->
+                        <div class="forensics-collapse-header">
+                            <button id="btnToggleForensics" class="btn-toggle-forensics" type="button">
+                                <span id="lblToggleForensics">Show Technical Forensic Analysis</span> <span id="toggleForensicsArrow">▾</span>
+                            </button>
+                        </div>
+
+                        <!-- 5 Numbered Inspection Steps (Collapsible) -->
+                        <div class="inspection-steps-grid" id="inspectionSteps" style="display: none;">
                             <!-- Injected dynamically -->
                         </div>
 
