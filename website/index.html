@@ -67,7 +67,7 @@
       <p class="ux4g-hero-subtext" id="heroSubtextEl">आधार, पैन या बैंक विवरण दर्ज करने से पहले जांचें कि वेबसाइट असली (.gov.in) है या फर्जी साइबर क्लोन।</p>
       <div class="ux4g-search-card">
         <input type="text" class="ux4g-search-input" id="urlInput" placeholder="वेबसाइट का लिंक यहाँ पेस्ट करें (उदा: pmkisan.gov.in या g0v.in)..." aria-label="Enter website URL to verify" autocomplete="off" spellcheck="false">
-        <button type="button" class="verify-action-btn" id="btnVerify" aria-label="Verify Portal">🛡️ <span id="verifyBtnText">सत्यापन करें</span></button>
+        <button type="button" class="verify-action-btn" id="btnVerify" onclick="window.handleScan && window.handleScan()" aria-label="Verify Portal">🛡️ <span id="verifyBtnText">सत्यापन करें</span></button>
       </div>
     </div>
   </section>
@@ -295,6 +295,6 @@
       <div class="footer-credits-bar"><p id="footerSIHEl">UX4G डिजाइन सिस्टम 3.0 के अनुरूप • स्मार्ट इंडिया हैकाथॉन 2026 के अंतर्गत विकसित</p></div>
     </div>
   </footer>
-  <script type="module" src="/app.js"></script>
+  <script type="module" src="/app.js?v=3.2.3"></script>
 </body>
 </html>

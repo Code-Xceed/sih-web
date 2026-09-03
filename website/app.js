@@ -118,9 +118,10 @@ function setLanguage(langCode) {
     btn.classList.toggle('selected', btn.getAttribute('data-lang-code') === langCode);
   });
 
-  // Cancel any running audio speech
-  if (window.speechSynthesis) window.speechSynthesis.cancel();
-  isSpeaking = false;
+  // Cancel any running audio speech if present
+  if (window.speechSynthesis) {
+    try { window.speechSynthesis.cancel(); } catch (_) {}
+  }
 
   renderLocalizedUI();
 
@@ -306,12 +307,8 @@ async function handleScan(targetUrl) {
   const urlInputEl = document.getElementById('urlInput') || urlInput;
   let url = (targetUrl || (urlInputEl ? urlInputEl.value : '') || '').trim();
   if (!url) {
-    if (urlInputEl) {
-      urlInputEl.focus();
-      urlInputEl.style.outline = '2px solid var(--gov-red)';
-      setTimeout(() => { if (urlInputEl) urlInputEl.style.outline = ''; }, 1200);
-    }
-    return;
+    url = 'https://pmkisan.gov.in';
+    if (urlInputEl) urlInputEl.value = 'https://pmkisan.gov.in';
   }
 
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -320,10 +317,10 @@ async function handleScan(targetUrl) {
 
   isScanInProgress = true;
 
-  // Reset speech synthesis
-  if (window.speechSynthesis) window.speechSynthesis.cancel();
-  isSpeaking = false;
-  updateSpeechButton();
+  // Reset speech synthesis if present
+  if (window.speechSynthesis) {
+    try { window.speechSynthesis.cancel(); } catch (_) {}
+  }
 
   // Set loading state
   const btnVerifyEl = document.getElementById('btnVerify') || btnVerify;
@@ -363,6 +360,7 @@ async function handleScan(targetUrl) {
     if (verifyBtnTextEl) verifyBtnTextEl.textContent = t.verifyBtn || "सत्यापन करें";
   }
 }
+window.handleScan = handleScan;
 
 function renderVerdict(res) {
   const t = UX4G_STRINGS[currentLang] || UX4G_STRINGS['hi'];
@@ -795,9 +793,6 @@ function initApp() {
   // Direct Event Listeners (Fast Path)
   const vBtn = document.getElementById('btnVerify');
   if (vBtn) vBtn.addEventListener('click', () => handleScan());
-
-  const sBtn = document.getElementById('btnSpeechTrigger');
-  if (sBtn) sBtn.addEventListener('click', handleSpeakVerdict);
 
   const dBtn = document.getElementById('btnOpenDossier');
   if (dBtn) dBtn.addEventListener('click', openDossier);
