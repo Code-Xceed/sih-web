@@ -1,31 +1,40 @@
 /* ==========================================================================
-   GovShield Sentinel Grid 3.0 — In-Page Citizen Cyber Defense Alert Styling
-   Isolated with #govshield-alert-root to prevent website style bleeding
+   GovShield Sentinel Grid 3.0 — Minimal In-Page Alert & Safe Prompt Styling
+   Isolated with #govshield-alert-root and #govshield-safe-prompt
    ========================================================================== */
 
-#govshield-alert-root {
+#govshield-alert-root,
+#govshield-safe-prompt {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
   font-size: 13px !important;
   line-height: 1.4 !important;
-  color: #1e293b !important;
   box-sizing: border-box !important;
   -webkit-font-smoothing: antialiased !important;
 }
 
-#govshield-alert-root * {
+#govshield-alert-root *,
+#govshield-safe-prompt * {
   box-sizing: border-box !important;
   font-family: inherit !important;
 }
 
-/* --- Top Alert Banner --- */
+/* ==========================================================================
+   1. Minimal & Perfect Top Cyber Fraud Alert Banner
+   ========================================================================== */
 .gs-banner {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
   width: 100% !important;
   z-index: 2147483647 !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
-  animation: gsSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28) !important;
+  animation: gsSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: opacity 0.25s ease, transform 0.25s ease !important;
+}
+
+.gs-banner-fade {
+  opacity: 0 !important;
+  transform: translateY(-100%) !important;
 }
 
 @keyframes gsSlideDown {
@@ -34,7 +43,7 @@
 }
 
 .gs-critical {
-  background: #de350b !important;
+  background: #c53030 !important;
   color: #ffffff !important;
 }
 
@@ -44,7 +53,7 @@
 }
 
 .gs-tricolor-line {
-  height: 4px !important;
+  height: 3px !important;
   width: 100% !important;
   background: linear-gradient(90deg, #ff9933 0%, #ff9933 33.3%, #ffffff 33.3%, #ffffff 66.6%, #138808 66.6%, #138808 100%) !important;
 }
@@ -52,155 +61,94 @@
 .gs-banner-content {
   max-width: 1440px !important;
   margin: 0 auto !important;
-  padding: 10px 16px !important;
+  padding: 6px 16px !important;
   display: flex !important;
   align-items: center !important;
-  gap: 14px !important;
-  flex-wrap: wrap !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  min-height: 44px !important;
 }
 
-.gs-banner-badge-col {
+.gs-left-cluster {
   display: flex !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: 10px !important;
+  flex: 1 !important;
+  min-width: 260px !important;
 }
 
 .gs-siren-icon {
-  font-size: 24px !important;
-  animation: gsPulse 1.2s infinite !important;
-  display: inline-block !important;
-}
-
-@keyframes gsPulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.15); }
-  100% { transform: scale(1); }
+  font-size: 18px !important;
+  line-height: 1 !important;
 }
 
 .gs-score-badge {
   background: rgba(0, 0, 0, 0.35) !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  border-radius: 6px !important;
-  padding: 3px 7px !important;
-  font-size: 11px !important;
-  font-weight: 900 !important;
-  letter-spacing: 0.5px !important;
-}
-
-.gs-banner-text-col {
-  flex: 1 !important;
-  min-width: 280px !important;
-}
-
-.gs-banner-title-line {
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  flex-wrap: wrap !important;
-}
-
-.gs-banner-title {
-  font-size: 13px !important;
-  font-weight: 900 !important;
-  letter-spacing: 0.3px !important;
-  text-transform: uppercase !important;
-}
-
-.gs-pill-impersonated {
-  background: #ffffff !important;
-  color: #b91c1c !important;
-  font-size: 11px !important;
-  font-weight: 800 !important;
-  padding: 1px 7px !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
   border-radius: 4px !important;
+  padding: 2px 6px !important;
+  font-size: 10.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.3px !important;
+  white-space: nowrap !important;
 }
 
-.gs-banner-desc {
+.gs-message-cluster {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1px !important;
+}
+
+.gs-main-warning {
   font-size: 12px !important;
-  margin-top: 3px !important;
-  line-height: 1.35 !important;
-  opacity: 0.95 !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
 }
 
-.gs-highlight-domain {
-  text-decoration: underline !important;
+.gs-main-warning strong {
   font-weight: 800 !important;
 }
 
-.gs-ai-brief {
-  display: block !important;
-  font-size: 11.5px !important;
-  opacity: 0.95 !important;
-  margin-top: 3px !important;
-  line-height: 1.3 !important;
-}
-
-/* Inline Things To Do strip inside the alert banner */
-.gs-things-to-do-inline {
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-  flex-wrap: wrap !important;
-  margin-top: 6px !important;
-  padding: 4px 8px !important;
-  background: rgba(0, 0, 0, 0.25) !important;
-  border-radius: 6px !important;
-  font-size: 11.5px !important;
-  line-height: 1.3 !important;
-}
-
-.gs-ttd-title {
-  color: #fef08a !important;
-  font-weight: 900 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.3px !important;
-}
-
-.gs-ttd-item {
-  color: #ffffff !important;
-  font-weight: 500 !important;
-  opacity: 0.95 !important;
-}
-
-.gs-ttd-item strong {
-  font-weight: 900 !important;
+.gs-sub-advice {
+  font-size: 11px !important;
+  opacity: 0.9 !important;
+  line-height: 1.2 !important;
   color: #fef08a !important;
 }
 
 .gs-banner-actions-col {
   display: flex !important;
   align-items: center !important;
-  gap: 8px !important;
-  flex-wrap: wrap !important;
+  gap: 6px !important;
+  flex-shrink: 0 !important;
 }
 
-/* Action Buttons */
+/* Minimal Action Buttons */
 .gs-btn {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 5px !important;
-  padding: 7px 14px !important;
-  border-radius: 6px !important;
-  font-size: 12px !important;
+  gap: 4px !important;
+  padding: 5px 10px !important;
+  border-radius: 5px !important;
+  font-size: 11.5px !important;
   font-weight: 800 !important;
   text-decoration: none !important;
   cursor: pointer !important;
   border: none !important;
-  transition: all 0.2s ease !important;
+  transition: all 0.15s ease !important;
   line-height: 1.2 !important;
   white-space: nowrap !important;
 }
 
 .gs-btn:hover {
   transform: translateY(-1px) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
 }
 
 .gs-btn-report {
   background: #ffffff !important;
-  color: #de350b !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+  color: #c53030 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15) !important;
 }
 .gs-btn-report:hover {
   background: #fee2e2 !important;
@@ -209,83 +157,128 @@
 .gs-btn-official {
   background: #00875a !important;
   color: #ffffff !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
 }
 .gs-btn-official:hover {
   background: #006644 !important;
 }
 
 .gs-btn-helpline {
-  background: #0f172a !important;
+  background: rgba(0, 0, 0, 0.25) !important;
   color: #ffffff !important;
   border: 1px solid rgba(255, 255, 255, 0.3) !important;
 }
 .gs-btn-helpline:hover {
-  background: #1e293b !important;
+  background: rgba(0, 0, 0, 0.4) !important;
 }
 
 .gs-btn-icon-close {
   background: transparent !important;
   color: #ffffff !important;
   border: none !important;
-  font-size: 16px !important;
+  font-size: 15px !important;
   cursor: pointer !important;
-  padding: 4px 8px !important;
+  padding: 4px 6px !important;
   border-radius: 4px !important;
-  opacity: 0.8 !important;
+  opacity: 0.75 !important;
+  line-height: 1 !important;
 }
 .gs-btn-icon-close:hover {
   opacity: 1 !important;
   background: rgba(0, 0, 0, 0.2) !important;
 }
 
-/* --- Floating Reopen Pill --- */
-.gs-floating-pill {
+/* ==========================================================================
+   2. Bottom Green Prompt Toast (For safe & legitimate websites)
+   ========================================================================== */
+.gs-safe-toast {
   position: fixed !important;
   bottom: 20px !important;
-  right: 20px !important;
+  right: 24px !important;
   z-index: 2147483647 !important;
-  padding: 8px 14px !important;
-  border-radius: 50px !important;
+  background: linear-gradient(135deg, #00875a 0%, #006644 100%) !important;
+  color: #ffffff !important;
+  border-radius: 10px !important;
+  padding: 10px 14px !important;
+  box-shadow: 0 6px 22px rgba(0, 135, 90, 0.38), 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.25) !important;
   display: flex !important;
   align-items: center !important;
-  gap: 8px !important;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3) !important;
-  color: #ffffff !important;
-  font-size: 12px !important;
-  animation: gsFadeIn 0.3s ease !important;
+  gap: 10px !important;
+  max-width: 420px !important;
+  animation: gsSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: opacity 0.3s ease, transform 0.3s ease !important;
 }
 
-@keyframes gsFadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+@keyframes gsSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.gs-pill-critical { background: #de350b !important; }
-.gs-pill-caution { background: #d97706 !important; }
-
-.gs-pill-reopen-btn {
-  background: #ffffff !important;
-  color: #0f172a !important;
-  border: none !important;
-  padding: 4px 10px !important;
-  border-radius: 20px !important;
-  font-size: 11px !important;
-  font-weight: 800 !important;
-  cursor: pointer !important;
+.gs-toast-fade {
+  opacity: 0 !important;
+  transform: translateY(12px) !important;
 }
 
-.gs-pill-close-btn {
+.gs-safe-icon-disc {
+  font-size: 20px !important;
+  line-height: 1 !important;
+  flex-shrink: 0 !important;
+}
+
+.gs-safe-body {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  flex: 1 !important;
+}
+
+.gs-safe-title-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.gs-safe-heading {
+  font-size: 12.5px !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+  line-height: 1.2 !important;
+}
+
+.gs-safe-status-pill {
+  background: #ffffff !important;
+  color: #006644 !important;
+  font-size: 9.5px !important;
+  font-weight: 900 !important;
+  padding: 1px 5px !important;
+  border-radius: 3px !important;
+  letter-spacing: 0.3px !important;
+}
+
+.gs-safe-subtitle {
+  font-size: 11px !important;
+  color: #e2e8f0 !important;
+  line-height: 1.2 !important;
+  opacity: 0.95 !important;
+}
+
+.gs-safe-close-btn {
   background: transparent !important;
   border: none !important;
   color: #ffffff !important;
-  font-size: 14px !important;
+  font-size: 13px !important;
   cursor: pointer !important;
-  opacity: 0.8 !important;
-  padding: 0 4px !important;
+  opacity: 0.7 !important;
+  padding: 2px 5px !important;
+  border-radius: 4px !important;
+  line-height: 1 !important;
+  flex-shrink: 0 !important;
 }
-.gs-pill-close-btn:hover {
+.gs-safe-close-btn:hover {
   opacity: 1 !important;
+  background: rgba(255, 255, 255, 0.15) !important;
 }
+
 
 

@@ -1,5 +1,5 @@
 /**
- * GovShield Sentinel Grid 3.0 — High-Impact In-Page Citizen Cyber Defense Alert
+ * GovShield Sentinel Grid 3.0 — Minimal In-Page Citizen Cyber Defense Alerts
  * Dynamic Integration with GovShield Backend Engine & UX4G 3.0 Standard
  */
 
@@ -7,10 +7,12 @@
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === "SHOW_FRAUD_BANNER") {
     renderSecurityAlert(msg.scanData || {}, msg.domain || window.location.hostname, msg.risk_score);
+  } else if (msg.action === "SHOW_SAFE_PROMPT") {
+    renderSafePrompt(msg.scanData || {}, msg.domain || window.location.hostname);
   }
 });
 
-// Proactively ask background script for security status upon page load
+// Proactively query background script for security status on page load
 (function initSecurityCheck() {
   if (!window.location.protocol.startsWith("http")) return;
 
@@ -30,6 +32,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             (data.impersonated && !data.is_genuine_gov_tld)
           ) {
             renderSecurityAlert(data, window.location.hostname, score);
+          } else {
+            renderSafePrompt(data, window.location.hostname);
           }
         }
       }
@@ -37,13 +41,22 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   } catch (_) {}
 })();
 
+/* ==========================================================================
+   1. Minimal In-Page Cyber Fraud Alert Banner (Top of page)
+   ========================================================================== */
 function renderSecurityAlert(data, currentHostname, scoreParam) {
-  // Never show alert on genuine sovereign infrastructure
+  // Never show risk banner on verified sovereign domains
   if (data.is_genuine_gov_tld) return;
+
+  // Remove existing banner/prompt if present
+  const existingBanner = document.getElementById("govshield-alert-root");
+  if (existingBanner) existingBanner.remove();
+  const existingSafe = document.getElementById("govshield-safe-prompt");
+  if (existingSafe) existingSafe.remove();
 
   const score = Math.max(0, Math.min(99, Math.round(data.risk_score !== undefined ? data.risk_score : (scoreParam || 85))));
   const isCritical = score >= 60 || data.verdict === "PHISHING_CLONE" || data.verdict === "MALICIOUS";
-  const targetEntity = data.target_entity || "Indian Government Scheme";
+  const targetEntity = data.target_entity || "Indian Government Portal";
 
   // Determine official government counterpart URL
   let officialDomain = data.official_domain || "";
@@ -61,97 +74,106 @@ function renderSecurityAlert(data, currentHostname, scoreParam) {
   const officialUrl = `https://${officialDomain}`;
   const cybercrimeUrl = "https://cybercrime.gov.in";
 
-  // Dynamic AI summary
-  const ai = data.ai_page_analysis || {};
-  const aiSummary = ai.ai_summary_en || ai.ai_summary || data.genai_synthesis?.plain_english_summary || data.summary ||
-    `AI Content Analysis flags this domain (${currentHostname}) as an unauthorized clone mimicking ${targetEntity}. Zero-trust policy active.`;
-  const domainType = ai.domain_type || (isCritical ? "Unauthorized Deceptive Clone" : "Suspicious Web Portal");
-
-  // Remove existing alert container if present to update
-  const existing = document.getElementById("govshield-alert-root");
-  if (existing) existing.remove();
-
   const container = document.createElement("div");
   container.id = "govshield-alert-root";
   container.className = "gs-root-scope";
 
   container.innerHTML = `
-    <!-- Top High-Visibility Alert Banner (No Popup) -->
     <div id="gs-top-banner" class="gs-banner ${isCritical ? 'gs-critical' : 'gs-caution'}">
       <div class="gs-tricolor-line"></div>
       <div class="gs-banner-content">
-        <div class="gs-banner-badge-col">
+        <div class="gs-left-cluster">
           <span class="gs-siren-icon">${isCritical ? '🚨' : '⚠️'}</span>
-          <div class="gs-score-badge">${score}/100 RISK</div>
-        </div>
-
-        <div class="gs-banner-text-col">
-          <div class="gs-banner-title-line">
-            <span class="gs-banner-title">
-              ${isCritical ? 'CYBER FRAUD WARNING' : 'SUSPICIOUS DOMAIN CAUTION'} (GovShield Sentinel Grid)
+          <span class="gs-score-badge">${score}/100 RISK</span>
+          <div class="gs-message-cluster">
+            <span class="gs-main-warning">
+              <strong>Cyber Fraud Alert:</strong> Deceptive site mimicking <u>${escapeHtml(targetEntity)}</u>!
             </span>
-            <span class="gs-pill-impersonated">Mimics ${escapeHtml(targetEntity)}</span>
-          </div>
-          <div class="gs-banner-desc">
-            This site (<strong class="gs-highlight-domain">${escapeHtml(currentHostname)}</strong>) is NOT an authorized sovereign portal!
-            <span class="gs-ai-brief">🤖 ${escapeHtml(aiSummary)}</span>
-          </div>
-          <div class="gs-things-to-do-inline">
-            <strong class="gs-ttd-title">⚠️ Things To Do:</strong>
-            <span class="gs-ttd-item">🛑 Never enter Aadhaar, PAN, Bank Details, or OTP.</span>
-            <span class="gs-ttd-item">💰 Never pay registration or scheme fees on 3rd-party sites.</span>
-            <span class="gs-ttd-item">📞 If money was deducted, dial <strong>1930</strong> immediately.</span>
+            <span class="gs-sub-advice">Never enter Aadhaar, PAN, Bank Details, or OTP.</span>
           </div>
         </div>
 
         <div class="gs-banner-actions-col">
-          <a href="${cybercrimeUrl}" target="_blank" rel="noopener noreferrer" class="gs-btn gs-btn-report" title="File incident directly to National Cyber Crime Portal">
-            🚨 Report to cybercrime.gov.in
+          <a href="${cybercrimeUrl}" target="_blank" rel="noopener noreferrer" class="gs-btn gs-btn-report" title="File direct complaint on National Cyber Crime Portal">
+            🚨 Report (cybercrime.gov.in)
           </a>
-          <a href="${officialUrl}" target="_blank" rel="noopener noreferrer" class="gs-btn gs-btn-official" title="Redirect safely to authenticated Government of India portal">
-            🏛️ Go to Official Portal (${officialDomain})
+          <a href="${officialUrl}" target="_blank" rel="noopener noreferrer" class="gs-btn gs-btn-official" title="Redirect safely to authenticated Government portal">
+            🏛️ Official Portal (${officialDomain})
           </a>
-          <a href="tel:1930" class="gs-btn gs-btn-helpline" title="24x7 Citizen Cyber Crime Helpline">
-            📞 Dial 1930
+          <a href="tel:1930" class="gs-btn gs-btn-helpline" title="National Citizen Cyber Crime Helpline">
+            📞 1930
           </a>
-          <button type="button" id="gs-btn-dismiss-banner" class="gs-btn-icon-close" title="Dismiss warning banner">
+          <button type="button" id="gs-btn-dismiss-banner" class="gs-btn-icon-close" title="Dismiss alert banner">
             ✕
           </button>
         </div>
       </div>
     </div>
-
-    <!-- Floating Reopen Pill (Shown when banner is minimized) -->
-    <div id="gs-floating-pill" class="gs-floating-pill ${isCritical ? 'gs-pill-critical' : 'gs-pill-caution'}" style="display: none;">
-      <span class="gs-pill-icon">🚨</span>
-      <span class="gs-pill-label">GovShield Alert: <strong>${escapeHtml(currentHostname)}</strong> (Risk: ${score}/100)</span>
-      <button type="button" id="gs-pill-reopen-btn" class="gs-pill-reopen-btn">View Alert</button>
-      <button type="button" id="gs-pill-close-btn" class="gs-pill-close-btn" title="Close permanently">✕</button>
-    </div>
   `;
 
   document.body.prepend(container);
 
-  // Setup Event Listeners
-  const topBanner = container.querySelector("#gs-top-banner");
-  const floatingPill = container.querySelector("#gs-floating-pill");
-
-  // Dismiss banner -> show small floating pill
   container.querySelector("#gs-btn-dismiss-banner").addEventListener("click", () => {
-    topBanner.style.display = "none";
-    floatingPill.style.display = "flex";
+    container.classList.add("gs-banner-fade");
+    setTimeout(() => container.remove(), 250);
+  });
+}
+
+/* ==========================================================================
+   2. Bottom Green Safe Prompt Toast (For legitimate & safe websites)
+   ========================================================================== */
+function renderSafePrompt(data, currentHostname) {
+  // Don't duplicate if already present
+  if (document.getElementById("govshield-safe-prompt")) return;
+
+  const isGov = Boolean(
+    data.is_genuine_gov_tld ||
+    currentHostname.endsWith(".gov.in") ||
+    currentHostname.endsWith(".nic.in") ||
+    currentHostname.endsWith(".mil.in")
+  );
+  const entity = data.target_entity || (isGov ? "Government of India Sovereign Infrastructure" : currentHostname);
+
+  const toast = document.createElement("div");
+  toast.id = "govshield-safe-prompt";
+  toast.className = "gs-safe-toast";
+
+  toast.innerHTML = `
+    <div class="gs-safe-icon-disc">
+      ${isGov ? '🏛️' : '🛡️'}
+    </div>
+    <div class="gs-safe-body">
+      <div class="gs-safe-title-row">
+        <strong class="gs-safe-heading">${isGov ? 'Authentic Sovereign Portal' : 'Website is Safe to Visit'}</strong>
+        <span class="gs-safe-status-pill">${isGov ? 'VERIFIED .GOV.IN' : 'SAFE'}</span>
+      </div>
+      <span class="gs-safe-subtitle">
+        ${isGov ? `${escapeHtml(entity)} — Secured by NIC` : `${escapeHtml(currentHostname)} — Verified by GovShield`}
+      </span>
+    </div>
+    <button type="button" id="gs-safe-close-btn" class="gs-safe-close-btn" aria-label="Close" title="Dismiss">✕</button>
+  `;
+
+  document.body.appendChild(toast);
+
+  // Dismiss on close button click
+  toast.querySelector("#gs-safe-close-btn").addEventListener("click", () => {
+    dismissSafeToast(toast);
   });
 
-  // Reopen banner from floating pill
-  container.querySelector("#gs-pill-reopen-btn").addEventListener("click", () => {
-    topBanner.style.display = "block";
-    floatingPill.style.display = "none";
-  });
+  // Auto-dismiss after 4.5 seconds
+  setTimeout(() => {
+    if (document.body.contains(toast)) {
+      dismissSafeToast(toast);
+    }
+  }, 4500);
+}
 
-  // Permanently close floating pill
-  container.querySelector("#gs-pill-close-btn").addEventListener("click", () => {
-    container.remove();
-  });
+function dismissSafeToast(toastEl) {
+  toastEl.classList.add("gs-toast-fade");
+  setTimeout(() => {
+    if (toastEl.parentNode) toastEl.parentNode.removeChild(toastEl);
+  }, 300);
 }
 
 function escapeHtml(str) {

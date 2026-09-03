@@ -83,6 +83,11 @@ async function evaluateTabSecurity(tabId, url) {
     };
     tabScanCache.set(tabId, govData);
     applyBadge(tabId, 2, "LEGITIMATE", true);
+    chrome.tabs.sendMessage(tabId, {
+      action: "SHOW_SAFE_PROMPT",
+      scanData: govData,
+      domain: hostname
+    }).catch(() => {});
     return govData;
   }
 
@@ -125,6 +130,12 @@ async function evaluateTabSecurity(tabId, url) {
           domain: hostname,
           risk_score: score
         }).catch(() => {});
+      } else {
+        chrome.tabs.sendMessage(tabId, {
+          action: "SHOW_SAFE_PROMPT",
+          scanData: data,
+          domain: hostname
+        }).catch(() => {});
       }
       return data;
     }
@@ -161,6 +172,12 @@ async function evaluateTabSecurity(tabId, url) {
       scanData: fallbackData,
       domain: hostname,
       risk_score: score
+    }).catch(() => {});
+  } else {
+    chrome.tabs.sendMessage(tabId, {
+      action: "SHOW_SAFE_PROMPT",
+      scanData: fallbackData,
+      domain: hostname
     }).catch(() => {});
   }
   return fallbackData;
