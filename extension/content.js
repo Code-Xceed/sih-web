@@ -227,10 +227,66 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 });
 
-// Proactively query background script for security status on page load
+// Sovereign Brand Signatures for Direct In-Page Protection
+const INPAGE_GOV_BRANDS = [
+  { brand: "PM-Kisan Samman Nidhi", official: "pmkisan.gov.in", keywords: ["pmkisan", "pm-kisan", "kisan-pm", "kisansammannidhi", "kisanportal", "farmer-subsidy", "kisan", "fake-pmkisan"] },
+  { brand: "Aadhaar / UIDAI", official: "uidai.gov.in", keywords: ["uidai", "aadhaar", "aadhar", "myaadhaar", "eaadhaar", "fake-aadhaar"] },
+  { brand: "Income Tax Department", official: "incometax.gov.in", keywords: ["incometax", "itr-efiling", "taxrefund", "incometaxindia", "efiling", "fake-incometax"] },
+  { brand: "Parivahan Sewa (MoRTH)", official: "parivahan.gov.in", keywords: ["parivahan", "mparivahan", "sarathi", "vahan", "drivinglicence", "dl-slot"] },
+  { brand: "DigiLocker", official: "digilocker.gov.in", keywords: ["digilocker", "digital-locker", "mydigilocker"] },
+  { brand: "EPFO (Provident Fund)", official: "epfindia.gov.in", keywords: ["epfindia", "epfo", "epfclaim", "uanportal", "passbook-epfindia"] },
+  { brand: "Passport Seva", official: "passportindia.gov.in", keywords: ["passportseva", "passportindia", "tatkaal-passport"] },
+  { brand: "National Cybercrime Portal", official: "cybercrime.gov.in", keywords: ["cybercrime-gov", "1930helpline", "cybercell"] },
+  { brand: "Ayushman Bharat / PM-JAY", official: "pmjay.gov.in", keywords: ["pmjay", "ayushman", "ayushmanbharat", "golden-card"] },
+  { brand: "e-Shram Portal", official: "eshram.gov.in", keywords: ["eshram", "e-shram", "shramikcard"] }
+];
+
+const INPAGE_DECEPTIVE_PATTERNS = [
+  "-gov.", ".gov-", "gov-in", "-gov-", "govindia", "g0v", "g0v.in", "nic-", "-nic.", "nicin",
+  "subsidy", "free-yojana", "yojana-apply", "claim-refund", "kyc-update", "verify-aadhaar", "simulate=phishing", "fake-gov"
+];
+
+// Proactively run sovereign security check on page load
 (function initSecurityCheck() {
   if (!window.location.protocol.startsWith("http")) return;
 
+  const hostname = (window.location.hostname || "").toLowerCase();
+  const pathname = (window.location.pathname || "").toLowerCase();
+  const fullUrl = (window.location.href || "").toLowerCase();
+
+  // 1. Genuine Sovereign Domain (.gov.in / .nic.in / .mil.in)
+  const isGov = hostname.endsWith(".gov.in") || hostname.endsWith(".nic.in") || hostname.endsWith(".mil.in") || hostname.endsWith(".ac.in");
+  if (isGov) {
+    renderSafePrompt({ is_genuine_gov_tld: true, target_entity: "Official Government of India Portal" }, hostname);
+    return;
+  }
+
+  // 2. Direct In-Page Sovereign Preflight Check (Zero-latency instant alert)
+  const isPunycode = hostname.startsWith("xn--") || /[^\u0000-\u007f]/.test(hostname);
+  let matchedBrand = null;
+  for (const item of INPAGE_GOV_BRANDS) {
+    if (item.keywords.some(kw => hostname.includes(kw) || pathname.includes(kw) || fullUrl.includes(kw))) {
+      matchedBrand = item;
+      break;
+    }
+  }
+
+  const hasDeceptive = INPAGE_DECEPTIVE_PATTERNS.some(p => fullUrl.includes(p)) ||
+                       hostname.endsWith(".xyz") || hostname.endsWith(".top") || hostname.endsWith(".work");
+
+  if (isPunycode || matchedBrand || hasDeceptive) {
+    const target = matchedBrand ? `${matchedBrand.brand} (Unauthorized Clone)` : "Government Sovereign Scheme";
+    const alertData = {
+      risk_score: 96,
+      verdict: "PHISHING_CLONE",
+      target_entity: target,
+      impersonated: true,
+      is_genuine_gov_tld: false
+    };
+    renderSecurityAlert(alertData, hostname, 96);
+  }
+
+  // 3. Query background service worker for deep cloud AI / forensic updates
   try {
     chrome.runtime.sendMessage(
       { action: "GET_TAB_SECURITY", url: window.location.href },
@@ -247,7 +303,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             (data.impersonated && !data.is_genuine_gov_tld)
           ) {
             renderSecurityAlert(data, window.location.hostname, score);
-          } else {
+          } else if (data.is_genuine_gov_tld) {
             renderSafePrompt(data, window.location.hostname);
           }
         }
@@ -341,7 +397,14 @@ function renderSecurityAlert(data, currentHostname, scoreParam) {
     </div>
   `;
 
-  document.body.prepend(container);
+  const mountPoint = document.body || document.documentElement;
+  if (mountPoint) {
+    mountPoint.prepend(container);
+  } else {
+    document.addEventListener("DOMContentLoaded", () => {
+      (document.body || document.documentElement).prepend(container);
+    });
+  }
 
   // Mini Language Selector Event Listener
   const langSelect = container.querySelector("#gs-mini-lang-select");
@@ -398,7 +461,7 @@ function renderSafePrompt(data, currentHostname) {
     <button type="button" id="gs-safe-close-btn" class="gs-safe-close-btn" aria-label="Close" title="Dismiss">✕</button>
   `;
 
-  document.body.appendChild(toast);
+  (document.body || document.documentElement).appendChild(toast);
 
   // Dismiss on close button click
   toast.querySelector("#gs-safe-close-btn").addEventListener("click", () => {

@@ -1086,6 +1086,83 @@ async def full_scan(req: ScanRequest, mode: Literal["sync", "async"] = "sync"):
     return await loop.run_in_executor(None, _execute_scan_pipeline, req)
 
 
+# -------------------------------------------------------------
+# Demonstration & Testing Simulation Endpoints (Safe Testing Lab)
+# -------------------------------------------------------------
+from fastapi.responses import HTMLResponse
+
+@app.get("/demo/fake-pmkisan", response_class=HTMLResponse)
+async def demo_fake_pmkisan():
+    """Safe local simulation of a deceptive PM-Kisan clone harvesting Aadhaar and Bank accounts."""
+    return HTMLResponse(content="""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PM-Kisan Samman Nidhi - 19th Installment Claim (SIMULATION)</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f1f5f9; margin: 0; padding: 40px 20px; text-align: center; }
+    .card { background: white; max-width: 500px; margin: 0 auto; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: left; }
+    h2 { color: #1e3a8a; margin-top: 0; }
+    .warning { background: #fee2e2; color: #991b1b; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 20px; font-weight: bold; }
+    label { display: block; font-size: 13px; font-weight: bold; margin-top: 15px; color: #334155; }
+    input { width: 100%; padding: 10px; margin-top: 6px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+    button { width: 100%; background: #2563eb; color: white; padding: 12px; border: none; border-radius: 6px; margin-top: 20px; font-weight: bold; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="warning">⚠️ SIMULATION PAGE: Used for testing GovShield Chrome Extension In-Page Detection.</div>
+    <h2>🌾 PM-Kisan Samman Nidhi</h2>
+    <p>Claim ₹2,000 Direct Benefit Transfer for 19th Installment immediately.</p>
+    <form onsubmit="event.preventDefault(); alert('Simulation only! Do not submit real credentials.');">
+      <label>Farmer Aadhaar Number (12 Digits):</label>
+      <input type="text" name="aadhaar" placeholder="XXXX XXXX XXXX" required>
+      <label>Bank Account Number:</label>
+      <input type="text" name="bank_account" placeholder="Enter bank account number" required>
+      <label>Mobile Number OTP:</label>
+      <input type="password" name="otp" placeholder="Enter 6-digit OTP" required>
+      <button type="submit">Submit & Claim Subsidy</button>
+    </form>
+  </div>
+</body>
+</html>""")
+
+@app.get("/demo/fake-aadhaar", response_class=HTMLResponse)
+async def demo_fake_aadhaar():
+    """Safe local simulation of a deceptive Aadhaar update clone."""
+    return HTMLResponse(content="""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Aadhaar Online KYC Update Portal (SIMULATION)</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #fafafa; margin: 0; padding: 40px 20px; text-align: center; }
+    .card { background: white; max-width: 500px; margin: 0 auto; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; text-align: left; }
+    h2 { color: #b91c1c; margin-top: 0; }
+    .warning { background: #fee2e2; color: #991b1b; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 20px; font-weight: bold; }
+    label { display: block; font-size: 13px; font-weight: bold; margin-top: 15px; color: #334155; }
+    input { width: 100%; padding: 10px; margin-top: 6px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+    button { width: 100%; background: #dc2626; color: white; padding: 12px; border: none; border-radius: 6px; margin-top: 20px; font-weight: bold; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="warning">⚠️ SIMULATION PAGE: Used for testing GovShield Chrome Extension In-Page Detection.</div>
+    <h2>🆔 Aadhaar Mandatory Document Update</h2>
+    <p>Your Aadhaar will be suspended within 24 hours. Update your biometric and identity credentials now.</p>
+    <form onsubmit="event.preventDefault(); alert('Simulation only!');">
+      <label>Aadhaar Number:</label>
+      <input type="text" name="aadhaar_num" placeholder="XXXX-XXXX-XXXX" required>
+      <label>Registered Mobile Number:</label>
+      <input type="text" name="phone" placeholder="Enter mobile number" required>
+      <label>OTP Verification:</label>
+      <input type="password" name="otp" placeholder="Enter OTP" required>
+      <button type="submit">Verify Aadhaar</button>
+    </form>
+  </div>
+</body>
+</html>""")
+
 # Mount live web portal directly on FastAPI server
 from fastapi.staticfiles import StaticFiles
 
