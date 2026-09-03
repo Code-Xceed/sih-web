@@ -206,6 +206,12 @@ function applyPopupStaticTranslations(langCode) {
 
   const scanBtn = document.getElementById("btnPopupScan");
   if (scanBtn && !scanBtn.disabled) scanBtn.textContent = t.scanBtn;
+
+  const toggleText = document.getElementById("detailsToggleText");
+  if (toggleText) toggleText.textContent = t.detailsToggle || "Deep AI & Forensic Details";
+
+  const reportBtn = document.getElementById("popupReportBtn");
+  if (reportBtn) reportBtn.textContent = t.reportBtn || "🚨 Report Fraud (cybercrime.gov.in)";
 }
 
 function initPopupTheme() {
@@ -347,6 +353,21 @@ document.addEventListener("DOMContentLoaded", () => {
     btnPopupCopyDossier.textContent = t.dossierCopied;
     setTimeout(() => { btnPopupCopyDossier.textContent = t.dossierBtn; }, 2000);
   });
+
+  // Toggle Collapsible Details Dropdown
+  const btnToggleDetails = document.getElementById("btnToggleDetails");
+  const popupDetailsDropdown = document.getElementById("popupDetailsDropdown");
+  const detailsToggleIcon = document.getElementById("detailsToggleIcon");
+
+  if (btnToggleDetails && popupDetailsDropdown) {
+    btnToggleDetails.addEventListener("click", () => {
+      const isHidden = popupDetailsDropdown.style.display === "none" || popupDetailsDropdown.style.display === "";
+      popupDetailsDropdown.style.display = isHidden ? "block" : "none";
+      btnToggleDetails.classList.toggle("open", isHidden);
+      btnToggleDetails.setAttribute("aria-expanded", isHidden ? "true" : "false");
+      if (detailsToggleIcon) detailsToggleIcon.textContent = isHidden ? "▴" : "▾";
+    });
+  }
 });
 
 async function executeScan(url) {
@@ -506,6 +527,18 @@ function renderPopupResult(data) {
     adv.textContent = t.safeAdv;
   } else {
     adv.textContent = t.cautionAdv;
+  }
+
+  // Quick Report Button (Direct to official cybercrime reporting portal)
+  const reportBtn = document.getElementById("popupReportBtn");
+  if (reportBtn) {
+    reportBtn.href = "https://cybercrime.gov.in/Webform/Index.aspx";
+    if (score >= 35 || data.verdict === "PHISHING_CLONE" || data.verdict === "MALICIOUS" || data.verdict === "SUSPICIOUS") {
+      reportBtn.style.display = "inline-flex";
+      reportBtn.textContent = t.reportBtn || "🚨 Report Fraud (cybercrime.gov.in)";
+    } else {
+      reportBtn.style.display = "none";
+    }
   }
 
   // AI Webpage & Domain Analysis Card

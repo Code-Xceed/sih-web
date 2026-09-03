@@ -19,8 +19,8 @@
 
 body.ux4g-popup-body {
   width: 380px;
-  min-height: 540px;
-  max-height: 600px;
+  min-height: auto;
+  max-height: 590px;
   overflow-y: auto;
   font-family: var(--font-family);
   background: var(--bg-main);
@@ -395,15 +395,90 @@ body.dark-mode .popup-blockchain-pill {
   word-break: break-all;
 }
 
-.popup-actions-row {
+/* Quick Emergency Actions */
+.popup-quick-actions {
   display: flex;
   gap: 8px;
-  padding: 10px 12px;
-  background: #ffffff;
-  border-top: 1px solid var(--border-color);
+  padding: 8px 12px;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-color);
 }
-.popup-action-btn {
+
+.popup-quick-btn {
   flex: 1;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: opacity 0.2s;
+}
+.popup-quick-btn:hover { opacity: 0.9; }
+.popup-quick-btn.report {
+  background: var(--gov-red);
+  color: #ffffff;
+  border: 1px solid #b91c1c;
+}
+.popup-quick-btn.helpline {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid var(--border-color);
+}
+
+/* Collapsible "More Details" Toggle Button */
+.popup-details-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--border-color);
+  color: var(--ux4g-primary);
+  font-size: 0.74rem;
+  font-weight: 800;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.15s ease;
+}
+.popup-details-toggle:hover {
+  background: rgba(92, 60, 246, 0.06);
+}
+.popup-details-toggle .toggle-icon {
+  font-size: 0.9rem;
+  transition: transform 0.2s ease;
+}
+.popup-details-toggle.open .toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* Collapsible Details Dropdown */
+.popup-details-dropdown {
+  padding-top: 4px;
+  border-top: 1px dashed var(--border-color);
+  background: #ffffff;
+  animation: gsFadeIn 0.2s ease-out;
+}
+@keyframes gsFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.popup-dossier-row {
+  padding: 6px 12px 12px;
+}
+.popup-dossier-row .popup-action-btn {
+  width: 100%;
+  display: block;
+}
+
+.popup-action-btn {
   padding: 8px;
   border-radius: 6px;
   font-size: 0.76rem;
@@ -415,6 +490,28 @@ body.dark-mode .popup-blockchain-pill {
 }
 .popup-action-btn.primary { background: var(--ux4g-primary); color: #fff; }
 .popup-action-btn.danger { background: var(--gov-red); color: #fff; }
+
+/* Dark Mode Overrides for New Elements */
+body.dark-mode .popup-quick-actions {
+  background: #0f172a;
+  border-color: #334155;
+}
+body.dark-mode .popup-quick-btn.helpline {
+  background: #1e293b;
+  color: #f8fafc;
+  border-color: #475569;
+}
+body.dark-mode .popup-details-toggle {
+  border-color: #334155;
+  color: #a5b4fc;
+}
+body.dark-mode .popup-details-toggle:hover {
+  background: rgba(165, 180, 252, 0.08);
+}
+body.dark-mode .popup-details-dropdown {
+  background: #1e293b;
+  border-color: #334155;
+}
 
 .popup-footer {
   padding: 8px 14px;

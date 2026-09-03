@@ -53,21 +53,22 @@
 
     <!-- Verdict Card -->
     <div class="popup-verdict-card" id="popupVerdictCard" style="display: none;">
+      <!-- Minimal Header -->
       <div class="popup-verdict-header safe" id="popupVerdictHeader">
         <div class="popup-verdict-title-row">
           <span class="popup-verdict-icon" id="popupVerdictIcon">✅</span>
-          <div>
+          <div class="popup-verdict-text-group">
             <h4 class="popup-verdict-title" id="popupVerdictTitle">VERIFIED AUTHENTIC</h4>
             <p class="popup-verdict-entity" id="popupVerdictEntity">Government Sovereign Portal</p>
           </div>
         </div>
-        <button type="button" id="btnPopupAudio" class="popup-audio-btn" title="Listen Audio">🔊</button>
+        <button type="button" id="btnPopupAudio" class="popup-audio-btn" title="Listen Audio Advisory">🔊</button>
       </div>
 
-      <!-- Score Gauge & Status -->
+      <!-- Minimal Score & Advisory Row -->
       <div class="popup-gauge-row">
         <div class="popup-score-box">
-          <span class="popup-score-num safe" id="popupScoreNum">02</span>
+          <span class="popup-score-num safe" id="popupScoreNum">00</span>
           <span class="popup-score-denom">/ 100</span>
         </div>
         <div class="popup-advisory-box">
@@ -78,59 +79,77 @@
         </div>
       </div>
 
-      <!-- AI Webpage & Domain Analysis Card -->
-      <div class="popup-ai-summary-card" id="popupAiSummaryCard">
-        <div class="popup-ai-header">
-          <span class="popup-ai-tag">🤖 AI Webpage Analysis</span>
-          <span class="popup-ai-intent" id="popupAiIntent">Citizen Service</span>
-        </div>
-        <div class="popup-ai-body" id="popupAiBodyText">
-          Analyzing domain and webpage content structure...
-        </div>
-        <div class="popup-ai-chips-row">
-          <span class="p-ai-chip" id="pChipDomain">🌐 Domain: Official Gov</span>
-          <span class="p-ai-chip" id="pChipForms">🛡️ Forms: Secure</span>
-        </div>
+      <!-- Quick Action Row -->
+      <div class="popup-quick-actions" id="popupQuickActions">
+        <a href="https://cybercrime.gov.in/Webform/Index.aspx" target="_blank" rel="noopener noreferrer" class="popup-quick-btn report" id="popupReportBtn" style="display: none;" title="Report Incident on National Cyber Crime Portal">
+          🚨 Report Fraud (cybercrime.gov.in)
+        </a>
+        <a href="tel:1930" class="popup-quick-btn helpline" id="popupHelplineBtn" title="Call 1930 National Cyber Helpline">
+          📞 1930 Helpline
+        </a>
       </div>
 
-      <!-- 5-Layer Forensic List -->
-      <div class="popup-forensic-list">
-        <div class="popup-forensic-row" id="rowLayer1">
-          <span class="p-icon" id="pIcon1">🟢</span>
-          <span class="p-name">1. Sovereign TLD</span>
-          <span class="p-badge pass" id="pBadge1">VERIFIED</span>
-        </div>
-        <div class="popup-forensic-row" id="rowLayer2">
-          <span class="p-icon" id="pIcon2">🟢</span>
-          <span class="p-name">2. Typosquat Check</span>
-          <span class="p-badge pass" id="pBadge2">CLEAN</span>
-        </div>
-        <div class="popup-forensic-row" id="rowLayer3">
-          <span class="p-icon" id="pIcon3">🟢</span>
-          <span class="p-name">3. Credential Forms</span>
-          <span class="p-badge pass" id="pBadge3">SECURE</span>
-        </div>
-        <div class="popup-forensic-row" id="rowLayer4">
-          <span class="p-icon" id="pIcon4">🟢</span>
-          <span class="p-name">4. Sovereign ML</span>
-          <span class="p-badge pass" id="pBadge4">AUTHENTIC</span>
-        </div>
-        <div class="popup-forensic-row" id="rowLayer5">
-          <span class="p-icon" id="pIcon5">🟢</span>
-          <span class="p-name">5. DNS / Mail Security</span>
-          <span class="p-badge pass" id="pBadge5">ANALYZED</span>
-        </div>
-      </div>
+      <!-- Collapsible "More Details" Toggle Button -->
+      <button type="button" class="popup-details-toggle" id="btnToggleDetails" aria-expanded="false">
+        <span class="toggle-text" id="detailsToggleText">Deep AI & Forensic Details</span>
+        <span class="toggle-icon" id="detailsToggleIcon">▾</span>
+      </button>
 
-      <!-- PoA Blockchain Proof Chip -->
-      <div class="popup-blockchain-pill" id="popupBlockchainPill">
-        ⛓️ Blockchain Verified: Block #142 | RFC 8785 Canonical Anchored
-      </div>
+      <!-- Collapsible Detailed Section (Hidden by default) -->
+      <div class="popup-details-dropdown" id="popupDetailsDropdown" style="display: none;">
+        <!-- AI Webpage & Domain Analysis Card -->
+        <div class="popup-ai-summary-card" id="popupAiSummaryCard">
+          <div class="popup-ai-header">
+            <span class="popup-ai-tag">🤖 AI Content & Domain Analysis</span>
+            <span class="popup-ai-intent" id="popupAiIntent">Citizen Service</span>
+          </div>
+          <div class="popup-ai-body" id="popupAiBodyText">
+            Analyzing domain architecture and webpage content...
+          </div>
+          <div class="popup-ai-chips-row">
+            <span class="p-ai-chip" id="pChipDomain">🌐 Domain: Official Gov</span>
+            <span class="p-ai-chip" id="pChipForms">🛡️ Forms: Secure</span>
+          </div>
+        </div>
 
-      <!-- Action Buttons -->
-      <div class="popup-actions-row">
-        <button type="button" id="btnPopupCopyDossier" class="popup-action-btn primary">📋 Copy Dossier</button>
-        <a href="tel:1930" class="popup-action-btn danger">📞 1930 Helpline</a>
+        <!-- 5-Layer Forensic List -->
+        <div class="popup-forensic-list">
+          <div class="popup-forensic-row" id="rowLayer1">
+            <span class="p-icon" id="pIcon1">🟢</span>
+            <span class="p-name">1. Sovereign TLD</span>
+            <span class="p-badge pass" id="pBadge1">VERIFIED</span>
+          </div>
+          <div class="popup-forensic-row" id="rowLayer2">
+            <span class="p-icon" id="pIcon2">🟢</span>
+            <span class="p-name">2. Typosquat Check</span>
+            <span class="p-badge pass" id="pBadge2">CLEAN</span>
+          </div>
+          <div class="popup-forensic-row" id="rowLayer3">
+            <span class="p-icon" id="pIcon3">🟢</span>
+            <span class="p-name">3. Credential Forms</span>
+            <span class="p-badge pass" id="pBadge3">SECURE</span>
+          </div>
+          <div class="popup-forensic-row" id="rowLayer4">
+            <span class="p-icon" id="pIcon4">🟢</span>
+            <span class="p-name">4. Sovereign ML</span>
+            <span class="p-badge pass" id="pBadge4">AUTHENTIC</span>
+          </div>
+          <div class="popup-forensic-row" id="rowLayer5">
+            <span class="p-icon" id="pIcon5">🟢</span>
+            <span class="p-name">5. DNS / Mail Security</span>
+            <span class="p-badge pass" id="pBadge5">ANALYZED</span>
+          </div>
+        </div>
+
+        <!-- PoA Blockchain Proof Chip -->
+        <div class="popup-blockchain-pill" id="popupBlockchainPill">
+          ⛓️ Blockchain Verified: Block #142 | RFC 8785 Canonical Anchored
+        </div>
+
+        <!-- Copy Incident Dossier Button -->
+        <div class="popup-dossier-row">
+          <button type="button" id="btnPopupCopyDossier" class="popup-action-btn primary">📋 Copy CERT-In Incident Dossier</button>
+        </div>
       </div>
     </div>
   </main>

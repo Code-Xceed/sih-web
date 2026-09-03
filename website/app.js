@@ -302,6 +302,7 @@ function renderVerdict(res) {
   const btnOfficial = document.getElementById("btnOfficialGovRedirect");
 
   if (btnReport) {
+    btnReport.href = "https://cybercrime.gov.in/Webform/Index.aspx";
     if (score >= 26 || res.verdict === "PHISHING_CLONE" || res.verdict === "SUSPICIOUS" || res.verdict === "MALICIOUS") {
       btnReport.style.display = "inline-flex";
     } else {

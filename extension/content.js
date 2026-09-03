@@ -276,7 +276,7 @@ function renderSecurityAlert(data, currentHostname, scoreParam) {
   const score = Math.max(0, Math.min(99, Math.round(data.risk_score !== undefined ? data.risk_score : (scoreParam || 85))));
   const isCritical = score >= 60 || data.verdict === "PHISHING_CLONE" || data.verdict === "MALICIOUS";
   const targetEntity = data.target_entity || "Indian Government Portal";
-  const cybercrimeUrl = "https://cybercrime.gov.in";
+  const cybercrimeUrl = "https://cybercrime.gov.in/Webform/Index.aspx";
 
   const t = GS_ALERT_I18N[currentAlertLang] || GS_ALERT_I18N.en;
 
