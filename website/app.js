@@ -1,5 +1,4 @@
 import { INDIC_LANGUAGES, UX4G_STRINGS } from './ux4gLanguages.js';
-import { playAcousticAlert, selectBestVoice } from './audioSynthesizer.js';
 import { scanWebsiteClientSide } from './scannerEngine.js';
 
 // Auto-detect system / browser language
@@ -19,7 +18,6 @@ function detectSystemLanguage() {
 // Application State
 let currentLang = detectSystemLanguage();
 let activeResult = null;
-let isSpeaking = false;
 
 // DOM Elements
 const urlInput = document.getElementById('urlInput');
@@ -34,8 +32,6 @@ const gaugeScoreNumber = document.getElementById('gaugeScoreNumber');
 const scannedUrlChip = document.getElementById('scannedUrlChip');
 const statusPillTag = document.getElementById('statusPillTag');
 const advisoryBodyText = document.getElementById('advisoryBodyText');
-const btnSpeechTrigger = document.getElementById('btnSpeechTrigger');
-const speechBtnText = document.getElementById('speechBtnText');
 
 // Localization Elements
 const advisoryTitleLabel = document.getElementById('advisoryTitleLabel');
@@ -220,9 +216,6 @@ function renderLocalizedUI() {
   
   const helpline1930Label = document.getElementById('helpline1930Label');
   if (helpline1930Label) helpline1930Label.textContent = t.helpline1930 || "1930 पर कॉल करें";
-
-  // Speech Audio button - ALWAYS update immediately on language change
-  updateSpeechButton();
 
   // Citizen Cards
   const sectionTitleEl = document.getElementById('sectionTitleEl');
@@ -575,126 +568,6 @@ function renderVerdict(res) {
   if (reportBtnLabel) reportBtnLabel.textContent = t.reportBtn || "cybercrime.gov.in पर रिपोर्ट करें";
   if (dossierBtnLabel) dossierBtnLabel.textContent = t.dossierBtn || "डोजियर डाउनलोड करें";
   if (helpline1930Label) helpline1930Label.textContent = t.helpline1930 || "1930 पर कॉल करें";
-
-  // Speech Audio button
-  updateSpeechButton();
-
-  // Trigger Acoustic Sound Chime
-  playAcousticAlert(type);
-}
-
-// -------------------------------------------------------------
-// Natural Speech Narration Engine
-// -------------------------------------------------------------
-async function handleSpeakVerdict() {
-  if (!('speechSynthesis' in window)) {
-    alert("Text-to-speech is not supported on this browser.");
-    return;
-  }
-
-  if (isSpeaking) {
-    window.speechSynthesis.cancel();
-    isSpeaking = false;
-    updateSpeechButton();
-    return;
-  }
-
-  const t = UX4G_STRINGS[currentLang] || UX4G_STRINGS['hi'];
-  let textToSpeak = "";
-  let soundType = 'safe';
-
-  if (activeResult) {
-    const score = Math.round(activeResult.risk_score || 0);
-    if (score >= 66 || activeResult.verdict === 'PHISHING_CLONE') {
-      soundType = 'threat';
-      textToSpeak = t.speechThreat || t.advisoryThreat;
-    } else if (score <= 25 || activeResult.verdict === 'LEGITIMATE') {
-      soundType = 'safe';
-      textToSpeak = t.speechSafe || t.advisorySafe;
-    } else {
-      soundType = 'caution';
-      textToSpeak = t.speechCaution || t.advisoryCaution;
-    }
-  } else {
-    // If clicked before scanning, speak localized portal instruction
-    soundType = 'safe';
-    textToSpeak = t.heroSub || "आधार, पैन या बैंक विवरण दर्ज करने से पहले जांचें कि वेबसाइट असली है या फर्जी।";
-  }
-
-  // 1. Play crystal clear acoustic chime and wait until it completes smoothly
-  await playAcousticAlert(soundType);
-
-  // 2. Select optimal voice
-  const voiceInfo = selectBestVoice(currentLang);
-
-  // If the browser lacks an exact native voice for this language (e.g. Odia/Assamese on bare Windows):
-  // Gracefully speak the English or Hindi translated advisory with Indian phonetics rather than failing
-  if (!voiceInfo.isNative && currentLang !== 'en' && currentLang !== 'hi') {
-    const fallbackT = UX4G_STRINGS['en'] || UX4G_STRINGS['hi'];
-    if (soundType === 'threat') {
-      textToSpeak = fallbackT.speechThreat || fallbackT.advisoryThreat;
-    } else if (soundType === 'safe') {
-      textToSpeak = fallbackT.speechSafe || fallbackT.advisorySafe;
-    } else {
-      textToSpeak = fallbackT.speechCaution || fallbackT.advisoryCaution;
-    }
-  }
-
-  // 3. Clean text: replace triple dots with natural pauses and normalize whitespace
-  const cleanText = textToSpeak.replace(/\.{2,}/g, ', ').replace(/\s+/g, ' ').trim();
-
-  // 4. Build utterance with natural conversational rate & pitch
-  const utterance = new SpeechSynthesisUtterance(cleanText);
-  utterance.lang = voiceInfo.langTag || 'en-IN';
-  utterance.rate = 1.0;
-  utterance.pitch = 1.0;
-  utterance.volume = 1.0;
-
-  if (voiceInfo.voice) {
-    utterance.voice = voiceInfo.voice;
-  }
-
-  utterance.onstart = () => {
-    isSpeaking = true;
-    updateSpeechButton();
-  };
-
-  utterance.onend = () => {
-    isSpeaking = false;
-    updateSpeechButton();
-  };
-
-  utterance.onerror = () => {
-    isSpeaking = false;
-    updateSpeechButton();
-  };
-
-  isSpeaking = true;
-  updateSpeechButton();
-
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
-}
-
-function updateSpeechButton() {
-  const t = UX4G_STRINGS[currentLang] || UX4G_STRINGS['hi'];
-  const trigger = document.getElementById('btnSpeechTrigger');
-  const label = document.getElementById('speechBtnText');
-
-  const text = isSpeaking ? (t.stopAudio || "आवाज़ बंद करें") : (t.listenAudio || "आवाज़ में सुनें");
-  const icon = isSpeaking ? "⏹️" : "🔊";
-
-  if (trigger) {
-    if (isSpeaking) {
-      trigger.classList.add('playing');
-    } else {
-      trigger.classList.remove('playing');
-    }
-    trigger.setAttribute('aria-label', text);
-    trigger.innerHTML = `${icon} <span id="speechBtnText">${text}</span>`;
-  } else if (label) {
-    label.textContent = text;
-  }
 }
 
 // -------------------------------------------------------------
@@ -973,14 +846,7 @@ function initApp() {
       return;
     }
 
-    // 4. Audio Speech Button
-    if (e.target.closest('#btnSpeechTrigger')) {
-      e.preventDefault();
-      handleSpeakVerdict();
-      return;
-    }
-
-    // 5. Dossier Modal Open
+    // 4. Dossier Modal Open
     if (e.target.closest('#btnOpenDossier')) {
       e.preventDefault();
       openDossier();

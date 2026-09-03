@@ -153,23 +153,59 @@ async function evaluateTabSecurity(tabId, url) {
     console.debug("Backend API unavailable for tab background scan:", e);
   }
 
+  // Sovereign Brand Signatures for Offline / Low-Latency Tab Defense
+  const GOV_BRAND_SIGNATURES = [
+    { brand: "PM-Kisan Samman Nidhi", official: "pmkisan.gov.in", keywords: ["pmkisan", "pm-kisan", "kisan-pm", "kisansammannidhi", "kisanportal", "farmer-subsidy", "kisan"] },
+    { brand: "Aadhaar / UIDAI", official: "uidai.gov.in", keywords: ["uidai", "aadhaar", "aadhar", "myaadhaar", "eaadhaar"] },
+    { brand: "Income Tax Department", official: "incometax.gov.in", keywords: ["incometax", "itr-efiling", "taxrefund", "incometaxindia", "efiling"] },
+    { brand: "Parivahan Sewa (MoRTH)", official: "parivahan.gov.in", keywords: ["parivahan", "mparivahan", "sarathi", "vahan", "drivinglicence", "dl-slot"] },
+    { brand: "DigiLocker", official: "digilocker.gov.in", keywords: ["digilocker", "digital-locker", "mydigilocker"] },
+    { brand: "EPFO (Provident Fund)", official: "epfindia.gov.in", keywords: ["epfindia", "epfo", "epfclaim", "uanportal", "passbook-epfindia"] },
+    { brand: "Passport Seva", official: "passportindia.gov.in", keywords: ["passportseva", "passportindia", "tatkaal-passport"] },
+    { brand: "National Cybercrime Portal", official: "cybercrime.gov.in", keywords: ["cybercrime-gov", "1930helpline", "cybercell"] },
+    { brand: "Ayushman Bharat / PM-JAY", official: "pmjay.gov.in", keywords: ["pmjay", "ayushman", "ayushmanbharat", "golden-card"] },
+    { brand: "e-Shram Portal", official: "eshram.gov.in", keywords: ["eshram", "e-shram", "shramikcard"] }
+  ];
+
+  const PHISHING_DECEPTIVE_PATTERNS = [
+    "-gov.", ".gov-", "gov-in", "-gov-", "govindia", "g0v", "g0v.in", "nic-", "-nic.", "nicin",
+    "subsidy", "free-yojana", "yojana-apply", "claim-refund", "kyc-update", "verify-aadhaar", "daflonpneus", "yapple"
+  ];
+
   // Sovereign client heuristics fallback if backend is sleeping/offline
-  const isScam = hostname.includes("g0v") || hostname.includes("kisan-pm") || hostname.includes("yapple") ||
-                 hostname.includes("subsidy") || hostname.includes(".xyz") || hostname.includes("daflonpneus");
-  const score = isScam ? 92 : 15;
-  const verdict = isScam ? "PHISHING_CLONE" : "LEGITIMATE";
+  const isPunycode = hostname.startsWith("xn--") || /[^\u0000-\u007f]/.test(hostname);
+  let matchedBrand = null;
+  for (const item of GOV_BRAND_SIGNATURES) {
+    if (item.keywords.some(kw => hostname.includes(kw))) {
+      matchedBrand = item;
+      break;
+    }
+  }
+
+  const hasDeceptivePattern = PHISHING_DECEPTIVE_PATTERNS.some(p => hostname.includes(p)) ||
+                             hostname.endsWith(".xyz") || hostname.endsWith(".top") || hostname.endsWith(".work");
+
+  const isScam = isPunycode || Boolean(matchedBrand) || hasDeceptivePattern;
+  const score = isScam ? 96 : 15;
+  const verdict = isScam ? "PHISHING_CLONE" : "AUTHENTIC_WEB";
+  const targetEntity = matchedBrand ? `${matchedBrand.brand} (Unauthorized Clone)` : (isScam ? "Government Sovereign Scheme (Impersonated)" : "Commercial Web Portal");
+  const officialRef = matchedBrand ? matchedBrand.official : "official .gov.in portal";
+
   const fallbackData = {
     url,
-    target_entity: isScam ? "Indian Sovereign Scheme (Impersonated)" : "Commercial Web Portal",
+    target_entity: targetEntity,
     risk_score: score,
     verdict: verdict,
     is_genuine_gov_tld: false,
     impersonated: isScam,
+    reasons: isScam
+      ? [`Unauthorized public domain (${hostname}) mimicking ${officialRef}. Official government services strictly operate under .gov.in.`]
+      : ["Standard public web platform. No government impersonation or identity theft detected."],
     ai_page_analysis: {
       domain_type: isScam ? "Unauthorized Deceptive Clone" : "Commercial Web Platform",
       content_type: isScam ? "Credential Phishing Trap" : "Informational Content",
       ai_summary_en: isScam
-        ? `AI Content Analysis flags this domain (${hostname}) as an unauthorized cyber clone attempting to harvest credentials. Do NOT submit personal details.`
+        ? `AI Content Analysis flags this domain (${hostname}) as an unauthorized cyber clone mimicking ${targetEntity}. Do NOT submit Aadhaar, PAN, OTP, or passwords.`
         : `AI Domain Analysis verifies ${hostname} as a standard public web platform.`
     }
   };
