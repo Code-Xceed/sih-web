@@ -283,6 +283,38 @@ function renderVerdict(res) {
   statusPillTag.textContent = badgeTag;
 
   // Citizen Advisory
+  const btnReport = document.getElementById("btnReportCybercrime");
+  const btnOfficial = document.getElementById("btnOfficialGovRedirect");
+
+  if (btnReport) {
+    if (score >= 26 || res.verdict === "PHISHING_CLONE" || res.verdict === "SUSPICIOUS" || res.verdict === "MALICIOUS") {
+      btnReport.style.display = "inline-flex";
+    } else {
+      btnReport.style.display = "none";
+    }
+  }
+
+  if (btnOfficial) {
+    if ((res.impersonated || score >= 26) && !res.is_genuine_gov_tld) {
+      let offDomain = res.official_domain || "";
+      if (!offDomain) {
+        const ent = (res.target_entity || "").toLowerCase();
+        if (ent.includes("kisan")) offDomain = "pmkisan.gov.in";
+        else if (ent.includes("tax")) offDomain = "incometax.gov.in";
+        else if (ent.includes("aadhaar") || ent.includes("uidai")) offDomain = "uidai.gov.in";
+        else if (ent.includes("parivahan")) offDomain = "parivahan.gov.in";
+        else if (ent.includes("epfo")) offDomain = "epfindia.gov.in";
+        else offDomain = "india.gov.in";
+      }
+      btnOfficial.href = `https://${offDomain}`;
+      btnOfficial.title = `Redirect safely to authentic Government of India portal (${offDomain})`;
+      btnOfficial.style.display = "inline-flex";
+      const lbl = document.getElementById("officialGovBtnLabel");
+      if (lbl) lbl.textContent = `आधिकारिक पोर्टल (${offDomain}) पर जाएं`;
+    } else {
+      btnOfficial.style.display = "none";
+    }
+  }
   if (score >= 66) {
     advisoryBodyText.textContent = t.advisoryThreat || "चेतावनी! यह वेबसाइट फर्जी है जो सरकारी पोर्टल की नकल कर रही है। अपना आधार नंबर, बैंक खाता, पैन या OTP यहाँ कभी दर्ज न करें!";
   } else if (score <= 25) {

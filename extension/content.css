@@ -1,62 +1,514 @@
-/* GovShield In-Page Alert Banner */
-#govshield-warning-banner {
+/* ==========================================================================
+   GovShield Sentinel Grid 3.0 — In-Page Citizen Cyber Defense Alert Styling
+   Isolated with #govshield-alert-root to prevent website style bleeding
+   ========================================================================== */
+
+#govshield-alert-root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  color: #1e293b !important;
+  box-sizing: border-box !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+
+#govshield-alert-root * {
+  box-sizing: border-box !important;
+  font-family: inherit !important;
+}
+
+/* --- Top Alert Banner --- */
+.gs-banner {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
   width: 100% !important;
   z-index: 2147483647 !important;
-  background: #de350b !important;
-  color: #ffffff !important;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
-  font-size: 13px !important;
-  box-shadow: 0 4px 16px rgba(222, 53, 11, 0.45) !important;
-  border-bottom: 2px solid #ffffff !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
+  animation: gsSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-.gs-banner-inner {
-  max-width: 1200px !important;
+@keyframes gsSlideDown {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
+.gs-critical {
+  background: #de350b !important;
+  color: #ffffff !important;
+}
+
+.gs-caution {
+  background: #d97706 !important;
+  color: #ffffff !important;
+}
+
+.gs-tricolor-line {
+  height: 4px !important;
+  width: 100% !important;
+  background: linear-gradient(90deg, #ff9933 0%, #ff9933 33.3%, #ffffff 33.3%, #ffffff 66.6%, #138808 66.6%, #138808 100%) !important;
+}
+
+.gs-banner-content {
+  max-width: 1440px !important;
   margin: 0 auto !important;
   padding: 10px 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  flex-wrap: wrap !important;
+}
+
+.gs-banner-badge-col {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.gs-siren-icon {
+  font-size: 24px !important;
+  animation: gsPulse 1.2s infinite !important;
+  display: inline-block !important;
+}
+
+@keyframes gsPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.gs-score-badge {
+  background: rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: 6px !important;
+  padding: 3px 7px !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.5px !important;
+}
+
+.gs-banner-text-col {
+  flex: 1 !important;
+  min-width: 280px !important;
+}
+
+.gs-banner-title-line {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+}
+
+.gs-banner-title {
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: uppercase !important;
+}
+
+.gs-pill-impersonated {
+  background: #ffffff !important;
+  color: #b91c1c !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  padding: 1px 7px !important;
+  border-radius: 4px !important;
+}
+
+.gs-banner-desc {
+  font-size: 12px !important;
+  margin-top: 3px !important;
+  line-height: 1.35 !important;
+  opacity: 0.95 !important;
+}
+
+.gs-highlight-domain {
+  text-decoration: underline !important;
+  font-weight: 800 !important;
+}
+
+.gs-ai-brief {
+  display: block !important;
+  font-size: 11.5px !important;
+  opacity: 0.9 !important;
+  margin-top: 2px !important;
+}
+
+.gs-banner-actions-col {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+}
+
+/* Action Buttons */
+.gs-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+
+.gs-btn:hover {
+  transform: translateY(-1px) !important;
+}
+
+.gs-btn-report {
+  background: #ffffff !important;
+  color: #de350b !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+}
+.gs-btn-report:hover {
+  background: #fee2e2 !important;
+}
+
+.gs-btn-official {
+  background: #00875a !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+}
+.gs-btn-official:hover {
+  background: #006644 !important;
+}
+
+.gs-btn-steps {
+  background: rgba(0, 0, 0, 0.25) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+}
+.gs-btn-steps:hover {
+  background: rgba(0, 0, 0, 0.4) !important;
+}
+
+.gs-btn-helpline {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.gs-btn-icon-close {
+  background: transparent !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-size: 16px !important;
+  cursor: pointer !important;
+  padding: 4px 8px !important;
+  border-radius: 4px !important;
+  opacity: 0.8 !important;
+}
+.gs-btn-icon-close:hover {
+  opacity: 1 !important;
+  background: rgba(0, 0, 0, 0.2) !important;
+}
+
+/* --- Floating Reopen Pill --- */
+.gs-floating-pill {
+  position: fixed !important;
+  bottom: 20px !important;
+  right: 20px !important;
+  z-index: 2147483647 !important;
+  padding: 8px 14px !important;
+  border-radius: 50px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3) !important;
+  color: #ffffff !important;
+  font-size: 12px !important;
+  animation: gsFadeIn 0.3s ease !important;
+}
+
+@keyframes gsFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.gs-pill-critical { background: #de350b !important; }
+.gs-pill-caution { background: #d97706 !important; }
+
+.gs-pill-reopen-btn {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: none !important;
+  padding: 4px 10px !important;
+  border-radius: 20px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+}
+
+/* --- Detailed Safety Guidance Modal --- */
+.gs-modal-backdrop {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(15, 23, 42, 0.8) !important;
+  backdrop-filter: blur(4px) !important;
+  z-index: 2147483647 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+}
+
+.gs-modal-card {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  max-width: 680px !important;
+  width: 100% !important;
+  border-radius: 14px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4) !important;
+  overflow: hidden !important;
+  max-height: 90vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  animation: gsModalPop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+@keyframes gsModalPop {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.gs-modal-header {
+  background: #0b192c !important;
+  color: #ffffff !important;
+  padding: 16px 20px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  border-bottom: 2px solid #5c3cf6 !important;
+}
+
+.gs-modal-header-left {
   display: flex !important;
   align-items: center !important;
   gap: 12px !important;
 }
 
-.gs-banner-icon {
-  font-size: 22px !important;
+.gs-modal-emblem {
+  font-size: 28px !important;
 }
 
-.gs-banner-text {
-  flex: 1 !important;
-  line-height: 1.4 !important;
-}
-
-.gs-domain {
-  text-decoration: underline !important;
+.gs-modal-headline {
+  font-size: 16px !important;
   font-weight: 800 !important;
-}
-
-.gs-banner-actions {
-  display: flex !important;
-  gap: 8px !important;
-}
-
-.gs-btn-1930 {
-  background: #ffffff !important;
-  color: #de350b !important;
-  font-weight: 800 !important;
-  padding: 6px 14px !important;
-  border-radius: 6px !important;
-  text-decoration: none !important;
-  font-size: 12px !important;
-}
-
-.gs-btn-dismiss {
-  background: rgba(0, 0, 0, 0.25) !important;
+  margin: 0 !important;
   color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  padding: 6px 12px !important;
-  border-radius: 6px !important;
-  cursor: pointer !important;
-  font-size: 12px !important;
 }
+
+.gs-modal-subline {
+  font-size: 11px !important;
+  color: #94a3b8 !important;
+  margin: 2px 0 0 0 !important;
+}
+
+.gs-modal-close-btn {
+  background: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-size: 20px !important;
+  cursor: pointer !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  opacity: 0.8 !important;
+}
+.gs-modal-close-btn:hover {
+  opacity: 1 !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.gs-modal-body {
+  padding: 20px !important;
+  overflow-y: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+}
+
+.gs-modal-threat-box {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+  padding: 14px 16px !important;
+  border-radius: 10px !important;
+}
+.gs-box-critical {
+  background: #fee2e2 !important;
+  border: 1.5px solid #fca5a5 !important;
+}
+.gs-box-caution {
+  background: #fef3c7 !important;
+  border: 1.5px solid #fcd34d !important;
+}
+
+.gs-threat-score-col {
+  text-align: center !important;
+  min-width: 70px !important;
+}
+
+.gs-threat-score-num {
+  font-size: 28px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  color: #991b1b !important;
+  display: block !important;
+}
+
+.gs-threat-score-denom {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  color: #7f1d1d !important;
+}
+
+.gs-threat-meta-col {
+  flex: 1 !important;
+}
+
+.gs-threat-verdict-title {
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  color: #991b1b !important;
+}
+
+.gs-threat-entity-note {
+  font-size: 12px !important;
+  color: #334155 !important;
+  margin: 4px 0 0 0 !important;
+}
+
+.gs-section-card {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  padding: 14px 16px !important;
+}
+
+.gs-section-title {
+  font-size: 12.5px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  margin: 0 0 8px 0 !important;
+}
+
+.gs-ai-full-text {
+  font-size: 12.5px !important;
+  line-height: 1.55 !important;
+  color: #334155 !important;
+  margin: 0 !important;
+}
+
+.gs-guidance-list {
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+}
+
+.gs-guidance-list li {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+}
+
+.gs-g-icon {
+  font-size: 16px !important;
+  line-height: 1.2 !important;
+}
+
+.gs-g-text {
+  flex: 1 !important;
+  color: #334155 !important;
+}
+
+.gs-g-text strong {
+  color: #0f172a !important;
+  display: block !important;
+  margin-bottom: 2px !important;
+}
+
+.gs-g-text code {
+  background: #e2e8f0 !important;
+  padding: 1px 4px !important;
+  border-radius: 3px !important;
+  font-family: monospace !important;
+  font-size: 11px !important;
+}
+
+.gs-modal-footer {
+  background: #f1f5f9 !important;
+  border-top: 1px solid #e2e8f0 !important;
+  padding: 14px 20px !important;
+  display: flex !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+}
+
+.gs-btn-report-lg {
+  background: #de350b !important;
+  color: #ffffff !important;
+  padding: 8px 14px !important;
+  border-radius: 6px !important;
+  font-size: 12.5px !important;
+  font-weight: 800 !important;
+  text-decoration: none !important;
+}
+.gs-btn-report-lg:hover {
+  background: #b91c1c !important;
+}
+
+.gs-btn-official-lg {
+  background: #00875a !important;
+  color: #ffffff !important;
+  padding: 8px 14px !important;
+  border-radius: 6px !important;
+  font-size: 12.5px !important;
+  font-weight: 800 !important;
+  text-decoration: none !important;
+}
+.gs-btn-official-lg:hover {
+  background: #006644 !important;
+}
+
+.gs-btn-helpline-lg {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  padding: 8px 14px !important;
+  border-radius: 6px !important;
+  font-size: 12.5px !important;
+  font-weight: 800 !important;
+  text-decoration: none !important;
+}
+
+.gs-btn-dismiss-lg {
+  background: transparent !important;
+  color: #64748b !important;
+  border: 1px solid #cbd5e1 !important;
+  padding: 8px 14px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+}
+.gs-btn-dismiss-lg:hover {
+  background: #e2e8f0 !important;
+  color: #334155 !important;
+}
+

@@ -164,6 +164,18 @@ function renderPopupResult(data) {
   // Synchronize browser action badge with current scan result
   syncBadge(score, data.verdict, isGov);
 
+  // Notify active webpage to display warning banner if risky
+  if (currentTabId && (score >= 40 || data.verdict === "PHISHING_CLONE" || data.verdict === "MALICIOUS" || data.verdict === "SUSPICIOUS")) {
+    try {
+      chrome.tabs.sendMessage(currentTabId, {
+        action: "SHOW_FRAUD_BANNER",
+        scanData: data,
+        domain: currentUrl ? new URL(currentUrl).hostname : "",
+        risk_score: score
+      }).catch(() => {});
+    } catch (_) {}
+  }
+
   // Header
   const header = document.getElementById("popupVerdictHeader");
   header.className = `popup-verdict-header ${type}`;
