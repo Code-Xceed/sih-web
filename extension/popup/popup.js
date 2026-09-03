@@ -387,7 +387,7 @@ async function executeScan(url) {
     let resp = null;
     try {
       const ctrl1 = new AbortController();
-      const t1 = setTimeout(() => ctrl1.abort(), 3500);
+      const t1 = setTimeout(() => ctrl1.abort(), 1000);
       resp = await fetch(LOCAL_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -398,7 +398,7 @@ async function executeScan(url) {
     } catch (_) {
       try {
         const ctrl2 = new AbortController();
-        const t2 = setTimeout(() => ctrl2.abort(), 5000);
+        const t2 = setTimeout(() => ctrl2.abort(), 8000);
         resp = await fetch(PROD_API, {
           method: "POST",
           headers: { "Content-Type": "application/json" },

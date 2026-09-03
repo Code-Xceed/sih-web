@@ -96,29 +96,39 @@ async function evaluateTabSecurity(tabId, url) {
   chrome.action.setBadgeBackgroundColor({ tabId, color: "#5c3cf6" });
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
+    let data = null;
 
-    let resp = null;
+    // 1. Probe local dev server with short 1000ms timeout
     try {
-      resp = await fetch(LOCAL_API, {
+      const ctrlLocal = new AbortController();
+      const tLocal = setTimeout(() => ctrlLocal.abort(), 1000);
+      const respLocal = await fetch(LOCAL_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
-        signal: controller.signal
+        signal: ctrlLocal.signal
       });
-    } catch (_) {
-      resp = await fetch(PROD_API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-        signal: controller.signal
-      });
-    }
-    clearTimeout(timeoutId);
+      clearTimeout(tLocal);
+      if (respLocal.ok) data = await respLocal.json();
+    } catch (_) {}
 
-    if (resp && resp.ok) {
-      const data = await resp.json();
+    // 2. If local server unavailable, query cloud production API with generous 8000ms timeout
+    if (!data) {
+      try {
+        const ctrlProd = new AbortController();
+        const tProd = setTimeout(() => ctrlProd.abort(), 8000);
+        const respProd = await fetch(PROD_API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+          signal: ctrlProd.signal
+        });
+        clearTimeout(tProd);
+        if (respProd.ok) data = await respProd.json();
+      } catch (_) {}
+    }
+
+    if (data) {
       const score = Math.round(data.risk_score || 0);
       tabScanCache.set(tabId, data);
       applyBadge(tabId, score, data.verdict, data.is_genuine_gov_tld);

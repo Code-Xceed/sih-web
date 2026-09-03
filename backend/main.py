@@ -140,14 +140,36 @@ RATE_LIMIT_LAST_CLEANUP = time.time()
 
 @app.middleware("http")
 async def rate_limiting_middleware(request: Request, call_next):
-    """Enforces lightweight rate-limiting per client IP to mitigate denial-of-service."""
-    client_ip = request.client.host if request.client else "unknown"
+    """Enforces lightweight rate-limiting per client IP and injects defensive security headers."""
+    # Resolve real client IP behind reverse proxies (Render, Cloudflare, Nginx)
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        client_ip = forwarded.split(",")[0].strip()
+    elif request.headers.get("x-real-ip"):
+        client_ip = request.headers.get("x-real-ip").strip()
+    elif request.client:
+        client_ip = request.client.host
+    else:
+        client_ip = "unknown"
 
-    # Skip static files and health checks from rate limiting
-    if request.url.path in ["/healthz", "/readyz", "/api/health", "/api/metrics"] or request.url.path.startswith(("/css", "/js", "/images")):
-        return await call_next(request)
+    # Skip static assets and system health checks from rate limiting
+    path = request.url.path
+    if path in ["/healthz", "/readyz", "/api/health", "/api/metrics"] or path.startswith(("/css", "/js", "/images", "/icons")):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        return response
 
     now = time.time()
+
+    # Periodic cleanup of stale rate-limit buckets (every 5 minutes to prevent memory leak)
+    global RATE_LIMIT_LAST_CLEANUP
+    if (now - RATE_LIMIT_LAST_CLEANUP) > 300.0:
+        RATE_LIMIT_LAST_CLEANUP = now
+        stale_ips = [ip for ip, tss in RATE_LIMIT_BUCKETS.items() if not tss or (now - tss[-1]) > RATE_LIMIT_WINDOW_SECONDS]
+        for ip in stale_ips:
+            RATE_LIMIT_BUCKETS.pop(ip, None)
+
     timestamps = RATE_LIMIT_BUCKETS.get(client_ip, [])
     # Filter out timestamps older than window
     timestamps = [ts for ts in timestamps if (now - ts) < RATE_LIMIT_WINDOW_SECONDS]
@@ -159,7 +181,11 @@ async def rate_limiting_middleware(request: Request, call_next):
     timestamps.append(now)
     RATE_LIMIT_BUCKETS[client_ip] = timestamps
 
-    return await call_next(request)
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
 
 
 # -------------------------------------------------------------
@@ -697,6 +723,29 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
     port = url_meta.get("port")
     scheme = url_meta.get("scheme", "https")
 
+    # Fast rejection for invalid/unparseable URLs
+    if not url_meta.get("valid", True) or not hostname:
+        return {
+            "url": req.url,
+            "domain": hostname or req.url,
+            "verdict": "INVALID_URL",
+            "risk_score": 0,
+            "confidence": 1.0,
+            "is_genuine_gov_tld": False,
+            "threat_type": "None",
+            "summary": "Invalid or malformed URL provided. Please enter a valid web address.",
+            "reasons": url_meta.get("indicators", ["Malformed or unparseable URL."]),
+            "recommendation": "Check the URL syntax and try again.",
+            "emergency_dial": "1930",
+            "scan_timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "target_entity": "Unknown Web Resource",
+            "ai_page_analysis": {
+                "domain_type": "Invalid Domain",
+                "content_type": "None",
+                "ai_summary_en": "Malformed or invalid URL syntax provided. Please enter a valid address."
+            }
+        }
+
     # Fast in-memory cache hit
     cache_key = normalized_url.lower()
     now_ts = time.time()
@@ -946,7 +995,11 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
     if len(RECENT_VERDICTS) > 200:
         RECENT_VERDICTS.pop(0)
 
-    # Store in memory cache
+    # Store in memory cache (safely bounded even if cachetools is absent)
+    if not hasattr(SCAN_CACHE, "maxsize") and len(SCAN_CACHE) > 2000:
+        for old_k in list(SCAN_CACHE.keys())[:200]:
+            SCAN_CACHE.pop(old_k, None)
+
     SCAN_CACHE[cache_key] = {
         "cached_at": now_ts,
         "data": fused_verdict
@@ -1006,6 +1059,11 @@ async def full_scan(req: ScanRequest, mode: Literal["sync", "async"] = "sync"):
     req.url = _validate_url(req.url)
 
     if mode == "async":
+        # Evict oldest jobs if buffer exceeds 500 to prevent memory leak
+        if len(ASYNC_JOBS) > 500:
+            for old_id in list(ASYNC_JOBS.keys())[:100]:
+                ASYNC_JOBS.pop(old_id, None)
+
         scan_id = f"SCAN-{uuid.uuid4().hex[:8].upper()}"
         ASYNC_JOBS[scan_id] = {
             "scan_id": scan_id,
