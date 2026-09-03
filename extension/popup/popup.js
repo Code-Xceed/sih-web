@@ -79,34 +79,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (langEn) langEn.addEventListener("click", () => setLanguage("en"));
   if (langHi) langHi.addEventListener("click", () => setLanguage("hi"));
 
-  // Voice advisory (Bilingual Hindi/English)
+  // Voice advisory
   if (btnVoicePopup) {
     btnVoicePopup.addEventListener("click", () => {
       if (!("speechSynthesis" in window)) return;
       window.speechSynthesis.cancel();
       const dict = popupI18n[currentLang];
-      const isThreat = (currentScanData && (currentScanData.verdict === "PHISHING_CLONE" || currentScanData.verdict === "MALICIOUS" || currentScanData.risk_score >= 65));
-      const text = isThreat ? dict.speechThreat : dict.speechSafe;
+      const text = (currentScanData && currentScanData.verdict === "PHISHING_CLONE") ? dict.speechThreat : dict.speechSafe;
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = currentLang === "hi" ? "hi-IN" : "en-IN";
       window.speechSynthesis.speak(utterance);
-    });
-  }
-
-  // Backend Environment Switcher (Localhost vs Render Cloud)
-  const statusPill = document.getElementById("statusPill");
-  if (statusPill) {
-    statusPill.style.cursor = "pointer";
-    statusPill.title = "Click to toggle backend (Localhost / Render Cloud)";
-    statusPill.addEventListener("click", async () => {
-      const cur = await chrome.storage.local.get(["custom_backend_url"]);
-      const isLocal = !cur.custom_backend_url || cur.custom_backend_url.includes("localhost") || cur.custom_backend_url.includes("127.0.0.1");
-      const nextUrl = isLocal ? "https://govshield-veje.onrender.com" : "http://localhost:8000";
-      await chrome.storage.local.set({ custom_backend_url: nextUrl });
-      showToast(`Backend: ${isLocal ? "Render Cloud" : "Localhost:8000"}`);
-      if (engineLabel) {
-        engineLabel.textContent = isLocal ? "Cloud" : "Local";
-      }
     });
   }
 
@@ -161,88 +143,38 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const dict = popupI18n[currentLang] || popupI18n.en;
-    const isCriticalThreat = data.verdict === "PHISHING_CLONE" || data.verdict === "MALICIOUS" || score >= 65;
-    const isSuspiciousThreat = data.verdict === "SUSPICIOUS" || (score >= 30 && score < 65);
 
     // Badge
     if (verdictBadge) {
-      if (isCriticalThreat) {
+      if (data.verdict === "PHISHING_CLONE") {
         verdictBadge.textContent = dict.criticalThreat;
         verdictBadge.className = "verdict-badge-clean badge-threat";
         setDetailsExpanded(true); // Auto-expand on threats
-      } else if (isSuspiciousThreat) {
+      } else if (data.verdict === "SUSPICIOUS") {
         verdictBadge.textContent = dict.suspiciousDomain;
         verdictBadge.className = "verdict-badge-clean badge-caution";
         setDetailsExpanded(true); // Auto-expand on caution
       } else {
-        const isOfficial = data.is_genuine_gov_tld || data.category === "OFFICIAL_GOVERNMENT_PORTAL" || (data.tld && (data.tld.includes("gov.in") || data.tld.includes("nic.in")));
-        verdictBadge.textContent = isOfficial ? dict.verifiedOfficial : dict.authenticWeb;
+        verdictBadge.textContent = data.is_genuine_gov_tld ? dict.verifiedOfficial : dict.authenticWeb;
         verdictBadge.className = "verdict-badge-clean badge-safe";
         setDetailsExpanded(false); // Default neat collapse on safe
       }
     }
 
-    // High-Priority PIB Fact Check Alert
-    const isPibScam = (data.category === "GOVERNMENT_IMPERSONATION_SCAM") ||
-      (data.reasons && data.reasons.some(r => r.includes("PIB") || r.includes("Press Information Bureau")));
-    const pibAlertBanner = document.getElementById("pibAlertBanner");
-    const pibAlertMsg = document.getElementById("pibAlertMsg");
-    if (pibAlertBanner) {
-      if (isPibScam) {
-        pibAlertBanner.style.display = "flex";
-        if (pibAlertMsg) {
-          pibAlertMsg.textContent = currentLang === "hi"
-            ? "प्रेस सूचना ब्यूरो (PIB Fact Check) द्वारा फर्जी घोषित: सरकारी योजना/भर्ती के नाम पर अवैध वसूली।"
-            : "Flagged by Press Information Bureau & Ministry Cyber Cell as an illegal fraudulent portal collecting fake application fees.";
-        }
-      } else {
-        pibAlertBanner.style.display = "none";
-      }
-    }
-
-    // Rural Citizen / Villager Direct Warning Notice
-    const villagerAlertNotice = document.getElementById("villagerAlertNotice");
-    const villagerAlertText = document.getElementById("villagerAlertText");
-    if (villagerAlertNotice) {
-      if (isCriticalThreat) {
-        villagerAlertNotice.style.display = "flex";
-        if (villagerAlertText) {
-          villagerAlertText.textContent = currentLang === "hi"
-            ? "🛑 सावधान! अपना आधार नंबर, OTP या बैंक विवरण यहाँ बिल्कुल न भरें।"
-            : "🛑 DO NOT ENTER OTP OR BANK PIN / Never share citizen credentials on this site.";
-        }
-      } else {
-        villagerAlertNotice.style.display = "none";
-      }
-    }
-
-    // Inline Proof Badges (Blockchain, MinHash, Legal)
-    const chipBc = document.getElementById("chipBlockchain");
-    const chipMinHash = document.getElementById("chipMinHash");
-    const chipSec65b = document.getElementById("chipSec65b");
-    const bc = data.blockchain_proof || {};
-    const blockIndex = bc.block_index || bc.block_height || 1;
-    if (chipBc) chipBc.textContent = `⛓️ PoA #Block${blockIndex}`;
-
-    const rawSim = data.signal_breakdown?.content_similarity ?? (data.content_sim_evidence ? data.content_sim_evidence.similarity * 100 : 0);
-    const simPercent = Math.round(Number(rawSim) || 0);
-    if (chipMinHash) chipMinHash.textContent = `🧬 MinHash: ${simPercent}%`;
-    if (chipSec65b) chipSec65b.textContent = data.incident_id ? `⚖️ ${data.incident_id.slice(-8)}` : `⚖️ Sec 65B Certified`;
-
     // Summary
     if (verdictSummary) {
       let summaryStr = data.summary || "Evaluation completed.";
       if (currentLang === "hi") {
-        if (isCriticalThreat) {
-          summaryStr = `फर्जी वेबसाइट! ${data.target_entity || "सरकारी सेवा"} की नकल करके नागरिकों से डेटा या शुल्क चुराने का प्रयास।`;
-        } else if (isSuspiciousThreat) {
-          summaryStr = `संदिग्ध पोर्टल! ${data.target_entity || "सरकारी योजना"} के नाम का अनधिकृत उपयोग।`;
+        if (data.verdict === "PHISHING_CLONE") {
+          summaryStr = `फर्जी वेबसाइट! ${data.target_entity || "सरकारी सेवा"} की नकल करके नागरिकों से डेटा चुराने का प्रयास।`;
+        } else if (data.verdict === "SUSPICIOUS") {
+          summaryStr = `संदिग्ध पोर्टल! ${data.target_entity || "सरकारी योजना"} के नाम का दुरुपयोग।`;
         } else {
           summaryStr = "प्रमाणित सुरक्षित वेबसाइट।";
         }
       } else {
-        if (data.target_entity && !["LEGITIMATE", "NO_SIGNIFICANT_INDICATORS"].includes(data.verdict)) {
-          summaryStr = `Impersonation targeting ${data.target_entity}. ${summaryStr}`;
+        if (data.target_entity && data.verdict !== "LEGITIMATE") {
+          summaryStr = `Deceptive impersonation targeting ${data.target_entity}. ${summaryStr}`;
         }
       }
       verdictSummary.textContent = summaryStr;
@@ -250,19 +182,21 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Advisory
     if (remediationText) {
-      if (isCriticalThreat) {
+      if (data.verdict === "PHISHING_CLONE") {
         remediationText.textContent = dict.advisoryThreat;
-      } else if (isSuspiciousThreat) {
+      } else if (data.verdict === "SUSPICIOUS") {
         remediationText.textContent = dict.advisorySuspicious;
       } else {
         remediationText.textContent = dict.advisorySafe;
       }
     }
 
-    // Blockchain Proof Badge in Footer
+    // Blockchain Proof Badge
     const badgeHeightEl = document.getElementById("lblBlockHeightBadge");
     if (badgeHeightEl) {
-      badgeHeightEl.textContent = `PoA Ledger #Block${blockIndex}`;
+      const bc = data.blockchain_proof || {};
+      const height = bc.block_index || bc.block_height || 1;
+      badgeHeightEl.textContent = `PoA Ledger #Block${height}`;
     }
 
     // 5 Inspection Steps (Exact match to website)

@@ -193,7 +193,11 @@ class FusionEngine:
 
         # 2. Brand & Impersonation Intent
         if claimed_entity and not is_official_gov_tld:
-            if brand_class == "MALICIOUS_IMPERSONATION":
+            if "ABUSED CLOUD HOSTING" in brand_evidence.get("reason", ""):
+                base_score += 75.0
+                reasons.append(brand_evidence.get("reason"))
+                confidence_factors.append(0.96)
+            elif brand_class == "MALICIOUS_IMPERSONATION":
                 base_score += 50.0
                 reasons.append(f"Unauthorized commercial domain deceptive lookalike targeting {claimed_entity}.")
                 confidence_factors.append(0.95)
@@ -201,6 +205,12 @@ class FusionEngine:
                 base_score += 30.0
                 reasons.append(f"Domain incorporates official brand tokens representing {claimed_entity}.")
                 confidence_factors.append(0.75)
+
+        # 2b. Algorithmic Domain Randomness (DGA / Shannon Entropy from url.vet standards)
+        if url_metadata.get("entropy", 0.0) > 3.85 and not is_official_gov_tld:
+            base_score += 25.0
+            reasons.append(f"High Shannon entropy ({url_metadata.get('entropy'):.2f}): High randomness typical of DGA or throwaway domains.")
+            confidence_factors.append(0.85)
 
         # 3. Form & Sensitive Citizen Credential Harvesting
         if has_citizen_credentials and not is_official_gov_tld:

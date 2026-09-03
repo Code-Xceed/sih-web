@@ -693,7 +693,7 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
 
     # Step 4: Brand & Impersonation Matching
     brand_match = brand_engine.match_entity(
-        domain=registered_domain,
+        domain=hostname,
         path=url_meta.get("path", ""),
         page_title=""
     )
@@ -745,7 +745,7 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
     has_sensitive_forms = len(dom_evidence.get("sensitive_inputs", [])) > 0
     cnt_sim_score = float(content_sim_res.get("similarity", 0.0)) if content_sim_res else 0.0
     brand_evidence = brand_engine.classify_relationship(
-        domain=registered_domain,
+        domain=hostname,
         entity_info=brand_match,
         has_sensitive_forms=has_sensitive_forms,
         content_similarity_score=cnt_sim_score,

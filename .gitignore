@@ -29,7 +29,8 @@ dist/
 *.log
 *.sqlite3
 *.zip
-website/backend/screenshots/
 .DS_Store
 Thumbs.db
 
+# Research & External Cloned Repositories
+external_repos/

@@ -196,6 +196,10 @@ class URLNormalizer:
         canonical_query = f"?{parsed.query}" if parsed.query else ""
         canonical_url = f"{scheme}://{canonical_netloc}{normalized_path}{canonical_query}"
 
+        entropy = self._compute_entropy(registered_domain)
+        if entropy > 3.85 and len(registered_domain) > 10 and tld not in ["gov.in", "nic.in"]:
+            indicators.append(f"High Shannon entropy ({entropy:.2f}): Potential DGA or randomized domain generation")
+
         return {
             "valid": True,
             "original_url": raw_url,
@@ -218,8 +222,19 @@ class URLNormalizer:
             "has_homoglyphs": has_homoglyphs,
             "canonical_skeleton": canonical_skeleton,
             "has_double_encoding": has_double_encoding,
+            "entropy": entropy,
             "indicators": indicators
         }
+
+    def _compute_entropy(self, s: str) -> float:
+        """Calculates Shannon entropy of a string (from url.vet & PhishGuard standards)."""
+        if not s:
+            return 0.0
+        import math
+        from collections import Counter
+        counts = Counter(s)
+        n = len(s)
+        return round(-sum((c / n) * math.log2(c / n) for c in counts.values()), 4)
 
     def _extract_domain_parts(self, hostname: str) -> Tuple[str, str, str]:
         """

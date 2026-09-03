@@ -41,6 +41,14 @@ DECEPTIVE_ACTION_TOKENS = {
     "electricity-disconnection", "digital-arrest", "customs-clearance"
 }
 
+# Abused free-hosting cloud platforms (inherited from PhishDetect & url.vet standards)
+ABUSED_FREE_HOSTING_PATTERNS = [
+    r"\.firebaseapp\.com$", r"\.web\.app$", r"\.vercel\.app$",
+    r"\.netlify\.app$", r"\.pages\.dev$", r"\.onrender\.com$",
+    r"\.github\.io$", r"sites\.google\.com", r"\.glitch\.me$",
+    r"\.weebly\.com$", r"\.wixsite\.com$", r"\.000webhostapp\.com$"
+]
+
 
 class BrandEngine:
     """Contextual Brand and Sovereign Impersonation Intelligence."""
@@ -174,7 +182,18 @@ class BrandEngine:
         # 4. Check for Deceptive Action Tokens in Domain
         has_deceptive_action = any(act in domain_clean for act in DECEPTIVE_ACTION_TOKENS)
 
-        # 5. Malicious Impersonation vs Suspicious Lookalike
+        # 5. Check if deployed on free public cloud hosting platforms
+        import re
+        has_abused_cloud = any(re.search(pat, domain_clean) for pat in ABUSED_FREE_HOSTING_PATTERNS)
+        if has_abused_cloud:
+            return {
+                "classification": "MALICIOUS_IMPERSONATION",
+                "risk_multiplier": 1.0,
+                "claimed_entity": entity_info["organization"],
+                "reason": f"ABUSED CLOUD HOSTING: Sovereign brand '{entity_info['organization']}' falsely hosted on public free-tier infrastructure ({domain_clean}) without National Informatics Centre (NIC) accreditation."
+            }
+
+        # 6. Malicious Impersonation vs Suspicious Lookalike
         if has_sensitive_forms or content_similarity_score >= 0.70 or (has_deceptive_action and lexical_risk_score >= 40):
             return {
                 "classification": "MALICIOUS_IMPERSONATION",
