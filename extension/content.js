@@ -58,20 +58,6 @@ function renderSecurityAlert(data, currentHostname, scoreParam) {
   const isCritical = score >= 60 || data.verdict === "PHISHING_CLONE" || data.verdict === "MALICIOUS";
   const targetEntity = data.target_entity || "Indian Government Portal";
 
-  // Determine official government counterpart URL
-  let officialDomain = data.official_domain || "";
-  if (!officialDomain) {
-    const tLower = targetEntity.toLowerCase();
-    if (tLower.includes("kisan")) officialDomain = "pmkisan.gov.in";
-    else if (tLower.includes("tax")) officialDomain = "incometax.gov.in";
-    else if (tLower.includes("aadhaar") || tLower.includes("uidai")) officialDomain = "uidai.gov.in";
-    else if (tLower.includes("cybercrime") || tLower.includes("1930")) officialDomain = "cybercrime.gov.in";
-    else if (tLower.includes("parivahan") || tLower.includes("sarathi")) officialDomain = "parivahan.gov.in";
-    else if (tLower.includes("epfo") || tLower.includes("epfindia")) officialDomain = "epfindia.gov.in";
-    else if (tLower.includes("passport")) officialDomain = "passportindia.gov.in";
-    else officialDomain = "india.gov.in";
-  }
-  const officialUrl = `https://${officialDomain}`;
   const cybercrimeUrl = "https://cybercrime.gov.in";
 
   const container = document.createElement("div");
@@ -83,22 +69,24 @@ function renderSecurityAlert(data, currentHostname, scoreParam) {
       <div class="gs-tricolor-line"></div>
       <div class="gs-banner-content">
         <div class="gs-left-cluster">
-          <span class="gs-siren-icon">${isCritical ? '🚨' : '⚠️'}</span>
-          <span class="gs-score-badge">${score}/100 RISK</span>
+          <div class="gs-siren-wrap">
+            <span class="gs-siren-icon">${isCritical ? '🚨' : '⚠️'}</span>
+          </div>
           <div class="gs-message-cluster">
+            <div class="gs-alert-badge-row">
+              <span class="gs-alert-tag">${isCritical ? 'CRITICAL CYBER FRAUD' : 'SUSPICIOUS PORTAL'}</span>
+              <span class="gs-target-tag">Mimicking ${escapeHtml(targetEntity)}</span>
+            </div>
             <span class="gs-main-warning">
-              <strong>Cyber Fraud Alert:</strong> Deceptive site mimicking <u>${escapeHtml(targetEntity)}</u>!
+              Deceptive site (<strong class="gs-domain-highlight">${escapeHtml(currentHostname)}</strong>) is NOT official!
             </span>
-            <span class="gs-sub-advice">Never enter Aadhaar, PAN, Bank Details, or OTP.</span>
+            <span class="gs-sub-advice">⚠️ DO NOT enter Aadhaar, PAN, Bank Details, or OTP.</span>
           </div>
         </div>
 
         <div class="gs-banner-actions-col">
-          <a href="${cybercrimeUrl}" target="_blank" rel="noopener noreferrer" class="gs-btn gs-btn-report" title="File direct complaint on National Cyber Crime Portal">
+          <a href="${cybercrimeUrl}" target="_blank" rel="noopener noreferrer" class="gs-btn gs-btn-report" title="File incident directly on National Cyber Crime Portal">
             🚨 Report (cybercrime.gov.in)
-          </a>
-          <a href="${officialUrl}" target="_blank" rel="noopener noreferrer" class="gs-btn gs-btn-official" title="Redirect safely to authenticated Government portal">
-            🏛️ Official Portal (${officialDomain})
           </a>
           <a href="tel:1930" class="gs-btn gs-btn-helpline" title="National Citizen Cyber Crime Helpline">
             📞 1930
