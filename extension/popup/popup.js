@@ -9,6 +9,236 @@ const PROD_API = "https://govshield-veje.onrender.com/api/scan";
 // Sovereign Gov TLDs
 const GOV_DOMAINS = [".gov.in", ".nic.in", ".ac.in", ".mil.in", ".res.in"];
 
+// 12-Language Dictionary for Extension Popup
+const POPUP_I18N = {
+  en: {
+    brandSub: "National Sovereign AI Cyber Defense Grid",
+    placeholder: "Enter URL or verify current tab...",
+    scanBtn: "🛡️ Scan",
+    scanningText: "Scanning current tab...",
+    safeTitle: "VERIFIED AUTHENTIC",
+    threatTitle: "CRITICAL PHISHING CLONE",
+    cautionTitle: "SUSPICIOUS UNVERIFIED",
+    dangerAdv: "DANGER! Fraudulent portal mimicking government services. NEVER enter Aadhaar, PAN, OTP, or PIN!",
+    safeAdv: "Verified authentic government infrastructure. Safe for official transactions.",
+    cautionAdv: "Caution. Unverified portal. Confirm official link on india.gov.in before sharing details.",
+    dossierCopied: "✅ Copied!",
+    dossierBtn: "📋 Copy Dossier"
+  },
+  hi: {
+    brandSub: "राष्ट्रीय संप्रभु AI साइबर सुरक्षा प्रणाली",
+    placeholder: "यूआरएल दर्ज करें या वर्तमान टैब जांचें...",
+    scanBtn: "🛡️ जांचें",
+    scanningText: "वर्तमान टैब की जांच हो रही है...",
+    safeTitle: "सत्यापित एवं प्रामाणिक",
+    threatTitle: "सावधान! फर्जी साइबर क्लोन",
+    cautionTitle: "सतर्कता: संदिग्ध वेबसाइट",
+    dangerAdv: "खतरा! यह वेबसाइट फर्जी है जो सरकारी पोर्टल की नकल कर रही है। अपना आधार, पैन या OTP कभी न दें!",
+    safeAdv: "सत्यापित प्रामाणिक सरकारी पोर्टल। आधिकारिक उपयोग के लिए सुरक्षित।",
+    cautionAdv: "सावधानी बरतें। यह वेबसाइट असत्यापित है। विवरण साझा करने से पहले जांचें।",
+    dossierCopied: "✅ कॉपी हो गया!",
+    dossierBtn: "📋 डोजियर कॉपी करें"
+  },
+  bn: {
+    brandSub: "জাতীয় সার্বভৌম এআই সাইবার প্রতিরক্ষা গ্রিড",
+    placeholder: "ইউআরএল লিখুন বা ট্যাব যাচাই করুন...",
+    scanBtn: "🛡️ স্ক্যান",
+    scanningText: "ট্যাব স্ক্যান করা হচ্ছে...",
+    safeTitle: "যাচাইকৃত ও খাঁটি",
+    threatTitle: "সাবধান! ভুয়া সাইবার ক্লোন",
+    cautionTitle: "সতর্কতা: সন্দেহজনক সাইট",
+    dangerAdv: "বিপদ! এটি সরকারি পোর্টালের নকল। আধার, প্যান বা OTP কখনো দেবেন না!",
+    safeAdv: "যাচাইকৃত সরকারি পরিকাঠামো। লেনদেনের জন্য নিরাপদ।",
+    cautionAdv: "সতর্কতা। যাচাইবিহীন পোর্টাল। তথ্য দেওয়ার আগে নিশ্চিত হন।",
+    dossierCopied: "✅ কপি হয়েছে!",
+    dossierBtn: "📋 ডসিয়ার কপি"
+  },
+  ta: {
+    brandSub: "தேசிய இறையாண்மை AI இணைய பாதுகாப்பு அமைப்பு",
+    placeholder: "URL உள்ளிடவும் அல்லது தற்போதைய தாவலை சரிபார்க்கவும்...",
+    scanBtn: "🛡️ ஸ்கேன்",
+    scanningText: "தாவல் சரிபார்க்கப்படுகிறது...",
+    safeTitle: "அங்கீகரிக்கப்பட்ட தளம்",
+    threatTitle: "எச்சரிக்கை! போலி இணையதளம்",
+    cautionTitle: "சந்தேகத்திற்குரிய தளம்",
+    dangerAdv: "ஆபத்து! இது அரசு தளத்தை போலியான தளம். ஆதார், பான், OTP பகிர வேண்டாம்!",
+    safeAdv: "அங்கீகரிக்கப்பட்ட அரசு தளம். பயன்பாட்டிற்கு பாதுகாப்பானது.",
+    cautionAdv: "எச்சரிக்கை. சரிபார்க்கப்படாத தளம். விவரங்களைப் பகிர்வதற்கு முன் உறுதிப்படுத்தவும்.",
+    dossierCopied: "✅ நகலெடுக்கப்பட்டது!",
+    dossierBtn: "📋 நகலெடு"
+  },
+  te: {
+    brandSub: "జాతీయ సార్వభౌమ AI సైబర్ రక్షణ వ్యవస్థ",
+    placeholder: "URL నమోదు చేయండి లేదా ట్యాబ్ తనిఖీ చేయండి...",
+    scanBtn: "🛡️ స్కాన్",
+    scanningText: "ట్యాబ్ స్కాన్ అవుతోంది...",
+    safeTitle: "ధృవీకరించబడిన పోర్టల్",
+    threatTitle: "హెచ్చరిక! నకిలీ సైబర్ క్లోన్",
+    cautionTitle: "అనుమానాస్పద వెబ్‌సైట్",
+    dangerAdv: "ప్రమాదం! ఇది ప్రభుత్వ పోర్టల్ నకిలీ. ఆధార్, పాన్, OTP నమోదు చేయవద్దు!",
+    safeAdv: "ధృవీకరించబడిన ప్రభుత్వ పోర్టల్. లావాదేవీలకు సురక్షితం.",
+    cautionAdv: "జాగ్రత్త. ధృవీకరించబడని పోర్టల్. వివరాలు ఇచ్చే ముందు నిర్ధారించుకోండి.",
+    dossierCopied: "✅ కాపీ చేయబడింది!",
+    dossierBtn: "📋 కాపీ చేయండి"
+  },
+  mr: {
+    brandSub: "राष्ट्रीय सार्वभौम AI सायबर सुरक्षा ग्रिड",
+    placeholder: "URL टाका किंवा चालू टॅब तपासा...",
+    scanBtn: "🛡️ तपासा",
+    scanningText: "चालू टॅब तपासत आहे...",
+    safeTitle: "सत्यापित व अधिकृत",
+    threatTitle: "सावधान! बनावट सायबर क्लोन",
+    cautionTitle: "संशयास्पद अनधिकृत साइट",
+    dangerAdv: "धोका! हे बनावट सरकारी पोर्टल आहे. आधार, पॅन किंवा OTP कधीही देऊ नका!",
+    safeAdv: "सत्यापित अधिकृत सरकारी पोर्टल. सुरक्षितपणे वापरा.",
+    cautionAdv: "सावधगिरी बाळगा. अनधिकृत पोर्टल. तपशील देण्यापूर्वी पडताळणी करा.",
+    dossierCopied: "✅ कॉपी झाले!",
+    dossierBtn: "📋 डॉसियर कॉपी"
+  },
+  gu: {
+    brandSub: "રાષ્ટ્રીય સાર્વભૌમ AI સાયબર સંરક્ષણ પ્રણાલી",
+    placeholder: "URL દાખલ કરો અથવા વર્તમાન ટૅબ ચકાસો...",
+    scanBtn: "🛡️ ચકાસો",
+    scanningText: "ટૅબ સ્કેન થઈ રહી છે...",
+    safeTitle: "પ્રમાણિત અને અસલી",
+    threatTitle: "ચેતવણી! નકલી સાયબર ક્લોન",
+    cautionTitle: "શંકાસ્પદ અનધિકૃત સાઇટ",
+    dangerAdv: "જોખમ! આ નકલી સરકારી પોર્ટલ છે. આધાર, પાન અથવા OTP ક્યારેય આપશો નહીં!",
+    safeAdv: "પ્રમાણિત સરકારી પોર્ટલ. વ્યવહારો માટે સુરક્ષિત.",
+    cautionAdv: "સાવચેત રહો. અનધિકૃત પોર્ટલ. વિગતો આપતા પહેલા ચકાસો.",
+    dossierCopied: "✅ કૉપિ થઈ ગયું!",
+    dossierBtn: "📋 ડૉસિયર કૉપિ"
+  },
+  kn: {
+    brandSub: "ರಾಷ್ಟ್ರೀಯ ಸಾರ್ವಭೌಮ AI ಸೈಬರ್ ರಕ್ಷಣಾ ವ್ಯವಸ್ಥೆ",
+    placeholder: "URL ನಮೂದಿಸಿ ಅಥವಾ ಟ್ಯಾಬ್ ಪರಿಶೀಲಿಸಿ...",
+    scanBtn: "🛡️ ಪರಿಶೀಲಿಸಿ",
+    scanningText: "ಟ್ಯಾಬ್ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...",
+    safeTitle: "ಪರಿಶೀಲಿಸಿದ ಅಧಿಕೃತ ಪೋರ್ಟಲ್",
+    threatTitle: "ಎಚ್ಚರಿಕೆ! ನಕಲಿ ಸೈಬರ್ ಕ್ಲೋನ್",
+    cautionTitle: "ಅನುಮಾನಾಸ್ಪದ ವೆಬ್‌ಸೈಟ್",
+    dangerAdv: "ಅಪಾಯ! ಇದು ನಕಲಿ ಸರ್ಕಾರಿ ಪೋರ್ಟಲ್ ಆಗಿದೆ. ಆಧಾರ್, ಪಾನ್ ಅಥವಾ OTP ನೀಡಬೇಡಿ!",
+    safeAdv: "ಪರಿಶೀಲಿಸಿದ ಸರ್ಕಾರಿ ಜಾಲತಾಣ. ಸುರಕ್ಷಿತವಾಗಿ ಬಳಸಿ.",
+    cautionAdv: "ಎಚ್ಚರಿಕೆ. ಪರಿಶೀಲಿಸದ ಜಾಲತಾಣ. ಮಾಹಿತಿ ನೀಡುವ ಮುನ್ನ ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.",
+    dossierCopied: "✅ ನಕಲಿಸಲಾಗಿದೆ!",
+    dossierBtn: "📋 ಪ್ರತಿ ಮಾಡಿ"
+  },
+  ml: {
+    brandSub: "ദേശീയ പരമാധികാര AI സൈബർ പ്രതിരോധ സംവിധാനം",
+    placeholder: "URL നൽകുക അല്ലെങ്കിൽ ടാബ് പരിശോധിക്കുക...",
+    scanBtn: "🛡️ പരിശോധിക്കുക",
+    scanningText: "ടാബ് പരിശോധിക്കുന്നു...",
+    safeTitle: "സ്ഥിരീകരിച്ച ഔദ്യോഗിക പോർട്ടൽ",
+    threatTitle: "മുന്നറിയിപ്പ്! വ്യാജ സൈബർ ക്ലോൺ",
+    cautionTitle: "സംശയാസ്പദമായ വെബ്സൈറ്റ്",
+    dangerAdv: "അപകടം! ഇത് വ്യാജ സർക്കാർ പോർട്ടലാണ്. ആധാർ, പാൻ അല്ലെങ്കിൽ OTP നൽകരുത്!",
+    safeAdv: "സ്ഥിരീകരിച്ച സർക്കാർ പോർട്ടൽ. സുരക്ഷിതമായി ഉപയോഗിക്കാം.",
+    cautionAdv: "ജാഗ്രത പാലിക്കുക. വിവരങ്ങൾ നൽകുന്നതിന് മുൻപ് ഉറപ്പാക്കുക.",
+    dossierCopied: "✅ പകർത്തി!",
+    dossierBtn: "📋 ഡോസിയർ പകർത്തുക"
+  },
+  pa: {
+    brandSub: "ਰਾਸ਼ਟਰੀ ਪ੍ਰਭੂਸੱਤਾ ਸੰਪੰਨ AI ਸਾਈਬਰ ਰੱਖਿਆ ਪ੍ਰਣਾਲੀ",
+    placeholder: "URL ਦਰਜ ਕਰੋ ਜਾਂ ਟੈਬ ਦੀ ਜਾਂਚ ਕਰੋ...",
+    scanBtn: "🛡️ ਜਾਂਚੋ",
+    scanningText: "ਟੈਬ ਦੀ ਜਾਂਚ ਜਾਰੀ ਹੈ...",
+    safeTitle: "ਤਸਦੀਕਸ਼ੁਦਾ ਅਤੇ ਅਸਲੀ",
+    threatTitle: "ਸਾਵਧਾਨ! ਨਕਲੀ ਸਾਈਬਰ ਕਲੋਨ",
+    cautionTitle: "ਸ਼ੱਕੀ ਅਣ-ਤਸਦੀਕਸ਼ੁਦਾ ਸਾਈਟ",
+    dangerAdv: "ਖਤਰਾ! ਇਹ ਨਕਲੀ ਸਰਕਾਰੀ ਪੋਰਟਲ ਹੈ। ਆਧਾਰ, ਪੈਨ ਜਾਂ OTP ਕਦੇ ਵੀ ਨਾ ਦਿਓ!",
+    safeAdv: "ਤਸਦੀਕਸ਼ੁਦਾ ਸਰਕਾਰੀ ਪੋਰਟਲ। ਵਰਤੋਂ ਲਈ ਸੁਰੱਖਿਅਤ।",
+    cautionAdv: "ਸਾਵਧਾਨ ਰਹੋ। ਅਣ-ਤਸਦੀਕਸ਼ੁਦਾ ਪੋਰਟਲ। ਵੇਰਵੇ ਸਾਂਝੇ ਕਰਨ ਤੋਂ ਪਹਿਲਾਂ ਜਾਂਚ ਕਰੋ।",
+    dossierCopied: "✅ ਕਾਪੀ ਹੋ ਗਿਆ!",
+    dossierBtn: "📋 ਡੋਜ਼ੀਅਰ ਕਾਪੀ ਕਰੋ"
+  },
+  or: {
+    brandSub: "ଜାତୀୟ ସାର୍ବଭୌମ AI ସାଇବର ପ୍ରତିରକ୍ଷା ପ୍ରଣାଳୀ",
+    placeholder: "URL ପ୍ରବେଶ କରନ୍ତୁ କିମ୍ବା ଟ୍ୟାବ୍ ଯାଞ୍ଚ କରନ୍ତୁ...",
+    scanBtn: "🛡️ ଯାଞ୍ଚ କରନ୍ତୁ",
+    scanningText: "ଟ୍ୟାବ୍ ସ୍କାନ୍ ଚାଲିଛି...",
+    safeTitle: "ଯାଞ୍ଚ ହୋଇଥିବା ପ୍ରାମାଣିକ ପୋର୍ଟାଲ",
+    threatTitle: "ସାବଧାନ! ନକଲି ସାଇବର କ୍ଲୋନ",
+    cautionTitle: "ସନ୍ଦେହଜନକ ଅଣ-ଯାଞ୍ଚିତ ସାଇଟ୍",
+    dangerAdv: "ବିପଦ! ଏହା ନକଲି ସରକਾਰୀ ପୋର୍ଟାଲ୍। ଆଧାର, ପାନ୍ କିମ୍ବା OTP କଦାପି ଦିଅନ୍ତୁ ନାହିଁ!",
+    safeAdv: "ଯାଞ୍ଚ ହୋଇଥିବା ସରକାରୀ ପୋର୍ଟାଲ୍। ବ୍ୟବହାର ପାଇଁ ସୁରକ୍ଷିତ।",
+    cautionAdv: "ସତର୍କ ରୁହନ୍ତୁ। ବିବରଣୀ ଦେବା ପୂର୍ବରୁ ଯାଞ୍ଚ କରନ୍ତୁ।",
+    dossierCopied: "✅ କପି ହୋଇଗଲା!",
+    dossierBtn: "📋 ଡ଼ୋସିଅର କପି କରନ୍ତୁ"
+  },
+  as: {
+    brandSub: "ৰাষ্ট্ৰীয় সাৰ্বভৌম AI চাইবাৰ প্ৰতিৰক্ষা প্ৰণালী",
+    placeholder: "URL প্ৰৱেশ কৰক বা টেব পৰীক্ষা কৰক...",
+    scanBtn: "🛡️ স্কেন",
+    scanningText: "টেব পৰীক্ষা কৰা হৈছে...",
+    safeTitle: "প্ৰমাণিত আৰু প্ৰামাণিক",
+    threatTitle: "সাৱধান! ভুৱা চাইবাৰ ক্ল'ন",
+    cautionTitle: "সন্দেহজনক অপ্ৰমাণিত ৱেবছাইট",
+    dangerAdv: "বিপদ! এইটো ভুৱা চৰকাৰী প'ৰ্টেল। আধাৰ, পেন বা OTP কেতিয়াও নিদিব!",
+    safeAdv: "প্ৰমাণিত চৰকাৰী প'ৰ্টেল। ব্যৱহাৰৰ বাবে সুৰক্ষিত।",
+    cautionAdv: "সাৱধান হওক। তথ্য দিয়াৰ আগতে পৰীক্ষা কৰক।",
+    dossierCopied: "✅ কপি হ'ল!",
+    dossierBtn: "📋 ডছিয়াৰ কপি কৰক"
+  }
+};
+
+function detectPopupLanguage() {
+  try {
+    const saved = localStorage.getItem("gs_user_lang");
+    if (saved && POPUP_I18N[saved]) return saved;
+  } catch (_) {}
+
+  const nav = (navigator.language || (navigator.languages && navigator.languages[0]) || "en").toLowerCase();
+  for (const c of Object.keys(POPUP_I18N)) {
+    if (nav.startsWith(c)) return c;
+  }
+  return "en";
+}
+
+function applyPopupStaticTranslations(langCode) {
+  const t = POPUP_I18N[langCode] || POPUP_I18N.en;
+  const brandSub = document.getElementById("popupBrandSub");
+  if (brandSub) brandSub.textContent = t.brandSub;
+
+  const urlInput = document.getElementById("popupUrlInput");
+  if (urlInput) urlInput.placeholder = t.placeholder;
+
+  const scanBtn = document.getElementById("btnPopupScan");
+  if (scanBtn && !scanBtn.disabled) scanBtn.textContent = t.scanBtn;
+}
+
+function initPopupTheme() {
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
+  let saved = null;
+  try { saved = localStorage.getItem("gs_theme"); } catch (_) {}
+
+  const applyTheme = (isDark) => {
+    document.body.classList.toggle("dark-mode", isDark);
+    const btn = document.getElementById("popupThemeToggle");
+    if (btn) btn.textContent = isDark ? "☀️" : "🌙";
+  };
+
+  if (saved) {
+    applyTheme(saved === "dark");
+  } else {
+    applyTheme(prefersDark.matches);
+  }
+
+  prefersDark.addEventListener("change", (e) => {
+    if (!localStorage.getItem("gs_theme")) {
+      applyTheme(e.matches);
+    }
+  });
+
+  const toggleBtn = document.getElementById("popupThemeToggle");
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", () => {
+      const isDarkNow = !document.body.classList.contains("dark-mode");
+      applyTheme(isDarkNow);
+      try { localStorage.setItem("gs_theme", isDarkNow ? "dark" : "light"); } catch (_) {}
+    });
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const activeTabDomain = document.getElementById("activeTabDomain");
   const popupUrlInput = document.getElementById("popupUrlInput");
@@ -17,8 +247,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnPopupCopyDossier = document.getElementById("btnPopupCopyDossier");
   const popupLangSelect = document.getElementById("popupLangSelect");
 
+  // Initialize System Language & Theme
+  const initialLang = detectPopupLanguage();
+  popupLangSelect.value = initialLang;
+  applyPopupStaticTranslations(initialLang);
+  initPopupTheme();
+
   // Language Change
   popupLangSelect.addEventListener("change", (e) => {
+    const chosen = e.target.value;
+    try { localStorage.setItem("gs_user_lang", chosen); } catch (_) {}
+    applyPopupStaticTranslations(chosen);
     if (currentResult) renderPopupResult(currentResult);
   });
 
@@ -65,10 +304,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // Copy Dossier
   btnPopupCopyDossier.addEventListener("click", () => {
     if (!currentResult) return;
+    const currentLang = popupLangSelect.value || "en";
+    const t = POPUP_I18N[currentLang] || POPUP_I18N.en;
     const dossier = `CERT-IN INCIDENT DOSSIER\nTarget: ${currentResult.target_entity || 'Gov Service'}\nURL: ${currentResult.url}\nRisk: ${currentResult.risk_score}/100\nVerdict: ${currentResult.verdict}\nDate: ${new Date().toISOString()}`;
     navigator.clipboard.writeText(dossier);
-    btnPopupCopyDossier.textContent = "✅ Copied!";
-    setTimeout(() => { btnPopupCopyDossier.textContent = "📋 Copy Dossier"; }, 2000);
+    btnPopupCopyDossier.textContent = t.dossierCopied;
+    setTimeout(() => { btnPopupCopyDossier.textContent = t.dossierBtn; }, 2000);
   });
 });
 
@@ -147,18 +388,21 @@ function renderPopupResult(data) {
   const score = Math.max(0, Math.min(99, Math.round(data.risk_score || 0)));
   const isGov = Boolean(data.is_genuine_gov_tld);
 
+  const lang = (document.getElementById("popupLangSelect")?.value) || "en";
+  const t = POPUP_I18N[lang] || POPUP_I18N.en;
+
   let type = "safe";
   let icon = "✅";
-  let title = "VERIFIED AUTHENTIC";
+  let title = t.safeTitle;
 
   if (score >= 60 || data.verdict === "PHISHING_CLONE" || data.verdict === "MALICIOUS") {
     type = "threat";
     icon = "🚨";
-    title = "CRITICAL PHISHING CLONE";
+    title = t.threatTitle;
   } else if (score >= 26 || data.verdict === "SUSPICIOUS") {
     type = "caution";
     icon = "⚠️";
-    title = "SUSPICIOUS UNVERIFIED";
+    title = t.cautionTitle;
   }
 
   // Synchronize browser action badge with current scan result
@@ -191,11 +435,11 @@ function renderPopupResult(data) {
   // Advisory
   const adv = document.getElementById("popupAdvisoryText");
   if (score >= 66) {
-    adv.textContent = "DANGER! Fraudulent portal mimicking government services. NEVER enter Aadhaar, PAN, OTP, or PIN!";
+    adv.textContent = t.dangerAdv;
   } else if (score <= 25) {
-    adv.textContent = "Verified authentic government infrastructure. Safe for official transactions.";
+    adv.textContent = t.safeAdv;
   } else {
-    adv.textContent = "Caution. Unverified portal. Confirm official link on india.gov.in before sharing details.";
+    adv.textContent = t.cautionAdv;
   }
 
   // AI Webpage & Domain Analysis Card

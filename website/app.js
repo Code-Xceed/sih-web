@@ -2,8 +2,22 @@ import { INDIC_LANGUAGES, UX4G_STRINGS } from './ux4gLanguages.js';
 import { playAcousticAlert, selectBestVoice } from './audioSynthesizer.js';
 import { scanWebsiteClientSide } from './scannerEngine.js';
 
+// Auto-detect system / browser language
+function detectSystemLanguage() {
+  try {
+    const saved = localStorage.getItem('gs_user_lang');
+    if (saved && INDIC_LANGUAGES.some(l => l.code === saved)) return saved;
+  } catch (_) {}
+
+  const nav = (navigator.language || (navigator.languages && navigator.languages[0]) || 'en').toLowerCase();
+  for (const l of INDIC_LANGUAGES) {
+    if (nav.startsWith(l.code)) return l.code;
+  }
+  return 'hi'; // Default UX4G Indic language
+}
+
 // Application State
-let currentLang = 'hi';
+let currentLang = detectSystemLanguage();
 let activeResult = null;
 let isSpeaking = false;
 
@@ -105,6 +119,7 @@ function initLanguages() {
 
 function setLanguage(langCode) {
   currentLang = langCode;
+  try { localStorage.setItem('gs_user_lang', langCode); } catch (_) {}
   const langObj = INDIC_LANGUAGES.find(l => l.code === langCode) || INDIC_LANGUAGES[0];
   currentLangLabel.textContent = langObj.name;
   document.documentElement.lang = langCode;
@@ -589,11 +604,39 @@ function initAccessibilityDrawer() {
     });
   }
 
+  // Auto-detect system dark/light mode and restore saved theme
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+  try {
+    const savedTheme = localStorage.getItem('gs_theme');
+    if (savedTheme) {
+      a11yState.colorMode = savedTheme === 'dark' ? 'darkMode' : 'normal';
+    } else if (prefersDark.matches) {
+      a11yState.colorMode = 'darkMode';
+    }
+  } catch (_) {}
+
+  applyA11y();
+
+  // Listen for dynamic system theme change if not manually chosen
+  prefersDark.addEventListener('change', (e) => {
+    try {
+      if (!localStorage.getItem('gs_theme')) {
+        a11yState.colorMode = e.matches ? 'darkMode' : 'normal';
+        applyA11y();
+      }
+    } catch (_) {}
+  });
+
   // Color button triggers
   document.querySelectorAll('[data-color]').forEach(btn => {
     btn.addEventListener('click', () => {
       const mode = btn.dataset.color;
       a11yState.colorMode = (a11yState.colorMode === mode) ? 'normal' : mode;
+      try {
+        if (a11yState.colorMode === 'darkMode') localStorage.setItem('gs_theme', 'dark');
+        else if (a11yState.colorMode === 'normal') localStorage.setItem('gs_theme', 'light');
+        else localStorage.setItem('gs_theme', a11yState.colorMode);
+      } catch (_) {}
       applyA11y();
     });
   });
@@ -610,6 +653,7 @@ function initAccessibilityDrawer() {
   // Reset button
   btnResetA11y.addEventListener('click', () => {
     a11yState.colorMode = 'normal';
+    try { localStorage.removeItem('gs_theme'); } catch (_) {}
     a11yState.biggerText = false;
     a11yState.lineHeight = false;
     a11yState.textSpacing = false;

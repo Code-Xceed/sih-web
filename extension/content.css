@@ -165,6 +165,47 @@
   flex-shrink: 0 !important;
 }
 
+/* Mini Language Switcher in Alert Banner */
+.gs-mini-lang-wrap {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  background: rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  border-radius: 5px !important;
+  padding: 3px 6px !important;
+  transition: all 0.2s ease !important;
+}
+.gs-mini-lang-wrap:hover {
+  background: rgba(0, 0, 0, 0.55) !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.gs-mini-lang-icon {
+  font-size: 13px !important;
+  line-height: 1 !important;
+}
+
+.gs-mini-lang-select {
+  background: transparent !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+  outline: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+}
+
+.gs-mini-lang-select option {
+  background: #1e293b !important;
+  color: #ffffff !important;
+  font-size: 12px !important;
+  padding: 4px !important;
+}
+
 /* Action Buttons */
 .gs-btn {
   display: inline-flex !important;
