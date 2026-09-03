@@ -252,7 +252,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const popupUrlInput = document.getElementById("popupUrlInput");
   const btnPopupScan = document.getElementById("btnPopupScan");
   const btnPopupAudio = document.getElementById("btnPopupAudio");
-  const btnPopupCopyDossier = document.getElementById("btnPopupCopyDossier");
   const popupLangSelect = document.getElementById("popupLangSelect");
 
   // Initialize System Language & Theme
@@ -341,17 +340,6 @@ document.addEventListener("DOMContentLoaded", () => {
   btnPopupAudio.addEventListener("click", () => {
     if (!currentResult) return;
     speakVerdict(currentResult);
-  });
-
-  // Copy Dossier
-  btnPopupCopyDossier.addEventListener("click", () => {
-    if (!currentResult) return;
-    const currentLang = popupLangSelect.value || "en";
-    const t = POPUP_I18N[currentLang] || POPUP_I18N.en;
-    const dossier = `CERT-IN INCIDENT DOSSIER\nTarget: ${currentResult.target_entity || 'Gov Service'}\nURL: ${currentResult.url}\nRisk: ${currentResult.risk_score}/100\nVerdict: ${currentResult.verdict}\nDate: ${new Date().toISOString()}`;
-    navigator.clipboard.writeText(dossier);
-    btnPopupCopyDossier.textContent = t.dossierCopied;
-    setTimeout(() => { btnPopupCopyDossier.textContent = t.dossierBtn; }, 2000);
   });
 
   // Toggle Collapsible Details Dropdown
@@ -574,11 +562,6 @@ function renderPopupResult(data) {
   updateRow("3", sensFound ? "🔴" : "🟢", sensFound ? "fail" : "pass", sensFound ? "HARVESTING" : "SECURE");
   updateRow("4", isClone ? "🔴" : "🟢", isClone ? "fail" : "pass", isClone ? "CLONE" : "AUTHENTIC");
   updateRow("5", "🟢", "pass", isGov ? "SOVEREIGN" : "ANALYZED");
-
-  // Blockchain Pill
-  const bc = data.blockchain_proof || {};
-  document.getElementById("popupBlockchainPill").textContent = 
-    `⛓️ PoA Ledger: Block #${bc.block_index !== undefined ? bc.block_index : 1} | RFC 8785 Anchored | Section 65B Certified`;
 }
 
 function updateRow(layerNum, icon, badgeClass, badgeText) {

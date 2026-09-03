@@ -37,15 +37,17 @@ const advisoryBodyText = document.getElementById('advisoryBodyText');
 const btnSpeechTrigger = document.getElementById('btnSpeechTrigger');
 const speechBtnText = document.getElementById('speechBtnText');
 
-// Deep Evidence Accordion
-const evidenceAccordionToggle = document.getElementById('evidenceAccordionToggle');
-const evidenceAccordionBody = document.getElementById('evidenceAccordionBody');
-const evidenceToggleIcon = document.getElementById('evidenceToggleIcon');
-const aiSummaryText = document.getElementById('aiSummaryText');
-const blockchainProofPill = document.getElementById('blockchainProofPill');
-const redirectStatusText = document.getElementById('redirectStatusText');
-const mxStatusText = document.getElementById('mxStatusText');
-const dmarcStatusText = document.getElementById('dmarcStatusText');
+// Localization Elements
+const advisoryTitleLabel = document.getElementById('advisoryTitleLabel');
+const aiAnalysisTitle = document.getElementById('aiAnalysisTitle');
+const chipLabelDomain = document.getElementById('chipLabelDomain');
+const chipLabelContent = document.getElementById('chipLabelContent');
+const chipLabelForms = document.getElementById('chipLabelForms');
+const reportBtnLabel = document.getElementById('reportBtnLabel');
+const officialGovBtnLabel = document.getElementById('officialGovBtnLabel');
+const dossierBtnLabel = document.getElementById('dossierBtnLabel');
+const helpline1930Label = document.getElementById('helpline1930Label');
+const threatScoreLabelEl = document.getElementById('threatScoreLabel');
 
 // Dossier Elements
 const btnOpenDossier = document.getElementById('btnOpenDossier');
@@ -141,6 +143,11 @@ function renderLocalizedUI() {
   // Top bar & header
   const govIndiaEl = document.getElementById('govIndiaEl');
   if (govIndiaEl) govIndiaEl.textContent = `${t.govIndia} ↗`;
+
+  const skipLinkEl = document.getElementById('skipLinkEl');
+  if (skipLinkEl) skipLinkEl.textContent = t.skipContent || "मुख्य सामग्री पर जाएं";
+  const skipTopEl = document.getElementById('skipTopEl');
+  if (skipTopEl) skipTopEl.textContent = t.skipContent || "मुख्य सामग्री पर जाएं";
   
   const brandSubtitleEl = document.getElementById('brandSubtitleEl');
   if (brandSubtitleEl) brandSubtitleEl.textContent = t.brandSubtitle;
@@ -154,6 +161,35 @@ function renderLocalizedUI() {
 
   if (urlInput) urlInput.placeholder = t.placeholder;
   if (verifyBtnText) verifyBtnText.textContent = t.verifyBtn;
+
+  // Static Verdict & AI Analysis Headings
+  if (threatScoreLabelEl) threatScoreLabelEl.textContent = t.threatScoreLabel || "जोखिम स्कोर (Threat Score)";
+  if (advisoryTitleLabel) advisoryTitleLabel.textContent = t.advisoryTitle || "सलाह:";
+  if (aiAnalysisTitle) aiAnalysisTitle.textContent = t.aiSummaryTitle || "AI डोमेन व वेबपेज विश्लेषण";
+  if (chipLabelDomain) chipLabelDomain.textContent = t.chipDomain || "🌐 डोमेन प्रकार:";
+  if (chipLabelContent) chipLabelContent.textContent = t.chipContent || "📄 पेज का उद्देश्य:";
+  if (chipLabelForms) chipLabelForms.textContent = t.chipForms || "🛡️ डेटा चोरी जोखिम:";
+
+  // 5 Forensic Layer Titles
+  const layer1Title = document.getElementById('layer1Title');
+  if (layer1Title) layer1Title.textContent = t.layer1 || '1. सरकारी डोमेन प्रमाणन (.gov.in / .nic.in)';
+  const layer2Title = document.getElementById('layer2Title');
+  if (layer2Title) layer2Title.textContent = t.layer2 || '2. वर्तनी व नाम की नकल (Typosquatting)';
+  const layer3Title = document.getElementById('layer3Title');
+  if (layer3Title) layer3Title.textContent = t.layer3 || '3. आधार व पासवर्ड चोरी फॉर्म (Credential Theft)';
+  const layer4Title = document.getElementById('layer4Title');
+  if (layer4Title) layer4Title.textContent = t.layer4 || '4. एआई विजुअल क्लोनिंग (Lookalike Match)';
+  const layer5Title = document.getElementById('layer5Title');
+  if (layer5Title) layer5Title.textContent = t.layer5 || '5. डोमेन पंजीकरण व उम्र (Domain Age)';
+
+  // Action Buttons
+  if (reportBtnLabel) reportBtnLabel.textContent = t.reportBtn || "cybercrime.gov.in पर रिपोर्ट करें";
+  if (officialGovBtnLabel) officialGovBtnLabel.textContent = t.officialGovBtn || "आधिकारिक पोर्टल पर जाएं";
+  if (dossierBtnLabel) dossierBtnLabel.textContent = t.dossierBtn || "डोजियर डाउनलोड करें";
+  if (helpline1930Label) helpline1930Label.textContent = t.helpline1930 || "1930 पर कॉल करें";
+
+  // Speech Audio button
+  updateSpeechButton();
 
   // Citizen Cards
   const sectionTitleEl = document.getElementById('sectionTitleEl');
@@ -257,20 +293,20 @@ function renderVerdict(res) {
   let type = 'safe';
   let title = t.verdictSafe || "सत्यापित एवं प्रामाणिक";
   let icon = '✅';
-  let badgeTag = 'AUTHENTIC GOVERNMENT SERVICE';
+  let badgeTag = t.badgeSafe || 'AUTHENTIC GOVERNMENT SERVICE';
   let badgeClass = 'verified';
 
   if (score >= 66 || res.verdict === 'PHISHING_CLONE' || res.verdict === 'MALICIOUS') {
     type = 'threat';
     title = t.verdictThreat || "सावधान! फर्जी / नकली वेबसाइट";
     icon = '🚨';
-    badgeTag = 'CRITICAL PHISHING CLONE';
+    badgeTag = t.badgeThreat || 'CRITICAL PHISHING CLONE';
     badgeClass = 'danger';
   } else if (score >= 26 || res.verdict === 'SUSPICIOUS') {
     type = 'caution';
     title = t.verdictCaution || "सतर्कता: संदिग्ध वेबसाइट";
     icon = '⚠️';
-    badgeTag = 'UNVERIFIED SUSPICIOUS DOMAIN';
+    badgeTag = t.badgeCaution || 'UNVERIFIED SUSPICIOUS DOMAIN';
     badgeClass = 'warning';
   }
 
@@ -278,7 +314,8 @@ function renderVerdict(res) {
   verdictHeaderBanner.className = `verdict-header-banner ${type}`;
   verdictIconBadge.textContent = icon;
   verdictStatusTitle.textContent = title;
-  verdictStatusSub.textContent = `${res.target_entity || 'Government Service'} • ${res.is_genuine_gov_tld ? 'Sovereign .gov.in Domain' : 'Unauthorized Public TLD'}`;
+  const sovereignText = res.is_genuine_gov_tld ? (t.sovereignDomain || 'Sovereign .gov.in Domain') : (t.unauthorizedDomain || 'Unauthorized Public TLD');
+  verdictStatusSub.textContent = `${res.target_entity || t.govIndia || 'Government Service'} • ${sovereignText}`;
 
   // Gauge styling
   gaugeScoreNumber.className = `gauge-big-number ${type}`;
@@ -314,12 +351,15 @@ function renderVerdict(res) {
       btnOfficial.title = `Redirect safely to authentic Government of India portal (${offDomain})`;
       btnOfficial.style.display = "inline-flex";
       const lbl = document.getElementById("officialGovBtnLabel");
-      if (lbl) lbl.textContent = `आधिकारिक पोर्टल (${offDomain}) पर जाएं`;
+      if (lbl) lbl.textContent = `${t.officialGovBtn || "आधिकारिक पोर्टल पर जाएं"} (${offDomain})`;
     } else {
       btnOfficial.style.display = "none";
     }
   }
-  if (score >= 66) {
+
+  if (advisoryTitleLabel) advisoryTitleLabel.textContent = t.advisoryTitle || "सलाह:";
+
+  if (score >= 66 || res.verdict === 'PHISHING_CLONE' || res.verdict === 'MALICIOUS') {
     advisoryBodyText.textContent = t.advisoryThreat || "चेतावनी! यह वेबसाइट फर्जी है जो सरकारी पोर्टल की नकल कर रही है। अपना आधार नंबर, बैंक खाता, पैन या OTP यहाँ कभी दर्ज न करें!";
   } else if (score <= 25) {
     advisoryBodyText.textContent = t.advisorySafe || "यह वेबसाइट पूरी तरह से प्रामाणिक और आधिकारिक सरकारी पोर्टल है। आप इस पर विश्वास के साथ कार्य कर सकते हैं।";
@@ -331,29 +371,49 @@ function renderVerdict(res) {
   // AI Webpage & Domain Content Analysis
   // -----------------------------------------------------------
   const ai = res.ai_page_analysis || {};
-  const aiSummary = (currentLang === 'hi' && ai.ai_summary_hi)
+  let aiSummary = (currentLang === 'hi' && ai.ai_summary_hi)
     ? ai.ai_summary_hi
-    : (ai.ai_summary_en || ai.ai_summary || res.genai_synthesis?.plain_english_summary || res.summary || "AI Analysis verifies this domain and webpage content.");
+    : (ai.ai_summary_en || ai.ai_summary || res.genai_synthesis?.plain_english_summary || res.summary || "");
+
+  if (!aiSummary || (currentLang !== 'en' && currentLang !== 'hi')) {
+    if (score >= 66) aiSummary = t.advisoryThreat;
+    else if (score <= 25) aiSummary = t.advisorySafe;
+    else aiSummary = t.advisoryCaution;
+  }
 
   const aiSummaryEl = document.getElementById('aiWebpageSummary');
   if (aiSummaryEl) aiSummaryEl.textContent = aiSummary;
 
+  if (aiAnalysisTitle) aiAnalysisTitle.textContent = t.aiSummaryTitle || "AI डोमेन व वेबपेज विश्लेषण";
+
   const aiDomainBadgeEl = document.getElementById('aiAnalysisDomainBadge');
-  if (aiDomainBadgeEl) aiDomainBadgeEl.textContent = ai.domain_badge || (res.is_genuine_gov_tld ? 'SOVEREIGN INFRASTRUCTURE' : 'PUBLIC WEB PLATFORM');
+  if (aiDomainBadgeEl) {
+    aiDomainBadgeEl.textContent = res.is_genuine_gov_tld ? (t.sovereignDomain || 'SOVEREIGN INFRASTRUCTURE') : (score >= 66 ? (t.badgeThreat || 'CRITICAL PHISHING CLONE') : (t.sovereignDomain || 'PUBLIC WEB PLATFORM'));
+  }
 
+  if (chipLabelDomain) chipLabelDomain.textContent = t.chipDomain || "🌐 डोमेन प्रकार:";
   const aiPointDomainEl = document.getElementById('aiPointDomain');
-  if (aiPointDomainEl) aiPointDomainEl.textContent = ai.domain_type || (res.is_genuine_gov_tld ? 'Official Government (.gov.in)' : 'Public Web Domain');
+  if (aiPointDomainEl) {
+    aiPointDomainEl.textContent = res.is_genuine_gov_tld ? (t.sovereignDomain || 'Official Government (.gov.in)') : (score >= 66 ? (t.badgeThreat || 'Deceptive Phishing Clone') : (ai.domain_type || 'Public Web Domain'));
+  }
 
+  if (chipLabelContent) chipLabelContent.textContent = t.chipContent || "📄 पेज का उद्देश्य:";
   const aiPointContentEl = document.getElementById('aiPointContent');
-  if (aiPointContentEl) aiPointContentEl.textContent = ai.content_type || 'Informational Web Content';
+  if (aiPointContentEl) {
+    let localizedContent = ai.content_type || 'Informational Web Content';
+    if (ai.sensitive_inputs && ai.sensitive_inputs.length > 0) localizedContent = `${t.tagHarvesting || 'Credential Harvesting'}: ${ai.sensitive_inputs.join(', ')}`;
+    else if (res.is_genuine_gov_tld) localizedContent = t.badgeSafe || 'Official Citizen Welfare Service';
+    aiPointContentEl.textContent = localizedContent;
+  }
 
+  if (chipLabelForms) chipLabelForms.textContent = t.chipForms || "🛡️ डेटा चोरी जोखिम:";
   const aiPointFormsEl = document.getElementById('aiPointForms');
   if (aiPointFormsEl) {
     if (ai.sensitive_inputs && ai.sensitive_inputs.length > 0) {
-      aiPointFormsEl.textContent = `⚠️ Harvesting: ${ai.sensitive_inputs.join(', ')}`;
+      aiPointFormsEl.textContent = `⚠️ ${t.tagHarvesting || 'Harvesting'}: ${ai.sensitive_inputs.join(', ')}`;
       aiPointFormsEl.style.color = '#de350b';
     } else {
-      aiPointFormsEl.textContent = 'Zero Credential Traps (Clean)';
+      aiPointFormsEl.textContent = t.cleanForms || 'Zero Credential Traps (Clean)';
       aiPointFormsEl.style.color = '#00875a';
     }
   }
@@ -361,74 +421,75 @@ function renderVerdict(res) {
   // -----------------------------------------------------------
   // 5 Forensic Layers Dynamic Rendering
   // -----------------------------------------------------------
-  // Layer 1: Sovereign TLD
   const isGov = Boolean(res.is_genuine_gov_tld);
-  document.getElementById('layer1Icon').textContent = isGov ? '🟢' : '🔴';
-  document.getElementById('layer1Tag').className = `tile-status-tag ${isGov ? 'pass' : 'fail'}`;
-  document.getElementById('layer1Tag').textContent = isGov ? 'VERIFIED' : 'UNAUTHORIZED';
-  document.getElementById('layer1Desc').textContent = isGov 
-    ? 'Authenticated sovereign domain accredited by National Informatics Centre (NIC India).' 
-    : 'Domain does not belong to authorized sovereign (.gov.in / .nic.in / .mil.in) infrastructure.';
-
-  // Layer 2: Typosquatting
   const typoHit = Boolean(res.typosquat_details?.is_typosquat || (res.signal_breakdown?.lexical_score > 30));
-  document.getElementById('layer2Icon').textContent = typoHit ? '🔴' : '🟢';
-  document.getElementById('layer2Tag').className = `tile-status-tag ${typoHit ? 'fail' : 'pass'}`;
-  document.getElementById('layer2Tag').textContent = typoHit ? 'SPOOF DETECTED' : 'CLEAN';
-  document.getElementById('layer2Desc').textContent = typoHit
-    ? `Critical: Deceptive spelling manipulation (${res.typosquat_details?.squat_type || 'Homoglyph spoof'} mimicking ${res.target_entity || 'official entity'}).`
-    : 'No typosquatting, bit-squatting, omission, or zero-width homoglyphs detected.';
-
-  // Layer 3: Sensitive Credential Forms
   const sensFields = res.signal_breakdown?.sensitive_fields_found || res.dom_details?.sensitive_inputs || [];
   const sensFound = sensFields.length > 0 && !isGov;
-  document.getElementById('layer3Icon').textContent = sensFound ? '🔴' : '🟢';
-  document.getElementById('layer3Tag').className = `tile-status-tag ${sensFound ? 'fail' : 'pass'}`;
-  document.getElementById('layer3Tag').textContent = sensFound ? 'HARVESTING' : 'SECURE';
-  document.getElementById('layer3Desc').textContent = sensFound
-    ? `Alert: Deceptive forms harvesting citizen credentials on private domain: [${sensFields.map(f => typeof f === 'object' ? f.field : f).join(', ')}]`
-    : 'No unauthorized Aadhaar, PAN, OTP, banking PIN, or biometric input forms detected.';
-
-  // Layer 4: AI Visual & Sovereign ML Ensemble
   const isClone = Boolean(res.impersonated || (res.sovereign_ml?.probability >= 0.65));
-  document.getElementById('layer4Icon').textContent = isClone ? '🔴' : '🟢';
-  document.getElementById('layer4Tag').className = `tile-status-tag ${isClone ? 'fail' : 'pass'}`;
-  document.getElementById('layer4Tag').textContent = isClone ? 'CLONE DETECTED' : 'AUTHENTIC';
-  document.getElementById('layer4Desc').textContent = isClone
-    ? `Sovereign ML soft-voting ensemble flagged impersonation pattern mimicking ${res.target_entity || 'Sovereign Brand'}.`
-    : 'DOM structure and ML feature vector align with authentic public web baseline.';
-
-  // Layer 5: DNS & Mail Infrastructure
   const dnsRisk = res.dns_security_details?.dns_risk_score || 0;
   const hasMx = res.dns_security_details?.has_mx !== false;
+
+  // Layer 1
+  const layer1Title = document.getElementById('layer1Title');
+  if (layer1Title) layer1Title.textContent = t.layer1 || '1. सरकारी डोमेन प्रमाणन (.gov.in / .nic.in)';
+  document.getElementById('layer1Icon').textContent = isGov ? '🟢' : '🔴';
+  document.getElementById('layer1Tag').className = `tile-status-tag ${isGov ? 'pass' : 'fail'}`;
+  document.getElementById('layer1Tag').textContent = isGov ? (t.tagVerified || 'VERIFIED') : (t.tagUnauthorized || 'UNAUTHORIZED');
+  document.getElementById('layer1Desc').textContent = isGov 
+    ? (t.descLayer1Safe || 'Authenticated sovereign domain accredited by National Informatics Centre (NIC India).') 
+    : (t.descLayer1Threat || 'Domain does not belong to authorized sovereign (.gov.in / .nic.in / .mil.in) infrastructure.');
+
+  // Layer 2
+  const layer2Title = document.getElementById('layer2Title');
+  if (layer2Title) layer2Title.textContent = t.layer2 || '2. वर्तनी व नाम की नकल (Typosquatting)';
+  document.getElementById('layer2Icon').textContent = typoHit ? '🔴' : '🟢';
+  document.getElementById('layer2Tag').className = `tile-status-tag ${typoHit ? 'fail' : 'pass'}`;
+  document.getElementById('layer2Tag').textContent = typoHit ? (t.tagSpoof || 'SPOOF DETECTED') : (t.tagClean || 'CLEAN');
+  document.getElementById('layer2Desc').textContent = typoHit
+    ? `Critical: ${t.tagSpoof || 'Spoof'} (${res.typosquat_details?.squat_type || 'Homoglyph'} mimicking ${res.target_entity || 'official entity'}).`
+    : (t.descLayer2Safe || 'No typosquatting, bit-squatting, omission, or zero-width homoglyphs detected.');
+
+  // Layer 3
+  const layer3Title = document.getElementById('layer3Title');
+  if (layer3Title) layer3Title.textContent = t.layer3 || '3. आधार व पासवर्ड चोरी फॉर्म (Credential Theft)';
+  document.getElementById('layer3Icon').textContent = sensFound ? '🔴' : '🟢';
+  document.getElementById('layer3Tag').className = `tile-status-tag ${sensFound ? 'fail' : 'pass'}`;
+  document.getElementById('layer3Tag').textContent = sensFound ? (t.tagHarvesting || 'HARVESTING') : (t.tagSecure || 'SECURE');
+  document.getElementById('layer3Desc').textContent = sensFound
+    ? `Alert: ${t.tagHarvesting || 'Harvesting'} [${sensFields.map(f => typeof f === 'object' ? f.field : f).join(', ')}]`
+    : (t.descLayer3Safe || 'No unauthorized Aadhaar, PAN, OTP, banking PIN, or biometric input forms detected.');
+
+  // Layer 4
+  const layer4Title = document.getElementById('layer4Title');
+  if (layer4Title) layer4Title.textContent = t.layer4 || '4. एआई विजुअल व संप्रभु ML क्लासिफायर';
+  document.getElementById('layer4Icon').textContent = isClone ? '🔴' : '🟢';
+  document.getElementById('layer4Tag').className = `tile-status-tag ${isClone ? 'fail' : 'pass'}`;
+  document.getElementById('layer4Tag').textContent = isClone ? (t.tagClone || 'CLONE DETECTED') : (t.tagAuthentic || 'AUTHENTIC');
+  document.getElementById('layer4Desc').textContent = isClone
+    ? `Sovereign ML flagged impersonation mimicking ${res.target_entity || 'Sovereign Brand'}.`
+    : (t.descLayer4Safe || 'DOM structure and ML feature vector align with authentic public web baseline.');
+
+  // Layer 5
+  const layer5Title = document.getElementById('layer5Title');
+  if (layer5Title) layer5Title.textContent = t.layer5 || '5. डोमेन पंजीकरण व उम्र (Domain Age)';
   document.getElementById('layer5Icon').textContent = (dnsRisk > 30 || !hasMx) && !isGov ? '🟡' : '🟢';
   document.getElementById('layer5Tag').className = `tile-status-tag ${(dnsRisk > 30 || !hasMx) && !isGov ? 'warning' : 'pass'}`;
-  document.getElementById('layer5Tag').textContent = isGov ? 'SOVEREIGN DNS' : (dnsRisk > 30 ? 'SUSPICIOUS INFRA' : 'VERIFIED');
+  document.getElementById('layer5Tag').textContent = isGov ? (t.tagVerified || 'SOVEREIGN DNS') : (dnsRisk > 30 ? (t.tagWarning || 'SUSPICIOUS') : (t.tagAnalyzed || 'ANALYZED'));
   document.getElementById('layer5Desc').textContent = isGov
-    ? 'Official NIC India nameserver and authenticated national DNS authority.'
-    : `DNS Infrastructure Audit: ${hasMx ? 'Active MX servers' : 'No MX records'}, ${res.signal_breakdown?.domain_age_days ? `${res.signal_breakdown.domain_age_days} days domain age` : 'public registry verified'}.`;
+    ? (t.descLayer5Safe || 'Official NIC India nameserver and authenticated national DNS authority.')
+    : `DNS Audit: ${hasMx ? 'Active MX' : 'No MX records'}.`;
 
-  // -----------------------------------------------------------
-  // Deep Evidence Details
-  // -----------------------------------------------------------
-  // AI Semantic Synthesis (Gemini 2.0 Flash)
-  const aiSyn = res.genai_synthesis?.plain_english_summary || res.summary || "";
-  aiSummaryText.textContent = aiSyn || "Autonomous multi-signal forensic verification complete.";
+  // Update Action Button texts
+  if (reportBtnLabel) reportBtnLabel.textContent = t.reportBtn || "cybercrime.gov.in पर रिपोर्ट करें";
+  if (dossierBtnLabel) dossierBtnLabel.textContent = t.dossierBtn || "डोजियर डाउनलोड करें";
+  if (helpline1930Label) helpline1930Label.textContent = t.helpline1930 || "1930 पर कॉल करें";
 
-  // Blockchain proof
-  const bc = res.blockchain_proof || {};
-  const incId = res.incident_id || `CERTIN-SIH-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
-  blockchainProofPill.textContent = `Incident ID: ${incId} | Block #${bc.block_index !== undefined ? bc.block_index : 1} | Evidence Hash: ${(bc.evidence_hash || '7d92...e4a1').substring(0, 18)}... | Section 65B Certified`;
-
-  // Redirect and DNS details
-  const red = res.redirect_details || {};
-  redirectStatusText.textContent = red.redirected ? `Unrolled (${red.hop_count} Hops -> ${red.final_url})` : `Direct (0 Hops)`;
-  const dns = res.dns_security_details || {};
-  mxStatusText.textContent = dns.has_mx ? 'Active' : 'Missing (Throwaway Risk)';
-  dmarcStatusText.textContent = (dns.has_dmarc || dns.has_spf) ? 'Configured' : (isGov ? 'National Standard' : 'Vulnerable');
+  // Speech Audio button
+  updateSpeechButton();
 
   // Trigger Acoustic Sound Chime
   playAcousticAlert(type);
+}
 }
 
 // -------------------------------------------------------------
@@ -699,13 +760,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Audio Button
   btnSpeechTrigger.addEventListener('click', handleSpeakVerdict);
-
-  // Evidence Accordion Toggle
-  evidenceAccordionToggle.addEventListener('click', () => {
-    const isHidden = evidenceAccordionBody.style.display === 'none';
-    evidenceAccordionBody.style.display = isHidden ? 'block' : 'none';
-    evidenceToggleIcon.textContent = isHidden ? '▴' : '▾';
-  });
 
   // Dossier Modal
   btnOpenDossier.addEventListener('click', () => {
