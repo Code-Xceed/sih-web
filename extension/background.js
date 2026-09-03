@@ -3,18 +3,37 @@
  * SIH 2026 Problem Statement SIH1454
  */
 
-let BACKEND_API_BASE = "https://govshield-veje.onrender.com"; // Production Cloud Endpoint
+let BACKEND_API_BASE = "http://localhost:8000"; // Local backend by default, auto-fallback to Render
+const PRODUCTION_RENDER_API = "https://govshield-veje.onrender.com";
 
-// Check for user-configured custom backend URL in storage
-chrome.storage.local.get(["custom_backend_url"], (res) => {
-  if (res && res.custom_backend_url) {
-    BACKEND_API_BASE = res.custom_backend_url;
+// Check for user-configured custom backend URL or auto-probe local server
+async function updateActiveEndpoint() {
+  try {
+    const res = await chrome.storage.local.get(["custom_backend_url"]);
+    if (res && res.custom_backend_url) {
+      BACKEND_API_BASE = res.custom_backend_url;
+      return;
+    }
+    // Auto-probe localhost:8000
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 600);
+    const resp = await fetch("http://localhost:8000/healthz", { signal: ctrl.signal });
+    clearTimeout(tid);
+    if (resp.ok) {
+      BACKEND_API_BASE = "http://localhost:8000";
+    } else {
+      BACKEND_API_BASE = PRODUCTION_RENDER_API;
+    }
+  } catch (err) {
+    BACKEND_API_BASE = PRODUCTION_RENDER_API;
   }
-});
+}
+
+updateActiveEndpoint();
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && changes.custom_backend_url) {
-    BACKEND_API_BASE = changes.custom_backend_url.newValue;
+    BACKEND_API_BASE = changes.custom_backend_url.newValue || "http://localhost:8000";
   }
 });
 
@@ -97,6 +116,32 @@ function evaluateEdgeHeuristic(url, domData = {}) {
           visual_similarity: 0,
           domain_age_days: 3500,
           sensitive_fields_found: []
+        },
+        engine_mode: "EDGE_FALLBACK"
+      };
+    // 2.5 Check known fake scheme portals from PIB Fact Check
+    const isPibScamDomain = host.includes("shikshaabhiyan") || host.includes("sarvashiksha") || host.includes("rozgaryojana") || host.includes("pmkisan-kyc");
+    if (isPibScamDomain) {
+      return {
+        verdict: "MALICIOUS",
+        risk_score: 99,
+        threat_level: "CRITICAL",
+        category: "GOVERNMENT_IMPERSONATION_SCAM",
+        target_entity: "Samagra Shiksha Abhiyan / Government Scheme",
+        impersonated: true,
+        summary: "CRITICAL FRAUD: Confirmed scam portal mimicking Government Scheme. Flagged by PIB Fact Check.",
+        reasons: [
+          "EXPLICIT PIB FACT CHECK ALERT: Flagged by Press Information Bureau as an illegal fraudulent portal collecting fake application fees.",
+          "Unauthorized domain incorporates official scheme branding on commercial TLD.",
+          "Official authentic portal is https://samagra.education.gov.in."
+        ],
+        recommendation: "DO NOT PAY ANY FEES OR ENTER DETAILS. Report cyber fraud to 1930.",
+        signal_breakdown: {
+          lexical_score: 95,
+          dom_score: 85,
+          visual_similarity: 90,
+          domain_age_days: 15,
+          sensitive_fields_found: domData.sensitiveInputs || []
         },
         engine_mode: "EDGE_FALLBACK"
       };
@@ -289,14 +334,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: false });
       }
     } else if (message.action === "MANUAL_SCAN") {
-      // Call backend directly for any arbitrary URL
+      // Call unified backend scan pipeline directly for arbitrary URL
       try {
-        const response = await fetch(`${BACKEND_API_BASE}/api/quick-check`, {
+        const response = await fetch(`${BACKEND_API_BASE}/api/scan`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url: message.url })
         });
         const resData = await response.json();
+        resData.engine_mode = "NEURAL_FUSION_BACKEND";
         sendResponse({ success: true, result: resData });
       } catch (err) {
         const fallbackRes = evaluateEdgeHeuristic(message.url, {});

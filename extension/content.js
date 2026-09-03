@@ -83,10 +83,15 @@
     banner.id = 'govshield-phishing-banner';
 
     // Only display in-page alert banner on RISKY and SUSPICIOUS sites
-    if (verdict !== "PHISHING_CLONE" && verdict !== "SUSPICIOUS" && score < 50) {
+    const isCritical = verdict === "PHISHING_CLONE" || verdict === "MALICIOUS" || score >= 65;
+    const isSuspicious = verdict === "SUSPICIOUS" || (score >= 35 && score < 65);
+    if (!isCritical && !isSuspicious) {
       // Safe website: Keep page clean and unblocked
       return;
     }
+
+    const isPibScam = (scanResult.category === "GOVERNMENT_IMPERSONATION_SCAM") ||
+      (scanResult.reasons && scanResult.reasons.some(r => r.includes("PIB") || r.includes("Press Information Bureau")));
 
     let bannerClass = "";
     let iconSvg = "";
@@ -95,7 +100,7 @@
     let descHtml = "";
     let actionsHtml = "";
 
-    if (verdict === "PHISHING_CLONE" || score >= 66) {
+    if (isCritical) {
       bannerClass = "govshield-banner-risk";
       iconSvg = `
         <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -104,14 +109,25 @@
           <line x1="12" y1="17" x2="12.01" y2="17"></line>
         </svg>
       `;
-      titleText = "GOVSHIELD CYBER DEFENSE ALERT / चेतावनी";
+      titleText = "GOVSHIELD CYBER DEFENSE ALERT / साइबर चेतावनी";
       pillText = `RISK SCORE: ${score}/100 • CRITICAL`;
+
+      let pibNoticeHtml = "";
+      if (isPibScam) {
+        pibNoticeHtml = `
+          <div style="background: rgba(239, 68, 68, 0.25); border: 1px solid #EF4444; border-radius: 4px; padding: 4px 8px; margin-bottom: 6px; font-size: 0.82rem; color: #FCA5A5;">
+            ⚠️ <strong>PIB Fact Check Alert:</strong> Flagged by Press Information Bureau as a fraudulent recruitment fee / scheme portal!
+          </div>
+        `;
+      }
+
       descHtml = `
-        <div style="font-size: 0.88rem; font-weight: 700; color: #FFFFFF; margin-bottom: 3px;">
-          ⚠️ सावधान! यह फर्जी वेबसाइट है। यहाँ आधार नंबर, पैन नंबर या बैंक OTP बिल्कुल न भरें।
+        ${pibNoticeHtml}
+        <div style="font-size: 0.92rem; font-weight: 800; color: #FFFFFF; margin-bottom: 4px;">
+          🛑 सावधान! यह फर्जी वेबसाइट है। यहाँ आधार नंबर, पैन या बैंक OTP बिल्कुल न भरें।
         </div>
         <div>
-          Deceptive lookalike domain detected! This website imitates <strong>${targetEntity}</strong> to steal citizen credentials.
+          Deceptive lookalike domain detected! This website imitates <strong>${targetEntity}</strong> to steal citizen credentials or collect fake application fees.
         </div>
       `;
       if (aiInsight) {
