@@ -34,11 +34,14 @@ class FusionEngine:
         ai_synthesis: Dict[str, Any],
         research_findings: List[Dict[str, Any]],
         crawler_evidence: Optional[Dict[str, Any]] = None,
-        internet_search_evidence: Optional[Dict[str, Any]] = None
+        internet_search_evidence: Optional[Dict[str, Any]] = None,
+        typosquat_evidence: Optional[Dict[str, Any]] = None,
+        redirect_evidence: Optional[Dict[str, Any]] = None,
+        dns_evidence: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
-        Executes calibrated multi-signal fusion across all 15 feature dimensions.
-        Returns a structured, explainable risk assessment.
+        Executes calibrated multi-signal fusion incorporating openSquat, PhishDetect,
+        and url.vet forensics across 18 feature dimensions.
         """
         reasons: List[str] = []
         evidence_summary: List[Dict[str, Any]] = []
@@ -250,9 +253,52 @@ class FusionEngine:
             reasons.append("Cross-domain redirect chain obscuring landing destination.")
             confidence_factors.append(0.80)
 
+        # 7. openSquat Typosquatting & Permutation Evidence
+        is_typosquat = bool(typosquat_evidence and typosquat_evidence.get("is_typosquat"))
+        if is_typosquat and not is_official_gov_tld:
+            sq_type = typosquat_evidence.get("squat_type")
+            target_b = typosquat_evidence.get("target_brand")
+            base_score += 45.0
+            reasons.append(f"openSquat Detection: {typosquat_evidence.get('details')}")
+            if sq_type in ["SUBDOMAIN_MASQUERADING", "HOMOGLYPH_SPOOF", "BITSQUATTING"]:
+                base_score = max(base_score, 80.0)
+            confidence_factors.append(typosquat_evidence.get("confidence", 0.90))
+
+        # 8. url.vet Safe Redirect & Shortener Evidence
+        if redirect_evidence and redirect_evidence.get("redirected") and not is_official_gov_tld:
+            if redirect_evidence.get("is_shortener"):
+                base_score += 25.0
+                reasons.append(f"Deceptive URL shortener expands to: {redirect_evidence.get('final_url')}")
+            if redirect_evidence.get("is_cross_domain"):
+                base_score += 20.0
+                reasons.append(f"Cross-domain redirection chain traversed ({redirect_evidence.get('hop_count')} hops)")
+            confidence_factors.append(0.85)
+
+        # 9. url.vet DNS & Mail Infrastructure Security Evidence
+        if dns_evidence and not is_official_gov_tld:
+            dns_risk = dns_evidence.get("dns_risk_score", 0.0)
+            if dns_risk >= 30.0:
+                base_score += dns_risk * 0.20
+                for f in dns_evidence.get("findings", []):
+                    if f not in reasons:
+                        reasons.append(f"DNS Audit: {f}")
+                confidence_factors.append(0.80)
+
+        # 10. PhishDetect HTML Deception Forensics
+        html_deception = dom_evidence.get("html_deception_signals", {})
+        if html_deception and not is_official_gov_tld:
+            if html_deception.get("is_deceptive_title"):
+                base_score += 35.0
+                reasons.append(f"PhishDetect Alert: Deceptive title claiming '{html_deception.get('deceptive_title_brand')}' on unauthorized host.")
+                confidence_factors.append(0.92)
+            if html_deception.get("has_escaped_brand_obfuscation"):
+                base_score += 30.0
+                reasons.append("PhishDetect Alert: HTML entity obfuscation (&#...;) concealing target sovereign brand.")
+                confidence_factors.append(0.95)
+
         # Clean baseline for neutral platforms (only if no URL deception or homoglyphs)
         if (brand_class == "NEUTRAL" and not has_citizen_credentials and not is_visual_lookalike
-            and cnt_sim < 0.20 and not has_homoglyphs and not url_metadata.get("has_userinfo")
+            and cnt_sim < 0.20 and not has_homoglyphs and not is_typosquat and not url_metadata.get("has_userinfo")
             and not url_metadata.get("is_ip_address")):
             base_score = min(base_score, 15.0)
             reasons = ["Legitimate commercial web platform. No government impersonation or citizen identity theft observed."]

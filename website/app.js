@@ -44,11 +44,11 @@ document.addEventListener('DOMContentLoaded', () => {
             advisoryThreat: "DO NOT enter Aadhaar, PAN, OTP, or banking credentials. A CERT-In takedown notice has been drafted.",
             advisorySuspicious: "Exercise caution. Verify the official URL on india.gov.in before providing personal information.",
             advisorySafe: "Safe for navigation. The domain is verified and authenticated.",
-            step1: "01. DOMAIN & TYPOSQUATTING ANALYSIS",
-            step2: "02. CREDENTIAL FORM INSPECTION",
-            step3: "03. VISUAL SIMILARITY MATCHING",
-            step4: "04. DOMAIN AGE & REGISTRATION",
-            step5: "05. AI NEURAL VERIFICATION",
+            step1: "01. OPENSQUAT TYPOSQUATTING & PERMUTATION",
+            step2: "02. PHISHDETECT DOM & HTML DECEPTION FORENSICS",
+            step3: "03. URL.VET REDIRECT & SHORTENER RESOLUTION",
+            step4: "04. URL.VET DNS & MAIL INFRASTRUCTURE AUDIT",
+            step5: "05. SOVEREIGN AI ML ENSEMBLE CLASSIFIER",
             sec65bDownload: "Download Sec 65B Court Certificate",
             speechWarningThreat: "Warning! This website is a fake government clone attempting to steal citizen identity. Do not enter your Aadhaar, PAN, or OTP. For cyber fraud, call 1930 immediately.",
             speechWarningSuspicious: "Caution. This website is not on an official government domain. Verify before entering personal information.",
@@ -91,11 +91,11 @@ document.addEventListener('DOMContentLoaded', () => {
             advisoryThreat: "सावधान! अपना आधार नंबर, पैन, बैंक OTP यहाँ बिल्कुल न डालें। यह ठगी करने वाली फर्जी साइट है।",
             advisorySuspicious: "सावधानी बरतें। व्यक्तिगत जानकारी देने से पहले india.gov.in पर आधिकारिक लिंक की पुष्टि करें।",
             advisorySafe: "यह सुरक्षित और प्रमाणित आधिकारिक सरकारी पोर्टल है।",
-            step1: "01. डोमेन एवं नाम की नकल की जाँच",
-            step2: "02. आधार/पैन/OTP फॉर्म की जाँच",
-            step3: "03. सरकारी लोगो और रंग-रूप की नकल",
-            step4: "04. वेबसाइट पंजीकरण की तारीख और आयु",
-            step5: "05. AI साइबर रक्षा विश्लेषण",
+            step1: "01. OPENSQUAT डोमेन एवं नाम की नकल जाँच",
+            step2: "02. PHISHDETECT HTML एवं फॉर्म धोखा विश्लेषण",
+            step3: "03. URL.VET रीडायरेक्ट एवं शॉर्टनर अनरोल जाँच",
+            step4: "04. URL.VET DNS एवं मेल सर्वर सुरक्षा जाँच",
+            step5: "05. संप्रभु AI न्यूरल मशीन लर्निंग विश्लेषण",
             sec65bDownload: "धारा 65B कोर्ट साक्ष्य प्रमाणपत्र डाउनलोड करें",
             speechWarningThreat: "सावधान! यह वेबसाइट फर्जी है और सरकारी पोर्टल की नकल कर रही है। अपना आधार नंबर, पैन नंबर या बैंक विवरण यहाँ बिल्कुल न भरें। तुरंत 1930 पर शिकायत करें।",
             speechWarningSuspicious: "सावधानी बरतें। यह वेबसाइट सरकारी डोमेन पर नहीं है। व्यक्तिगत जानकारी दर्ज न करें।",
@@ -630,39 +630,60 @@ document.addEventListener('DOMContentLoaded', () => {
             const ageDays = Number(breakdown.domain_age_days) || 0;
             const aiData = res.genai_analysis || {};
 
+            const typosquatData = res.typosquat_details || {};
+            const redirectData = res.redirect_details || {};
+            const dnsData = res.dns_security_details || {};
+            const domData = res.dom_details || {};
+            const htmlDeception = domData.html_deception_signals || {};
+            const mlData = res.sovereign_ml || {};
+
             const steps = [
                 {
                     title: dict.step1,
-                    status: (lexScore > 45 && res.verdict !== 'LEGITIMATE') ? "FAIL" : (lexScore > 20 ? "WARN" : "PASS"),
-                    description: (lexScore > 45 && res.verdict !== 'LEGITIMATE')
-                        ? (currentLang === 'hi' ? `अनधिकृत डोमेन आधिकारिक सरकारी टोकन का उपयोग कर रहा है (${res.target_entity || 'सरकारी योजना'})।` : `Unauthorized domain uses official tokens (${res.target_entity || 'Gov Service'}). Lexical risk: ${lexScore}/100.`)
-                        : (currentLang === 'hi' ? `कोई फर्जी सरकारी नाम या डोमेन नकल नहीं पाई गई।` : `No fraudulent typosquatting or government brand deception detected.`)
+                    status: (typosquatData.is_typosquat && !isGov) ? "FAIL" : (lexScore > 20 ? "WARN" : "PASS"),
+                    description: (typosquatData.is_typosquat && !isGov)
+                        ? (currentLang === 'hi' 
+                            ? `openSquat चेतावनी: ${typosquatData.squat_type} (लक्ष्य: ${typosquatData.target_brand})। ${typosquatData.details}`
+                            : `openSquat Alert: ${typosquatData.squat_type} targeting ${typosquatData.target_brand}. ${typosquatData.details}`)
+                        : (isGov
+                            ? (currentLang === 'hi' ? `प्रमाणित NIC आधिकारिक डोमेन रजिस्ट्री।` : `Authenticated National Sovereign Domain (.gov.in / .nic.in).`)
+                            : (currentLang === 'hi' ? `कोई फर्जी डोमेन नकल या टाइपोस्क्वैटिंग नहीं मिली।` : `Zero typosquatting or sovereign permutation anomalies detected.`))
                 },
                 {
                     title: dict.step2,
-                    status: (sensFields.length > 0 && res.verdict !== 'LEGITIMATE') ? "FAIL" : "PASS",
-                    description: (sensFields.length > 0 && res.verdict !== 'LEGITIMATE')
-                        ? (currentLang === 'hi' ? `गैर-सरकारी डोमेन पर नागरिक पहचान इनपुट [${sensFields.join(', ')}] चुराने वाला फॉर्म मिला!` : `Form action harvesting citizen identity tokens: [${sensFields.join(', ')}] on non-gov domain.`)
-                        : (currentLang === 'hi' ? `कोई संवेदनशील आधार या बायोमेट्रिक इनपुट फॉर्म नहीं मिला।` : `No citizen identity or biometric token harvesting forms detected.`)
+                    status: (sensFields.length > 0 && !isGov) || htmlDeception.is_deceptive_title || htmlDeception.has_escaped_brand_obfuscation ? "FAIL" : "PASS",
+                    description: (sensFields.length > 0 && !isGov)
+                        ? (currentLang === 'hi' ? `PhishDetect अलर्ट: गैर-सरकारी सर्वर पर संवेदनशील टोकन [${sensFields.join(', ')}] चुराने वाला फॉर्म मिला!` : `PhishDetect Alert: Identity harvesting form fields: [${sensFields.join(', ')}] on non-gov domain.`)
+                        : (htmlDeception.is_deceptive_title
+                            ? (currentLang === 'hi' ? `PhishDetect अलर्ट: गैर-सरकारी डोमेन पर फर्जी शीर्षक: '${htmlDeception.deceptive_title_brand}'` : `PhishDetect Alert: Deceptive title claiming official authority on non-gov host: '${htmlDeception.deceptive_title_brand}'`)
+                            : (currentLang === 'hi' ? `कोई छिपा हुआ फॉर्म या HTML भ्रामक टैग नहीं पाया गया।` : `DOM structure verified clean. No hidden brand obfuscation (&#...;) or credential traps.`))
                 },
                 {
                     title: dict.step3,
-                    status: (visScore >= 70 && res.verdict !== 'LEGITIMATE') ? "FAIL" : "PASS",
-                    description: (visScore >= 70 && res.verdict !== 'LEGITIMATE')
-                        ? (currentLang === 'hi' ? `दृश्य रंग-रूप और लेआउट ${res.target_entity || 'सरकारी पोर्टल'} से ${visScore}% मेल खाता है।` : `Perceptual visual hash matches ${res.target_entity || 'Gov Portal'} layout with ${visScore}% lookalike similarity.`)
-                        : (currentLang === 'hi' ? `सरकारी पोर्टलों के रंग-रूप या लोगो की कोई नकल नहीं पाई गई।` : `Visual layout and color signatures show zero deceptive imitation of government portals.`)
+                    status: (redirectData.is_cross_domain || redirectData.is_shortener) && isThreat ? "FAIL" : ((redirectData.redirected) ? "WARN" : "PASS"),
+                    description: redirectData.redirected
+                        ? (currentLang === 'hi'
+                            ? `url.vet ट्रेस: ${redirectData.hop_count} रीडायरेक्ट हॉप्स। अंतिम गंतव्य: ${redirectData.final_url}`
+                            : `url.vet Trace: ${redirectData.hop_count} redirect hops traversed. Final destination: ${redirectData.final_url}`)
+                        : (currentLang === 'hi' ? `कोई भ्रामक रीडायरेक्ट या URL शॉर्टनर नहीं मिला। प्रत्यक्ष लिंक।` : `Direct connection. No deceptive URL shortener obfuscation or intermediate redirect hops.`)
                 },
                 {
                     title: dict.step4,
-                    status: (ageDays < 30 && res.verdict !== 'LEGITIMATE') ? "FAIL" : "PASS",
-                    description: (ageDays < 30 && res.verdict !== 'LEGITIMATE')
-                        ? (currentLang === 'hi' ? `हाल ही में पंजीकृत नया डोमेन (${ageDays} दिन पुराना)।` : `Newly Registered Domain (${ageDays} days old) on unauthorized top-level domain.`)
-                        : (res.is_genuine_gov_tld ? (currentLang === 'hi' ? `प्रमाणित राष्ट्रीय सूचना विज्ञान केंद्र (NIC) अवसंरचना (12+ वर्ष पुरानी)।` : `Authenticated National Informatics Centre (NIC) infrastructure.`) : (currentLang === 'hi' ? `स्थापित डोमेन आयु: ${ageDays} दिन।` : `Established domain age: ${ageDays} days.`))
+                    status: (dnsData.dns_risk_score >= 35 && !isGov) ? "FAIL" : (dnsData.dns_risk_score >= 20 ? "WARN" : "PASS"),
+                    description: dnsData.findings && dnsData.findings.length > 0
+                        ? (currentLang === 'hi' ? `url.vet DNS ऑडिट: ${dnsData.findings.join(' ')}` : `url.vet DNS Audit: ${dnsData.findings.join(' ')}`)
+                        : (isGov
+                            ? (currentLang === 'hi' ? `राष्ट्रीय सूचना विज्ञान केंद्र (NIC) संप्रभु DNS और मेल अवसंरचना।` : `Sovereign NIC DNS infrastructure with authenticated reverse-IP pointers.`)
+                            : (currentLang === 'hi' ? `सक्रिय IP एवं वैध मेल सर्वर (MX) सत्यापित।` : `Active IP and valid Mail Exchange (MX) infrastructure verified.`))
                 },
                 {
                     title: dict.step5,
                     status: isThreat ? "FAIL" : (isSuspicious ? "WARN" : "PASS"),
-                    description: aiData.plain_english_explanation || (res.reasons && res.reasons.length > 0 ? res.reasons[0] : (currentLang === 'hi' ? "भारत सरकार के संप्रभु साइबर रक्षा आधार पर सत्यापित।" : "Verified against Government of India sovereign defense baseline."))
+                    description: mlData.top_contributing_factors && mlData.top_contributing_factors.length > 0
+                        ? (currentLang === 'hi'
+                            ? `AI मॉडल निष्कर्ष: ${mlData.top_contributing_factors.join('; ')} (खतरा संभावना: ${(mlData.probability * 100).toFixed(1)}%)`
+                            : `Sovereign AI Decision: ${mlData.top_contributing_factors.join('; ')} (Phishing Prob: ${(mlData.probability * 100).toFixed(1)}%)`)
+                        : (aiData.plain_english_explanation || (res.reasons && res.reasons.length > 0 ? res.reasons[0] : (currentLang === 'hi' ? "भारत सरकार के संप्रभु साइबर रक्षा आधार पर सत्यापित।" : "Verified against Government of India sovereign defense baseline.")))
                 }
             ];
 

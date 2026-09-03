@@ -66,6 +66,9 @@ from modules.content_similarity import text_similarity, dom_similarity
 from modules.lexical_analyzer import LexicalAnalyzer
 from modules.whois_analyzer import WhoisAnalyzer
 from modules.sovereign_ml import SovereignMLClassifier
+from modules.typosquat_engine import TyposquatEngine
+from modules.redirect_unroller import SafeRedirectUnroller
+from modules.dns_security_analyzer import DNSSecurityAnalyzer
 
 app = FastAPI(
     title="GovShield Sentinel Grid — Sovereign Cyber Threat Intelligence & Multi-Layer Phishing Defense",
@@ -100,6 +103,9 @@ certin_reporter = CertInReporter()
 legacy_lexical = LexicalAnalyzer()
 legacy_whois = WhoisAnalyzer()
 sovereign_ml = SovereignMLClassifier.get_instance()
+typosquat_engine = TyposquatEngine()
+redirect_unroller = SafeRedirectUnroller(max_hops=5, timeout=2.5)
+dns_security_analyzer = DNSSecurityAnalyzer(timeout=2.0)
 
 # High-Performance Production Cache (TTL 180s)
 SCAN_CACHE: Dict[str, Dict[str, Any]] = {}
@@ -680,8 +686,12 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
             res_copy["cached_result"] = True
             return res_copy
 
+    # Step 1b: Safe Redirect & URL Shortener Unrolling (url.vet standard)
+    redirect_evidence = redirect_unroller.unroll(normalized_url)
+    active_url = redirect_evidence["final_url"] if redirect_evidence.get("redirected") else normalized_url
+
     # Step 2: Threat Intelligence Layer
-    threat_intel = threat_intel_hub.evaluate_url(normalized_url)
+    threat_intel = threat_intel_hub.evaluate_url(active_url)
     if threat_intel.get("is_known_malicious"):
         METRICS["threat_intel_hits"] += 1
 
@@ -693,12 +703,18 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
         scheme=scheme
     )
 
+    # Step 3b: DNS & Mail Infrastructure Security Audit (url.vet standard)
+    dns_security_evidence = dns_security_analyzer.analyze(active_url)
+
     # Step 4: Brand & Impersonation Matching
     brand_match = brand_engine.match_entity(
         domain=hostname,
         path=url_meta.get("path", ""),
         page_title=""
     )
+
+    # Step 4c: openSquat Typosquatting & Permutation Forensics
+    typosquat_evidence = typosquat_engine.analyze(active_url)
 
     # Step 4b: Live Internet OSINT Search & PIB Advisory Check
     is_gov_tld = url_meta.get("tld") in ["gov.in", "nic.in"]
@@ -713,7 +729,7 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
     crawler_res = None
     html_content = req.html_content
     if (not html_content or len(html_content.strip()) == 0) and not is_gov_tld and not threat_intel.get("is_known_malicious"):
-        crawler_res = safe_crawler.fetch_url(normalized_url)
+        crawler_res = safe_crawler.fetch_url(active_url)
         if crawler_res.get("success"):
             html_content = crawler_res.get("html_content")
 
@@ -786,7 +802,10 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
         ai_synthesis=ai_synthesis,
         research_findings=research_findings,
         crawler_evidence=crawler_res,
-        internet_search_evidence=internet_search_evidence
+        internet_search_evidence=internet_search_evidence,
+        typosquat_evidence=typosquat_evidence,
+        redirect_evidence=redirect_evidence,
+        dns_evidence=dns_security_evidence
     )
 
     # Attach live internet OSINT findings
@@ -817,7 +836,7 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
     fused_verdict["is_genuine_gov_tld"] = is_gov_tld
 
     # Step 14: Sovereign ML Inference (XGBoost + Random Forest Ensemble)
-    ml_res = sovereign_ml.predict(normalized_url)
+    ml_res = sovereign_ml.predict(active_url)
     fused_verdict["sovereign_ml"] = {
         "probability": ml_res["ml_phishing_probability"],
         "is_model_trained": ml_res["is_model_trained"],
@@ -838,6 +857,7 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
     # Attach forensic evidence modules for frontend & API clients
     fused_verdict["url"] = normalized_url
     fused_verdict["original_url"] = req.url
+    fused_verdict["active_unrolled_url"] = active_url
     fused_verdict["url_metadata"] = url_meta
     fused_verdict["network_details"] = network_evidence
     fused_verdict["threat_intel"] = threat_intel
@@ -845,6 +865,9 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
     fused_verdict["dom_details"] = dom_evidence
     fused_verdict["visual_details"] = visual_evidence
     fused_verdict["research_advisories"] = research_findings
+    fused_verdict["typosquat_details"] = typosquat_evidence
+    fused_verdict["redirect_details"] = redirect_evidence
+    fused_verdict["dns_security_details"] = dns_security_evidence
     if content_sim_res:
         fused_verdict["content_similarity_details"] = content_sim_res
 

@@ -1,18 +1,21 @@
 """
-GovShield Sentinel Grid — DOM, Form & Script Forensics Engine
-Performs deep structural analysis of HTML, sensitive credential harvesting forms, and suspicious scripts.
-
-Features Extracted:
+GovShield Sentinel Grid — DOM, Form & Script Forensics Engine.
+Incorporates best-of-breed algorithms from PhishDetect and url.vet:
 - Indian Citizen Identity & Financial Token Forms (Aadhaar, PAN, Bank, UPI, MPIN, OTP)
 - Form Action Exfiltration Destinations (Cross-domain, Telegram/Discord webhooks, Formspree)
-- Insecure Form Submissions (HTTP action on HTTPS host)
-- Script Behavior (eval, obfuscated base64, hidden iframes, anti-tamper)
+- Escaped HTML Entity Brand Obfuscation (&#...; decimal/hex entity decoding from PhishDetect)
+- Deceptive Government Title & OpenGraph Claim Verification
+- Meta-Refresh Client Redirect Detection
+- Script Behavior & Anti-Forensics (eval, obfuscated base64, hidden iframes, disabled contextmenu)
 - External Sovereign Asset Hotlinking (Emblems, Logos, CSS from genuine .gov.in)
 """
 
-from typing import Dict, Any, List, Optional
-import urllib.parse
+from __future__ import annotations
+
+import html
 import re
+import urllib.parse
+from typing import Any, Dict, List, Optional
 from bs4 import BeautifulSoup
 from .reference_database import GENUINE_PORTALS, GOVERNMENT_TLDS
 
@@ -20,6 +23,13 @@ SUSPICIOUS_EXFILTRATION_HOSTS = [
     "api.telegram.org", "discord.com/api/webhooks", "formspree.io",
     "formcarry.com", "getform.io", "formsubmit.co", "formkeep.com",
     "webtolead", "pipedream.net", "ngrok.io", "herokuapp.com"
+]
+
+SOVEREIGN_TITLE_PATTERNS = [
+    r"pm[\s\-]?kisan", r"aadhaar", r"uidai", r"income[\s\-]?tax",
+    r"parivahan", r"epfo|epf\sindia", r"passport\sseva", r"digilocker",
+    r"cyber[\s\-]?crime", r"samagra\sshiksha", r"sarva\sshiksha",
+    r"viksit\sbharat", r"rozgar\syojana", r"ayushman\sbharat", r"e[\s\-]?shram"
 ]
 
 
@@ -39,21 +49,54 @@ class DOMAnalyzer:
                 "hotlinked_gov_assets": [],
                 "external_action_count": 0,
                 "script_risks": [],
+                "html_deception_signals": {},
                 "reasons": ["No HTML content retrieved (Headless or Empty DOM)."]
             }
 
         soup = BeautifulSoup(html_content, 'html.parser')
         parsed_base = urllib.parse.urlsplit(base_url)
         current_host = (parsed_base.hostname or "").lower()
+        is_gov_domain = current_host.endswith(".gov.in") or current_host.endswith(".nic.in")
 
-        # 1. Page Title & Meta Descriptions
+        # 1. Page Title & Meta Descriptions (PhishDetect check)
         title = soup.title.string.strip() if soup.title and soup.title.string else ""
         meta_desc = ""
         meta_desc_tag = soup.find('meta', attrs={'name': 'description'}) or soup.find('meta', attrs={'property': 'og:description'})
         if meta_desc_tag and meta_desc_tag.get('content'):
             meta_desc = meta_desc_tag['content'].strip()
 
-        # 2. Form & Sensitive Citizen Identity Input Inspection
+        # Check deceptive sovereign title claim on non-gov domain
+        is_deceptive_title = False
+        deceptive_title_brand = ""
+        if not is_gov_domain and title:
+            for pat in SOVEREIGN_TITLE_PATTERNS:
+                if re.search(pat, title, re.IGNORECASE):
+                    is_deceptive_title = True
+                    deceptive_title_brand = title
+                    break
+
+        # 2. Escaped HTML Entity Obfuscation (PhishDetect checkEscapedText)
+        has_escaped_brand_obfuscation = False
+        raw_decoded = html.unescape(html_content)
+        if raw_decoded != html_content:
+            # If decoding altered entities, check if sovereign keywords were hidden
+            for brand_key in ["pmkisan", "aadhaar", "uidai", "incometax", "samagra"]:
+                if brand_key in raw_decoded.lower() and brand_key not in html_content.lower():
+                    has_escaped_brand_obfuscation = True
+                    break
+
+        # 3. Meta-Refresh Client-Side Redirection (url.vet / PhishDetect check)
+        meta_refresh = soup.find('meta', attrs={'http-equiv': lambda v: v and v.lower() == 'refresh'})
+        has_meta_refresh = False
+        meta_refresh_target = ""
+        if meta_refresh and meta_refresh.get('content'):
+            content = meta_refresh['content']
+            has_meta_refresh = True
+            url_match = re.search(r"url=([^;]+)", content, re.IGNORECASE)
+            if url_match:
+                meta_refresh_target = url_match.group(1).strip()
+
+        # 4. Form & Sensitive Citizen Identity Input Inspection
         forms = soup.find_all('form')
         sensitive_inputs: List[Dict[str, str]] = []
         external_action_count = 0
@@ -63,7 +106,6 @@ class DOMAnalyzer:
 
         for idx, form in enumerate(forms):
             action = (form.get('action') or '').strip()
-            method = (form.get('method') or 'GET').upper()
 
             # Check form action destination
             if action:
@@ -81,7 +123,6 @@ class DOMAnalyzer:
                 if action.startswith('http://') and base_url.startswith('https://'):
                     insecure_form_count += 1
             elif action in ['#', '', 'about:blank', 'javascript:void(0)']:
-                # Common phishing tactic to capture credentials via client-side JavaScript
                 external_action_count += 1
 
             # Check input tags
@@ -109,7 +150,7 @@ class DOMAnalyzer:
                 elif any(k in combined_ident for k in ['upi', 'vpa', 'bhim']):
                     sensitive_inputs.append({"field": "upi_id", "type": inp_type, "identifier": inp_name or inp_id})
 
-        # 3. External Government Asset Hotlinking (Images, Logos, CSS)
+        # 5. External Government Asset Hotlinking (Images, Logos, CSS)
         hotlinked_gov_assets: List[str] = []
         all_media_tags = soup.find_all(['img', 'link', 'script'])
         for tag in all_media_tags:
@@ -121,19 +162,27 @@ class DOMAnalyzer:
                     if src_host != current_host:
                         hotlinked_gov_assets.append(src)
 
-        # 4. Script & DOM Obfuscation Forensics
+        # 6. Script & Anti-Forensics Forensics (PhishDetect / PhishGuard)
         script_risks: List[str] = []
         scripts = soup.find_all('script')
         for s in scripts:
             content = s.string or ""
             if content:
-                # Look for suspicious eval or unescape
                 if "eval(" in content or "unescape(" in content or "String.fromCharCode(" in content:
                     script_risks.append("Dynamic script evaluation / de-obfuscation (eval/unescape)")
                 if "atob(" in content and len(content) > 500:
                     script_risks.append("Base64 payload execution in script body")
                 if "document.write(" in content:
                     script_risks.append("DOM overwriting via document.write")
+                if "debugger" in content:
+                    script_risks.append("Anti-debugging instruction detected")
+
+        # Anti-analysis event listeners on body (e.g. disable right click or copy)
+        body = soup.find('body')
+        if body:
+            body_events = [k for k in body.attrs.keys() if k.lower() in ['oncontextmenu', 'onselectstart', 'ondragstart', 'onkeydown']]
+            if len(body_events) >= 2:
+                script_risks.append("Anti-inspection event blockers detected on DOM body (disabled right-click/keys)")
 
         # Hidden iframes
         iframes = soup.find_all('iframe')
@@ -149,6 +198,18 @@ class DOMAnalyzer:
         if len(sensitive_inputs) > 0:
             dom_risk += min(len(sensitive_inputs) * 25.0, 75.0)
             reasons.append(f"Sensitive credential/identity harvesting form found: {[s['field'] for s in sensitive_inputs]}")
+
+        if is_deceptive_title:
+            dom_risk += 35.0
+            reasons.append(f"Deceptive page title claims official government authority on non-gov host: '{title}'")
+
+        if has_escaped_brand_obfuscation:
+            dom_risk += 30.0
+            reasons.append("HTML entity encoding (&#...;) used to obfuscate sovereign brand tokens from filters")
+
+        if has_meta_refresh:
+            dom_risk += 20.0
+            reasons.append(f"Client-side meta refresh auto-redirection active -> '{meta_refresh_target}'")
 
         if external_action_count > 0:
             dom_risk += 25.0
@@ -179,5 +240,12 @@ class DOMAnalyzer:
             "insecure_form_count": insecure_form_count,
             "exfiltration_endpoints": exfiltration_endpoints,
             "script_risks": script_risks,
+            "html_deception_signals": {
+                "is_deceptive_title": is_deceptive_title,
+                "deceptive_title_brand": deceptive_title_brand,
+                "has_escaped_brand_obfuscation": has_escaped_brand_obfuscation,
+                "has_meta_refresh": has_meta_refresh,
+                "meta_refresh_target": meta_refresh_target
+            },
             "reasons": reasons
         }
