@@ -8,6 +8,7 @@ import concurrent.futures
 from .base import BaseThreatProvider, ThreatEvidence
 from .urlhaus_provider import URLhausProvider
 from .local_ledger_provider import LocalLedgerProvider
+from .pib_factcheck_provider import PIBFactCheckProvider
 
 
 class ThreatIntelHub:
@@ -17,7 +18,8 @@ class ThreatIntelHub:
         if providers is None:
             self.providers = [
                 URLhausProvider(),
-                LocalLedgerProvider()
+                LocalLedgerProvider(),
+                PIBFactCheckProvider()
             ]
         else:
             self.providers = providers

@@ -1,0 +1,117 @@
+{
+  "version": "1.0.0",
+  "source": "PIB Fact Check, CERT-In Advisories, and I4C Cyber Crime Records",
+  "updated_at": "2026-09-03T00:00:00Z",
+  "confirmed_scam_domains": [
+    {
+      "domain": "shikshaabhiyan.co.in",
+      "subdomains": ["samagra.shikshaabhiyan.co.in", "recruitment.shikshaabhiyan.co.in"],
+      "fake_entity_claimed": "Samagra Shiksha Abhiyan / Ministry of Education",
+      "genuine_counterpart": "samagra.education.gov.in",
+      "scam_type": "FAKE_GOVERNMENT_RECRUITMENT_FEE",
+      "flagged_by": "Press Information Bureau (PIB Fact Check) & Ministry of Education",
+      "advisory_url": "https://factcheck.pib.gov.in",
+      "confidence": 0.99,
+      "details": "Mimics official Samagra Shiksha portal promising fake teacher/clerk vacancies and charging illegal registration fees."
+    },
+    {
+      "domain": "sarvashiksha.online",
+      "subdomains": ["www.sarvashiksha.online"],
+      "fake_entity_claimed": "Sarva Shiksha Abhiyan",
+      "genuine_counterpart": "samagra.education.gov.in",
+      "scam_type": "FAKE_GOVERNMENT_RECRUITMENT_FEE",
+      "flagged_by": "PIB Fact Check",
+      "advisory_url": "https://factcheck.pib.gov.in",
+      "confidence": 0.99,
+      "details": "Fraudulent portal claiming to recruit under Sarva Shiksha Abhiyan and demanding application fee."
+    },
+    {
+      "domain": "shikshaabhiyan.org.in",
+      "subdomains": ["www.shikshaabhiyan.org.in"],
+      "fake_entity_claimed": "Samagra Shiksha Abhiyan",
+      "genuine_counterpart": "samagra.education.gov.in",
+      "scam_type": "FAKE_GOVERNMENT_RECRUITMENT_FEE",
+      "flagged_by": "PIB Fact Check",
+      "advisory_url": "https://factcheck.pib.gov.in",
+      "confidence": 0.99,
+      "details": "Fake education portal claiming government affiliation."
+    },
+    {
+      "domain": "viksitbharatrozgaryojana.org",
+      "subdomains": ["www.viksitbharatrozgaryojana.org"],
+      "fake_entity_claimed": "Pradhan Mantri Viksit Bharat Rozgar Yojana (PMVBRY)",
+      "genuine_counterpart": "pmvbry.epfindia.gov.in",
+      "scam_type": "FAKE_EMPLOYMENT_SCHEME",
+      "flagged_by": "PIB Fact Check & Ministry of Labour and Employment",
+      "advisory_url": "https://factcheck.pib.gov.in",
+      "confidence": 0.98,
+      "details": "Cheating citizens in name of employment scheme."
+    },
+    {
+      "domain": "pmviksitbharatrozgaryojana.com",
+      "subdomains": [],
+      "fake_entity_claimed": "Pradhan Mantri Viksit Bharat Rozgar Yojana",
+      "genuine_counterpart": "pmvbry.epfindia.gov.in",
+      "scam_type": "FAKE_EMPLOYMENT_SCHEME",
+      "flagged_by": "PIB Fact Check",
+      "advisory_url": "https://factcheck.pib.gov.in",
+      "confidence": 0.98,
+      "details": "Fake job portal demanding registration money."
+    },
+    {
+      "domain": "pmkisan-kyc-update.xyz",
+      "subdomains": ["pmkisan.kyc-update.xyz"],
+      "fake_entity_claimed": "PM-Kisan Samman Nidhi Portal",
+      "genuine_counterpart": "pmkisan.gov.in",
+      "scam_type": "AADHAAR_OTP_HARVESTING",
+      "flagged_by": "CERT-In & Ministry of Agriculture",
+      "advisory_url": "https://cert-in.org.in",
+      "confidence": 0.98,
+      "details": "Stealing farmer Aadhaar and OTP under pretext of mandatory eKYC."
+    },
+    {
+      "domain": "pmkisan-yojana-bonus-claim.top",
+      "subdomains": [],
+      "fake_entity_claimed": "PM-Kisan Samman Nidhi",
+      "genuine_counterpart": "pmkisan.gov.in",
+      "scam_type": "FINANCIAL_SUBSIDY_LURE",
+      "flagged_by": "CERT-In",
+      "advisory_url": "https://cert-in.org.in",
+      "confidence": 0.97,
+      "details": "Deceptive scheme subsidy link targeting rural farmers."
+    },
+    {
+      "domain": "sbi-instant-kyc-update.xyz",
+      "subdomains": [],
+      "fake_entity_claimed": "State Bank of India (SBI)",
+      "genuine_counterpart": "onlinesbi.sbi",
+      "scam_type": "NETBANKING_CREDENTIAL_THEFT",
+      "flagged_by": "I4C 1930 / SBI Cyber Security Cell",
+      "advisory_url": "https://cybercrime.gov.in",
+      "confidence": 0.99,
+      "details": "Harvests NetBanking username, password, and transaction OTP."
+    },
+    {
+      "domain": "bijli-bill-disconnection.xyz",
+      "subdomains": [],
+      "fake_entity_claimed": "State Electricity Board / Power Discom",
+      "genuine_counterpart": "official state discom",
+      "scam_type": "UTILITY_DISCONNECTION_EXTORTION",
+      "flagged_by": "CERT-In Advisory CIAD-2024-0012",
+      "advisory_url": "https://cert-in.org.in",
+      "confidence": 0.96,
+      "details": "Threatens power disconnection unless immediate payment is made via fake payment gateway."
+    },
+    {
+      "domain": "digital-arrest-cbi.top",
+      "subdomains": [],
+      "fake_entity_claimed": "Central Bureau of Investigation (CBI) / Cyber Police",
+      "genuine_counterpart": "cbi.gov.in",
+      "scam_type": "DIGITAL_ARREST_EXTORTION",
+      "flagged_by": "MHA Indian Cybercrime Coordination Centre (I4C)",
+      "advisory_url": "https://cybercrime.gov.in",
+      "confidence": 0.99,
+      "details": "Fake police warrant and extortion under digital arrest threat."
+    }
+  ]
+}

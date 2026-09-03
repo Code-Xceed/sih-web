@@ -33,7 +33,8 @@ class FusionEngine:
         content_sim_evidence: Optional[Dict[str, Any]],
         ai_synthesis: Dict[str, Any],
         research_findings: List[Dict[str, Any]],
-        crawler_evidence: Optional[Dict[str, Any]] = None
+        crawler_evidence: Optional[Dict[str, Any]] = None,
+        internet_search_evidence: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Executes calibrated multi-signal fusion across all 15 feature dimensions.
@@ -93,27 +94,39 @@ class FusionEngine:
             }
 
         # -------------------------------------------------------------
-        # DOMINANT RULE 2: Confirmed External Threat Intelligence Match
+        # DOMINANT RULE 2: Confirmed Threat Intel Match or Live OSINT PIB Fact Check Alert
         # -------------------------------------------------------------
-        if is_known_malicious:
-            risk_score = int(max(92, highest_intel_conf * 100))
-            reasons.append("Identified as an active phishing / malware campaign in global threat feeds (URLhaus / Sovereign Ledger).")
+        is_osint_scam = bool(internet_search_evidence and internet_search_evidence.get("is_scam_reported"))
+        if is_known_malicious or is_osint_scam:
+            risk_score = int(max(95, highest_intel_conf * 100))
+            is_pib = any("pib" in str(e).lower() for e in threat_intel_evidence.get("evidence", [])) or (is_osint_scam and any("pib" in str(f).lower() for f in (internet_search_evidence or {}).get("advisory_findings", [])))
+
+            category = "GOVERNMENT_IMPERSONATION_SCAM" if (is_pib or claimed_entity) else "KNOWN_MALICIOUS_THREAT"
+
+            if is_pib:
+                reasons.append("EXPLICIT PIB FACT CHECK ALERT: Flagged by Press Information Bureau & Ministry Cyber Cell as an illegal fraudulent portal collecting fake application fees or stealing credentials.")
+            else:
+                reasons.append("Identified as an active phishing / malware campaign in authoritative threat feeds (URLhaus / Sovereign Ledger).")
+
             if claimed_entity:
-                reasons.append(f"Actively impersonating official brand '{claimed_entity}'.")
+                reasons.append(f"Actively impersonating official sovereign brand/scheme: '{claimed_entity}'.")
+            if internet_search_evidence and internet_search_evidence.get("official_gov_counterpart"):
+                reasons.append(f"Official genuine sovereign portal is '{internet_search_evidence['official_gov_counterpart']}'.")
             if has_citizen_credentials:
                 reasons.append(f"Deploys form harvesting citizen credentials: {sens_inputs}.")
 
+            target = claimed_entity or "Indian Citizens"
             return {
                 "verdict": "MALICIOUS",
                 "risk_score": risk_score,
-                "confidence": highest_intel_conf,
+                "confidence": max(highest_intel_conf, 0.98),
                 "threat_level": "CRITICAL",
-                "category": "KNOWN_MALICIOUS_THREAT",
-                "target_entity": claimed_entity or "Indian Citizens",
-                "impersonated": bool(claimed_entity),
-                "summary": f"CRITICAL THREAT: Confirmed malicious campaign URL cataloged in authoritative threat intelligence feeds.",
+                "category": category,
+                "target_entity": target,
+                "impersonated": True,
+                "summary": f"CRITICAL FRAUD: Confirmed scam portal mimicking {target}. Flagged by national cyber defense advisories.",
                 "reasons": reasons,
-                "recommendation": "DO NOT INTERACT. Block domain immediately. Initiate CERT-In incident takedown.",
+                "recommendation": "DO NOT PAY ANY FEES OR ENTER DETAILS. This is a fake website. Visit genuine government portals (.gov.in) and report cyber fraud to 1930.",
                 "signal_breakdown": {
                     "lexical_score": 90.0,
                     "threat_intel_score": 100.0,

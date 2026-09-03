@@ -410,6 +410,60 @@ GENUINE_PORTALS = {
             "layout_type": "banking_portal",
             "has_tricolor_header": False
         }
+    },
+    "samagra": {
+        "id": "samagra",
+        "name": "Samagra Shiksha Abhiyan Portal",
+        "department": "Department of School Education & Literacy, Ministry of Education, Govt of India",
+        "primary_domain": "samagra.education.gov.in",
+        "valid_domains": ["samagra.education.gov.in", "education.gov.in", "dsel.education.gov.in"],
+        "keywords": [
+            "samagra shiksha", "shiksha abhiyan", "sarva shiksha", "school education",
+            "teacher recruitment", "shikshaabhiyan", "samagra", "shiksha mission"
+        ],
+        "aliases": ["samagra", "shikshaabhiyan", "sarvashiksha", "shiksha-abhiyan"],
+        "sensitive_fields": ["registration_fee", "candidate_name", "aadhaar", "mobile"],
+        "official_emblems": ["ashoka_pillar", "education_ministry_emblem"],
+        "visual_signature": {
+            "primary_color": "#003366",
+            "secondary_color": "#FF9933",
+            "layout_type": "education_portal",
+            "has_tricolor_header": True
+        }
+    },
+    "ssc": {
+        "id": "ssc",
+        "name": "Staff Selection Commission (SSC)",
+        "department": "Department of Personnel and Training (DoPT), Govt of India",
+        "primary_domain": "ssc.gov.in",
+        "valid_domains": ["ssc.gov.in", "ssc.nic.in"],
+        "keywords": ["ssc", "cgl", "chsl", "gd constable", "staff selection", "admit card", "recruitment"],
+        "aliases": ["ssc", "staffselection"],
+        "sensitive_fields": ["registration_no", "password", "captcha"],
+        "official_emblems": ["ashoka_pillar", "ssc_logo"],
+        "visual_signature": {
+            "primary_color": "#1B365D",
+            "secondary_color": "#D99B26",
+            "layout_type": "recruitment_portal",
+            "has_tricolor_header": True
+        }
+    },
+    "pmvbry": {
+        "id": "pmvbry",
+        "name": "Pradhan Mantri Viksit Bharat Rozgar Yojana",
+        "department": "Ministry of Labour & Employment, Govt of India",
+        "primary_domain": "pmvbry.epfindia.gov.in",
+        "valid_domains": ["pmvbry.epfindia.gov.in", "pmvbry.labour.gov.in"],
+        "keywords": ["viksit bharat rozgar", "pmvbry", "rozgar yojana", "epfindia"],
+        "aliases": ["pmvbry", "viksitbharat", "viksitbharatrozgar"],
+        "sensitive_fields": ["uan", "aadhaar", "bank_account"],
+        "official_emblems": ["ashoka_pillar"],
+        "visual_signature": {
+            "primary_color": "#0B3C5D",
+            "secondary_color": "#328CC1",
+            "layout_type": "employment_portal",
+            "has_tricolor_header": True
+        }
     }
 }
 
@@ -418,6 +472,7 @@ GOVERNMENT_BRAND_TOKENS = {
     "gst", "incometax", "income-tax", "pmkisan", "pm-kisan", "aadhaar", "aadhar",
     "uidai", "parivahan", "epfindia", "epfo", "passport", "digilocker", "cybercrime",
     "scholarship", "scholarships", "cbse", "irctc", "challan", "eshram", "e-shram",
+    "samagra", "shikshaabhiyan", "sarvashiksha", "shiksha-abhiyan", "ssc", "pmvbry",
     "ayushman", "pmjay", "pmay", "rationcard", "ration-card", "voterid", "voter-id",
     "voter", "nvsp", "fastag", "jeevanpramaan", "swachhbharat", "digitalindia",
     # BFSI & Critical National Payment Systems

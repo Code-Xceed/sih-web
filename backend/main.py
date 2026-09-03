@@ -56,6 +56,7 @@ from modules.safe_crawler import SafeCrawler
 from modules.dom_analyzer import DOMAnalyzer
 from modules.visual_analyzer import VisualSimilarityAnalyzer
 from modules.research_engine import ResearchEngine
+from modules.internet_search_engine import InternetSearchEngine
 from modules.ai_agent import AIAgent
 from modules.fusion_engine import FusionEngine
 from modules.blockchain_ledger import blockchain_ledger, canonical_json
@@ -91,6 +92,7 @@ safe_crawler = SafeCrawler(timeout=3.5, max_bytes=512_000)
 dom_analyzer = DOMAnalyzer()
 visual_analyzer = VisualSimilarityAnalyzer()
 research_engine = ResearchEngine()
+internet_search_engine = InternetSearchEngine(timeout=2.5)
 ai_agent = AIAgent()
 fusion_engine = FusionEngine()
 certin_reporter = CertInReporter()
@@ -455,11 +457,18 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
         page_title=""
     )
 
+    # Step 4b: Live Internet OSINT Search & PIB Advisory Check
+    is_gov_tld = url_meta.get("tld") in ["gov.in", "nic.in"]
+    internet_search_evidence = None
+    if not is_gov_tld:
+        internet_search_evidence = internet_search_engine.investigate_domain_osint(
+            domain=registered_domain,
+            entity_name=brand_match.get("organization") if brand_match else None
+        )
+
     # Step 5: Safe Web Crawling (with strict anti-SSRF)
     crawler_res = None
     html_content = req.html_content
-
-    is_gov_tld = url_meta.get("tld") in ["gov.in", "nic.in"]
     if (not html_content or len(html_content.strip()) == 0) and not is_gov_tld and not threat_intel.get("is_known_malicious"):
         crawler_res = safe_crawler.fetch_url(normalized_url)
         if crawler_res.get("success"):
@@ -518,7 +527,8 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
         brand_evidence=brand_evidence,
         research_findings=research_findings,
         dom_sample=html_content or "",
-        image_base64=req.image_base64
+        image_base64=req.image_base64,
+        internet_search_evidence=internet_search_evidence
     )
 
     # Step 12: Calibrated Multi-Signal Fusion
@@ -532,8 +542,13 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
         content_sim_evidence=content_sim_res,
         ai_synthesis=ai_synthesis,
         research_findings=research_findings,
-        crawler_evidence=crawler_res
+        crawler_evidence=crawler_res,
+        internet_search_evidence=internet_search_evidence
     )
+
+    # Attach live internet OSINT findings
+    if internet_search_evidence:
+        fused_verdict["internet_search_advisories"] = internet_search_evidence
 
     # Blend Gemini insights into reasons when relevant
     if ai_synthesis.get("plain_english_summary"):

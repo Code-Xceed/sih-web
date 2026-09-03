@@ -52,7 +52,8 @@ class AIAgent:
         brand_evidence: Dict[str, Any],
         research_findings: List[Dict[str, Any]],
         dom_sample: str = "",
-        image_base64: Optional[str] = None
+        image_base64: Optional[str] = None,
+        internet_search_evidence: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Receives structured scanner evidence and synthesizes semantic intent,
@@ -62,7 +63,8 @@ class AIAgent:
             # Deterministic Fallback Synthesis when GenAI client is offline
             return self._deterministic_fallback_synthesis(
                 url_metadata, network_evidence, threat_intel_evidence,
-                dom_evidence, brand_evidence, research_findings
+                dom_evidence, brand_evidence, research_findings,
+                internet_search_evidence
             )
 
         # Prepare concise structured evidence payload for Gemini
@@ -77,23 +79,30 @@ class AIAgent:
             "tls_issuer": network_evidence.get("tls", {}).get("issuer_common_name"),
             "is_automated_free_cert": network_evidence.get("tls", {}).get("is_automated_free_cert", False),
             "threat_intel_match": threat_intel_evidence.get("is_known_malicious", False),
+            "pib_fact_check_flagged": any("pib" in str(e).lower() for e in threat_intel_evidence.get("evidence", [])),
             "claimed_entity": brand_evidence.get("claimed_entity"),
             "official_domains": brand_evidence.get("official_domains", []),
             "brand_relationship": brand_evidence.get("classification"),
             "sensitive_fields_harvested": [s["field"] for s in dom_evidence.get("sensitive_inputs", [])],
             "page_title": dom_evidence.get("page_title"),
             "external_exfiltration": dom_evidence.get("exfiltration_endpoints", []),
-            "active_cyber_advisories": [r["finding"] for r in research_findings[:3]]
+            "active_cyber_advisories": [r["finding"] for r in research_findings[:3]],
+            "live_internet_osint_findings": [f["snippet"] for f in (internet_search_evidence or {}).get("advisory_findings", [])[:3]]
         }
 
         prompt = f"""
-You are a Senior Cyber Threat Intelligence Analyst for CERT-In and GovShield.
-Your objective: Analyze the structured evidence collected from deterministic cyber scanners and synthesize an explainable, fact-based threat evaluation.
+You are a Senior Cyber Threat Intelligence Analyst for CERT-In, I4C, and GovShield.
+Your objective: Analyze the structured evidence collected from deterministic cyber scanners, live OSINT search, and official PIB Fact Check advisories to synthesize an explainable threat evaluation.
+
+CORE THREAT PATTERNS & GROUND TRUTH EXEMPLARS (TRAINING KNOWLEDGE):
+- PATTERN 1 (Fake Government Job/Scheme Recruitment): Scammers register unofficial domains (.co.in, .org.in, .online, .site) mimicking sovereign missions such as "Samagra Shiksha Abhiyan", "Sarva Shiksha Abhiyan", "Viksit Bharat Rozgar Yojana", or "KVS". They promise fake teacher/clerk vacancies and extort 500-1500 INR registration fees. The official domain for Samagra Shiksha is exclusively `samagra.education.gov.in`. Any commercial .co.in/.in site claiming to be Samagra Shiksha is an active criminal fraud.
+- PATTERN 2 (Citizen Welfare Subsidy/DBT Scams): Scammers clone PM-Kisan or Ayushman Bharat to steal farmer Aadhaar numbers, PAN, and OTPs under pretext of mandatory eKYC.
+- PATTERN 3 (Utility Disconnection & Digital Arrest Extortion): Threatening power shutoff or fake CBI arrest warrants.
 
 CRITICAL CONSTRAINTS:
 1. Distinguish strictly between:
    - OBSERVED FACTS (Directly measurable indicators present in the evidence)
-   - EXTERNAL RESEARCH (Official CERT-In/RBI cyber advisories)
+   - EXTERNAL RESEARCH (Official CERT-In, PIB Fact Check, or RBI cyber advisories)
    - INFERENCES (Social-engineering tactics and deceptive intent deduced from facts)
    - UNCERTAINTIES (Gaps in evidence or missing data)
 2. DO NOT invent reputation results, domain registrations, or official certifications.
@@ -160,13 +169,22 @@ Respond with ONLY a valid JSON object strictly matching this schema:
         threat_intel_evidence: Dict[str, Any],
         dom_evidence: Dict[str, Any],
         brand_evidence: Dict[str, Any],
-        research_findings: List[Dict[str, Any]]
+        research_findings: List[Dict[str, Any]],
+        internet_search_evidence: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Provides reproducible deterministic semantic reasoning when GenAI client is offline."""
         observed_facts: List[str] = []
         inconsistencies: List[str] = []
         social_eng: List[str] = []
         uncertainties: List[str] = []
+
+        if internet_search_evidence and internet_search_evidence.get("is_scam_reported"):
+            observed_facts.append("Live Internet OSINT search detected public cyber scam / PIB Fact Check warnings.")
+            social_eng.append("Exploits government scheme names (such as Samagra Shiksha or Rozgar Yojana) to collect unauthorized fees or credentials.")
+            inconsistencies.append("Confirmed fraudulent scheme portal flagged in public advisories.")
+
+        if internet_search_evidence and internet_search_evidence.get("official_gov_counterpart"):
+            observed_facts.append(f"Official sovereign counterpart discovered: {internet_search_evidence['official_gov_counterpart']}")
 
         claimed_entity = brand_evidence.get("claimed_entity")
         sens_inputs = [s["field"] for s in dom_evidence.get("sensitive_inputs", [])]
