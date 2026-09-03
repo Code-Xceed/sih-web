@@ -20,8 +20,77 @@ document.addEventListener("DOMContentLoaded", async () => {
   const toggleDetailsText = document.getElementById("toggleDetailsText");
   const toggleDetailsIcon = document.getElementById("toggleDetailsIcon");
   const inspectionStepsContainer = document.getElementById("inspectionStepsContainer");
+  const downloadDossierBtn = document.getElementById("downloadDossierBtn");
+  const btnVoicePopup = document.getElementById("btnVoicePopup");
+  const langEn = document.getElementById("langEn");
+  const langHi = document.getElementById("langHi");
 
+  let currentScanData = null;
   let isDetailsExpanded = false;
+  let currentLang = "en";
+
+  const popupI18n = {
+    en: {
+      criticalThreat: "CRITICAL THREAT",
+      suspiciousDomain: "SUSPICIOUS DOMAIN",
+      verifiedOfficial: "VERIFIED OFFICIAL",
+      authenticWeb: "AUTHENTIC WEB",
+      advisoryPrefix: "ADVISORY:",
+      advisoryThreat: "DO NOT enter Aadhaar, PAN, OTP, or banking credentials. A CERT-In takedown notice has been drafted.",
+      advisorySuspicious: "Exercise caution. Verify the official URL on india.gov.in before providing personal information.",
+      advisorySafe: "Safe for navigation. The domain is verified and authenticated.",
+      inspectBtn: "Inspect",
+      dossierBtn: "CERT-In Report",
+      speechThreat: "Warning! This website is a fake government clone attempting to steal citizen credentials. Do not enter Aadhaar or OTP.",
+      speechSafe: "This website is safe for navigation."
+    },
+    hi: {
+      criticalThreat: "गंभीर खतरा (नकली साइट)",
+      suspiciousDomain: "संदिग्ध पोर्टल",
+      verifiedOfficial: "प्रमाणित सरकारी पोर्टल",
+      authenticWeb: "सुरक्षित वेब सेवा",
+      advisoryPrefix: "नागरिक चेतावनी:",
+      advisoryThreat: "सावधान! अपना आधार नंबर, पैन, बैंक OTP यहाँ बिल्कुल न डालें। यह फर्जी साइट है।",
+      advisorySuspicious: "सावधानी बरतें। india.gov.in पर आधिकारिक लिंक की पुष्टि करें।",
+      advisorySafe: "यह सुरक्षित और प्रमाणित आधिकारिक सरकारी पोर्टल है।",
+      inspectBtn: "जाँच करें",
+      dossierBtn: "रिपोर्ट देखें",
+      speechThreat: "सावधान! यह वेबसाइट फर्जी है और सरकारी पोर्टल की नकल कर रही है। अपना आधार नंबर या बैंक विवरण यहाँ बिल्कुल न भरें।",
+      speechSafe: "यह एक सुरक्षित और प्रमाणित वेबसाइट है।"
+    }
+  };
+
+  function setLanguage(lang) {
+    currentLang = lang;
+    if (langEn) langEn.className = lang === "en" ? "lang-mini-btn active" : "lang-mini-btn";
+    if (langHi) langHi.className = lang === "hi" ? "lang-mini-btn active" : "lang-mini-btn";
+
+    const dict = popupI18n[lang];
+    const lblAdvisory = document.getElementById("lblAdvisory");
+    if (lblAdvisory) lblAdvisory.textContent = dict.advisoryPrefix;
+    const lblDossierBtn = document.getElementById("lblDossierBtn");
+    if (lblDossierBtn) lblDossierBtn.textContent = dict.dossierBtn;
+
+    if (currentScanData) {
+      renderScanData(currentScanData, currentScanData.url);
+    }
+  }
+
+  if (langEn) langEn.addEventListener("click", () => setLanguage("en"));
+  if (langHi) langHi.addEventListener("click", () => setLanguage("hi"));
+
+  // Voice advisory
+  if (btnVoicePopup) {
+    btnVoicePopup.addEventListener("click", () => {
+      if (!("speechSynthesis" in window)) return;
+      window.speechSynthesis.cancel();
+      const dict = popupI18n[currentLang];
+      const text = (currentScanData && currentScanData.verdict === "PHISHING_CLONE") ? dict.speechThreat : dict.speechSafe;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = currentLang === "hi" ? "hi-IN" : "en-IN";
+      window.speechSynthesis.speak(utterance);
+    });
+  }
 
   function setDetailsExpanded(expanded) {
     isDetailsExpanded = expanded;
@@ -73,18 +142,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
+    const dict = popupI18n[currentLang] || popupI18n.en;
+
     // Badge
     if (verdictBadge) {
       if (data.verdict === "PHISHING_CLONE") {
-        verdictBadge.textContent = "CRITICAL THREAT";
+        verdictBadge.textContent = dict.criticalThreat;
         verdictBadge.className = "verdict-badge-clean badge-threat";
         setDetailsExpanded(true); // Auto-expand on threats
       } else if (data.verdict === "SUSPICIOUS") {
-        verdictBadge.textContent = "SUSPICIOUS DOMAIN";
+        verdictBadge.textContent = dict.suspiciousDomain;
         verdictBadge.className = "verdict-badge-clean badge-caution";
         setDetailsExpanded(true); // Auto-expand on caution
       } else {
-        verdictBadge.textContent = data.is_genuine_gov_tld ? "VERIFIED OFFICIAL" : "AUTHENTIC WEB";
+        verdictBadge.textContent = data.is_genuine_gov_tld ? dict.verifiedOfficial : dict.authenticWeb;
         verdictBadge.className = "verdict-badge-clean badge-safe";
         setDetailsExpanded(false); // Default neat collapse on safe
       }
@@ -93,8 +164,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Summary
     if (verdictSummary) {
       let summaryStr = data.summary || "Evaluation completed.";
-      if (data.target_entity && data.verdict !== "LEGITIMATE") {
-        summaryStr = `Deceptive impersonation targeting ${data.target_entity}. ${summaryStr}`;
+      if (currentLang === "hi") {
+        if (data.verdict === "PHISHING_CLONE") {
+          summaryStr = `फर्जी वेबसाइट! ${data.target_entity || "सरकारी सेवा"} की नकल करके नागरिकों से डेटा चुराने का प्रयास।`;
+        } else if (data.verdict === "SUSPICIOUS") {
+          summaryStr = `संदिग्ध पोर्टल! ${data.target_entity || "सरकारी योजना"} के नाम का दुरुपयोग।`;
+        } else {
+          summaryStr = "प्रमाणित सुरक्षित वेबसाइट।";
+        }
+      } else {
+        if (data.target_entity && data.verdict !== "LEGITIMATE") {
+          summaryStr = `Deceptive impersonation targeting ${data.target_entity}. ${summaryStr}`;
+        }
       }
       verdictSummary.textContent = summaryStr;
     }
@@ -102,12 +183,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Advisory
     if (remediationText) {
       if (data.verdict === "PHISHING_CLONE") {
-        remediationText.textContent = "DO NOT enter Aadhaar, PAN, OTP, or banking credentials. A CERT-In takedown notice has been drafted.";
+        remediationText.textContent = dict.advisoryThreat;
       } else if (data.verdict === "SUSPICIOUS") {
-        remediationText.textContent = "Exercise caution. Verify the official URL on india.gov.in before providing personal information.";
+        remediationText.textContent = dict.advisorySuspicious;
       } else {
-        remediationText.textContent = "Safe for navigation. The domain is verified and authenticated.";
+        remediationText.textContent = dict.advisorySafe;
       }
+    }
+
+    // Blockchain Proof Badge
+    const badgeHeightEl = document.getElementById("lblBlockHeightBadge");
+    if (badgeHeightEl) {
+      const bc = data.blockchain_proof || {};
+      const height = bc.block_index || bc.block_height || 1;
+      badgeHeightEl.textContent = `PoA Ledger #Block${height}`;
     }
 
     // 5 Inspection Steps (Exact match to website)
@@ -295,6 +384,26 @@ ${(report.mitigation_recommendations || [
   if (dossierModal) {
     dossierModal.addEventListener("click", (e) => {
       if (e.target === dossierModal) dossierModal.classList.remove("active");
+    });
+  }
+
+  if (downloadDossierBtn && dossierText) {
+    downloadDossierBtn.addEventListener("click", () => {
+      const text = dossierText.textContent || "";
+      if (!text) {
+        showToast("No report content available");
+        return;
+      }
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `CERTIN_INCIDENT_${Date.now()}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("Incident dossier downloaded");
     });
   }
 

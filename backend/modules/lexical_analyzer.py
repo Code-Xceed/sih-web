@@ -11,6 +11,7 @@ from .reference_database import (
     GENUINE_PORTALS, GOVERNMENT_TLDS, SUSPICIOUS_TLDS, HIGH_RISK_KEYWORDS,
     AUTHENTIC_COMMERCIAL_DOMAINS, GOVERNMENT_BRAND_TOKENS, GOVERNMENT_ACTION_TOKENS
 )
+from .homoglyph_analyzer import HomoglyphAnalyzer
 
 
 def shannon_entropy(data: str) -> float:
@@ -54,6 +55,47 @@ def string_similarity(s1: str, s2: str) -> float:
     return round(1.0 - (dist / max_len), 4)
 
 
+def jaro_winkler(s1: str, s2: str) -> float:
+    """Calculates Jaro-Winkler string similarity (prefix-boosted edit distance)."""
+    s1, s2 = s1.lower(), s2.lower()
+    if s1 == s2:
+        return 1.0
+    len1, len2 = len(s1), len(s2)
+    if not len1 or not len2:
+        return 0.0
+    window = max(max(len1, len2) // 2 - 1, 0)
+    m1 = [False] * len1
+    m2 = [False] * len2
+    matches = 0
+    for i, ch in enumerate(s1):
+        start, end = max(0, i - window), min(i + window + 1, len2)
+        for j in range(start, end):
+            if not m2[j] and s2[j] == ch:
+                m1[i] = m2[j] = True
+                matches += 1
+                break
+    if matches == 0:
+        return 0.0
+    transpositions = 0
+    k = 0
+    for i in range(len1):
+        if m1[i]:
+            while not m2[k]:
+                k += 1
+            if s1[i] != s2[k]:
+                transpositions += 1
+            k += 1
+    t = transpositions / 2
+    j = (matches / len1 + matches / len2 + (matches - t) / matches) / 3
+    prefix = 0
+    for ca, cb in zip(s1, s2):
+        if ca == cb and prefix < 4:
+            prefix += 1
+        else:
+            break
+    return round(j + prefix * 0.1 * (1.0 - j), 4)
+
+
 class LexicalAnalyzer:
     """Analyzes URL strings for typosquatting, deceptive brand injection, and lexical anomalies."""
 
@@ -64,6 +106,7 @@ class LexicalAnalyzer:
         self.commercial_whitelist = AUTHENTIC_COMMERCIAL_DOMAINS
         self.gov_brand_tokens = GOVERNMENT_BRAND_TOKENS
         self.gov_action_tokens = GOVERNMENT_ACTION_TOKENS
+        self.homoglyph_analyzer = HomoglyphAnalyzer()
 
     def parse_url(self, raw_url: str) -> Dict[str, str]:
         """Normalize and parse a given URL."""
@@ -91,6 +134,10 @@ class LexicalAnalyzer:
         path = parsed["path"]
         raw = parsed["normalized_url"].lower()
 
+        # Homoglyph & Confusable Inspection
+        hg_info = self.homoglyph_analyzer.inspect(hostname)
+        skeleton_host = hg_info["skeleton"]
+
         # 0A. Known Authentic Commercial Domains & Search Engines (e.g. bing.com, google.com, chatgpt.com)
         is_known_commercial = any(
             hostname == d or hostname.endswith('.' + d)
@@ -109,6 +156,7 @@ class LexicalAnalyzer:
                 "target_entity_domain": hostname,
                 "target_entity_id": None,
                 "similarity_to_genuine": 0.0,
+                "homoglyph_details": hg_info,
                 "reasons": ["Authentic commercial platform / search engine. No government impersonation."]
             }
 
@@ -126,6 +174,7 @@ class LexicalAnalyzer:
                 "target_entity_id": "pmkisan",
                 "anomalies": [],
                 "similarity_to_genuine": 1.0,
+                "homoglyph_details": hg_info,
                 "reasons": ["Authenticated Government Scheme Demonstration Replica."]
             }
 
@@ -143,6 +192,10 @@ class LexicalAnalyzer:
         host_parts = [p for p in hostname.split('.') if p not in ['www', 'com', 'org', 'net', 'in', 'co', 'io', 'ai']]
         main_host_stem = '-'.join(host_parts) if host_parts else hostname
         normalized_stem = main_host_stem.replace('-', '').lower()
+
+        skel_parts = [p for p in skeleton_host.split('.') if p not in ['www', 'com', 'org', 'net', 'in', 'co', 'io', 'ai']]
+        skel_stem = '-'.join(skel_parts) if skel_parts else skeleton_host
+        normalized_skel_stem = skel_stem.replace('-', '').lower()
 
         # Brand impersonation & similarity check
         best_match_entity: Optional[Dict[str, Any]] = None
@@ -165,12 +218,16 @@ class LexicalAnalyzer:
                     "is_genuine_gov_tld": True,
                     "anomalies": [],
                     "similarity_to_genuine": 1.0,
+                    "homoglyph_details": hg_info,
                     "reasons": [f"Exact match to verified official domain: {hostname}"]
                 }
 
             if not is_genuine_gov_tld:
-                # 2A. Substring & Hyphen-Normalized Combination Check (e.g. gst-refund, income-tax, pm-kisan)
-                stem_in_domain = (primary_stem in main_host_stem) or (primary_stem in normalized_stem) or (portal_id in normalized_stem)
+                # 2A. Substring & Hyphen-Normalized Combination Check
+                stem_in_domain = (
+                    (primary_stem in main_host_stem) or (primary_stem in normalized_stem) or (portal_id in normalized_stem) or
+                    (primary_stem in skel_stem) or (primary_stem in normalized_skel_stem)
+                )
                 
                 # 2B. Portal Keyword Fingerprint Matching
                 kw_match = False
@@ -180,7 +237,7 @@ class LexicalAnalyzer:
                         kw_match = True
                         break
                     kw_clean = kw.replace(' ', '').replace('-', '').lower()
-                    if len(kw_clean) >= 4 and kw_clean in normalized_stem:
+                    if len(kw_clean) >= 4 and (kw_clean in normalized_stem or kw_clean in normalized_skel_stem):
                         kw_match = True
                         break
 
@@ -191,18 +248,20 @@ class LexicalAnalyzer:
                         best_match_entity = portal_data
                         impersonation_type = "brand_injection"
 
-                # 3. String distance check - STRICT THRESHOLD (>= 0.72)
-                sim_score = string_similarity(primary_stem, main_host_stem)
+                # 3. String distance check - Hybrid Levenshtein + Jaro-Winkler
+                lev_score = string_similarity(primary_stem, main_host_stem)
+                jw_score = jaro_winkler(primary_stem, main_host_stem)
+                skel_jw_score = jaro_winkler(primary_stem, skel_stem)
+                sim_score = max(lev_score, jw_score, skel_jw_score)
                 if sim_score >= 0.72 and sim_score > highest_similarity:
                     highest_similarity = sim_score
                     best_match_entity = portal_data
                     impersonation_type = "typosquatting"
 
-        # 4. Generalized Government Token & Scheme Analysis
+        # 4. Generalized Government / BFSI Token & Scheme Analysis
         if not is_genuine_gov_tld and not best_match_entity:
-            domain_tokens = set(main_host_stem.replace('.', '-').split('-'))
+            domain_tokens = set(main_host_stem.replace('.', '-').split('-')) | set(skel_stem.replace('.', '-').split('-'))
             matched_gov_tokens = domain_tokens.intersection(self.gov_brand_tokens)
-            matched_act_tokens = domain_tokens.intersection(self.gov_action_tokens)
             
             if matched_gov_tokens:
                 gov_tok = list(matched_gov_tokens)[0]
@@ -212,7 +271,7 @@ class LexicalAnalyzer:
                 else:
                     best_match_entity = {
                         "id": gov_tok,
-                        "name": f"Official {gov_tok.upper()} Public Service",
+                        "name": f"Official {gov_tok.upper()} Sovereign / Banking Infrastructure",
                         "primary_domain": f"{gov_tok}.gov.in"
                     }
                 highest_similarity = 0.95
@@ -223,6 +282,16 @@ class LexicalAnalyzer:
         anomalies: List[str] = []
         reasons: List[str] = []
 
+        # Homoglyphs / confusable script deception
+        if hg_info.get("has_homoglyphs") or hg_info.get("mixed_script"):
+            risk_score += 45
+            anomalies.append("HOMOGLYPH_CONFUSABLES")
+            reasons.extend(hg_info.get("reasons", []))
+        elif hg_info.get("is_punycode"):
+            risk_score += 20
+            anomalies.append("PUNYCODE_IDN_DOMAIN")
+            reasons.append("Punycode IDN representation detected (xn--).")
+
         if is_ip_address:
             risk_score += 35
             anomalies.append("IP_HOST_ADDRESS")
@@ -231,7 +300,7 @@ class LexicalAnalyzer:
         if has_suspicious_tld:
             risk_score += 25
             anomalies.append("SUSPICIOUS_TLD")
-            reasons.append(f"Domain uses high-abuse top-level domain suffix.")
+            reasons.append("Domain uses high-abuse top-level domain suffix.")
 
         if hyphen_count >= 2:
             risk_score += 15
@@ -257,11 +326,11 @@ class LexicalAnalyzer:
             if impersonation_type == "brand_injection":
                 risk_score += 55
                 anomalies.append("GOV_BRAND_IMPERSONATION")
-                reasons.append(f"Unauthorized non-government domain uses official name / keywords of '{best_match_entity['name']}'.")
+                reasons.append(f"Unauthorized domain uses official name / keywords of '{best_match_entity['name']}'.")
             elif highest_similarity >= 0.75:
                 risk_score += 45
                 anomalies.append("TYPOSQUATTING_CANDIDATE")
-                reasons.append(f"High lexical similarity ({int(highest_similarity*100)}%) to official portal '{best_match_entity['primary_domain']}'.")
+                reasons.append(f"High lexical similarity ({int(highest_similarity*100)}%) to official entity '{best_match_entity['primary_domain']}'.")
 
         if detected_keywords and not is_genuine_gov_tld:
             risk_score += min(len(detected_keywords) * 10, 30)
@@ -282,5 +351,6 @@ class LexicalAnalyzer:
             "target_entity_domain": best_match_entity["primary_domain"] if best_match_entity else "",
             "target_entity_id": best_match_entity["id"] if best_match_entity else None,
             "similarity_to_genuine": highest_similarity,
+            "homoglyph_details": hg_info,
             "reasons": reasons
         }

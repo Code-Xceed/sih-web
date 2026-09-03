@@ -107,14 +107,41 @@
     </div>
 
     <div class="app-container">
+        <!-- National Sovereign Cyber Defense Header & Controls -->
+        <header class="national-defense-header">
+            <div class="sovereign-badge-group">
+                <span class="emblem-symbol">🇮🇳</span>
+                <div>
+                    <span class="sovereign-title" id="lblBrandTitle">GovShield Sentinel Grid</span>
+                    <span class="sovereign-sub" id="lblBrandSub">Sovereign Cyber Defense & Blockchain Threat Ledger</span>
+                </div>
+            </div>
+            <div class="header-controls">
+                <a href="tel:1930" class="btn-helpline-1930" title="National Cyber Financial Fraud Helpline">
+                    <span class="helpline-pulse"></span>
+                    <span id="lblHelpline">1930 Helpline</span>
+                </a>
+                <button id="btnOpenBlockchain" class="btn-blockchain-pill" type="button">
+                    <span>⛓️</span> <span id="lblBlockchain">Blockchain Ledger</span>
+                </button>
+                <button id="btnToggleLiteMode" class="btn-mode-pill" type="button">
+                    <span id="liteModeIcon">⚡</span> <span id="lblLiteMode">Bharat Lite</span>
+                </button>
+                <div class="lang-switcher">
+                    <button id="langEn" class="lang-btn active" type="button">EN</button>
+                    <button id="langHi" class="lang-btn" type="button">हिंदी</button>
+                </div>
+            </div>
+        </header>
+
         <!-- Centered Hero & Input Content -->
         <div class="hero-center-container">
             <!-- Hero Section (Exact Match to Design) -->
             <section class="hero-minimal">
-                <h1 class="hero-title-large">
+                <h1 class="hero-title-large" id="heroTitle">
                     <span class="title-fake">Fake</span> Government<br>Portal Detector.
                 </h1>
-                <p class="hero-tagline">
+                <p class="hero-tagline" id="heroTagline">
                     Algorithmic 6-layer scanner identifying typosquatting, subdomain masquerading, and fraudulent clones targeting Indian citizens.
                 </p>
             </section>
@@ -132,12 +159,12 @@
                         spellcheck="false"
                     >
                     <button id="scanBtn" class="btn-scan-action">
-                        <span>Inspect</span> ↵
+                        <span id="scanBtnText">Inspect</span> ↵
                     </button>
                 </div>
 
                 <!-- Dynamic Result Card -->
-                <div id="resultsWrapper" style="display: none;">
+                <div id="resultsWrapper" style="display: none;" role="region" aria-live="polite" aria-label="Inspection Verdict and Threat Analysis">
                     <div class="verdict-card-minimal">
                         <!-- Verdict Header -->
                         <div class="verdict-header-block">
@@ -149,22 +176,30 @@
                                     <p class="verdict-summary-line" id="verdictSummary">Summary loading...</p>
                                 </div>
                             </div>
-                            <div class="verdict-actions">
-                                <button id="btnQuickDossier" class="btn-dossier-pill">
-                                    <span>📄</span> Copy Incident Report
+                            <div class="verdict-actions" style="display: flex; gap: 8px;">
+                                <button id="btnDownloadDossierQuick" class="btn-dossier-pill" type="button">
+                                    <span>💾</span> <span id="lblSaveDossier">Save Dossier</span>
+                                </button>
+                                <button id="btnQuickDossier" class="btn-dossier-pill" type="button">
+                                    <span>📄</span> <span id="lblViewReport">View Report</span>
                                 </button>
                             </div>
                         </div>
 
-                        <!-- 5 Numbered Inspection Steps (Inspo: Image 2 & 3) -->
+                        <!-- 5 Numbered Inspection Steps -->
                         <div class="inspection-steps-grid" id="inspectionSteps">
                             <!-- Injected dynamically -->
                         </div>
 
                         <!-- Citizen Advisory -->
                         <div class="advisory-footer">
-                            <span style="font-weight: 700; color: var(--text-pure);">ADVISORY:</span>
-                            <span id="remediationText" style="flex: 1;">Citizen advice loading...</span>
+                            <div class="advisory-content">
+                                <span style="font-weight: 700; color: var(--text-pure);" id="lblAdvisory">ADVISORY:</span>
+                                <span id="remediationText" style="flex: 1;">Citizen advice loading...</span>
+                            </div>
+                            <button id="btnVoiceReadout" class="btn-voice-readout" type="button" title="Listen to advisory in your language">
+                                <span id="voiceIcon">🔊</span> <span id="lblVoice">Listen</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -180,9 +215,58 @@
                 <button id="modalCloseBtn" class="modal-close-x">&times;</button>
             </div>
             <pre id="dossierText" class="dossier-code-box"></pre>
-            <div style="display: flex; justify-content: flex-end;">
-                <button id="copyDossierBtn" class="btn-scan-action">
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button id="downloadDossierModalBtn" class="btn-dossier-pill" type="button">
+                    <span>💾</span> Download Report (.txt)
+                </button>
+                <button id="copyDossierBtn" class="btn-scan-action" type="button">
                     Copy Report to Clipboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sovereign Blockchain Threat Ledger Modal -->
+    <div id="blockchainModal" class="modal-overlay">
+        <div class="modal-content-clean modal-blockchain">
+            <div class="modal-top">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.3rem;">⛓️</span>
+                    <div>
+                        <span class="modal-title-clean" id="lblBlockchainModalTitle">Sovereign Blockchain Threat Intelligence Ledger</span>
+                        <div style="font-size: 0.72rem; color: var(--text-secondary);" id="lblBlockchainModalSub">Proof-of-Authority Consensus • Immutable Evidence (Section 65B Indian Evidence Act)</div>
+                    </div>
+                </div>
+                <button id="blockchainCloseBtn" class="modal-close-x">&times;</button>
+            </div>
+            
+            <!-- Live Ledger Metrics -->
+            <div class="ledger-metrics-strip" id="ledgerMetricsStrip">
+                <div class="metric-card">
+                    <span class="metric-val" id="metricBlockHeight">1</span>
+                    <span class="metric-lbl" id="lblMetricHeight">Block Height</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-val" id="metricThreatsLogged">0</span>
+                    <span class="metric-lbl" id="lblMetricThreats">Threats Logged</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-val" id="metricChainStatus" style="color: var(--color-safe);">VALID</span>
+                    <span class="metric-lbl" id="lblMetricIntegrity">Chain Integrity</span>
+                </div>
+            </div>
+
+            <!-- Block Stream Box -->
+            <div class="blocks-stream-box" id="blocksStreamBox">
+                <!-- Dynamically injected blocks -->
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 10px; flex-wrap: wrap;">
+                <button id="btnDownloadSec65B" class="btn-dossier-pill" type="button">
+                    <span>⚖️</span> <span id="lblDownloadSec65B">Download Sec 65B Court Certificate</span>
+                </button>
+                <button id="btnCloseBlockchainModal" class="btn-scan-action" type="button">
+                    Close Explorer
                 </button>
             </div>
         </div>

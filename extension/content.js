@@ -88,6 +88,13 @@
       return;
     }
 
+    let bannerClass = "";
+    let iconSvg = "";
+    let titleText = "";
+    let pillText = "";
+    let descHtml = "";
+    let actionsHtml = "";
+
     if (verdict === "PHISHING_CLONE" || score >= 66) {
       bannerClass = "govshield-banner-risk";
       iconSvg = `
@@ -97,13 +104,21 @@
           <line x1="12" y1="17" x2="12.01" y2="17"></line>
         </svg>
       `;
-      titleText = "GOVSHIELD CYBER DEFENSE ALERT";
+      titleText = "GOVSHIELD CYBER DEFENSE ALERT / चेतावनी";
       pillText = `RISK SCORE: ${score}/100 • CRITICAL`;
-      descHtml = `Deceptive lookalike domain detected! This website imitates <strong>${targetEntity}</strong> to steal citizen credentials. Do NOT enter sensitive information.`;
+      descHtml = `
+        <div style="font-size: 0.88rem; font-weight: 700; color: #FFFFFF; margin-bottom: 3px;">
+          ⚠️ सावधान! यह फर्जी वेबसाइट है। यहाँ आधार नंबर, पैन नंबर या बैंक OTP बिल्कुल न भरें।
+        </div>
+        <div>
+          Deceptive lookalike domain detected! This website imitates <strong>${targetEntity}</strong> to steal citizen credentials.
+        </div>
+      `;
       if (aiInsight) {
         descHtml += ` <span class="govshield-ai-insight">🤖 AI: ${aiInsight}</span>`;
       }
       actionsHtml = `
+        <a href="tel:1930" class="govshield-btn" style="background:#DC2626; color:#FFF; text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-weight:700;">📞 1930 Helpline</a>
         <button id="govshield-leave-btn" class="govshield-btn govshield-btn-primary">Leave Unsafe Site</button>
         <button id="govshield-dismiss-btn" class="govshield-btn govshield-btn-secondary">Dismiss</button>
       `;
@@ -119,8 +134,16 @@
       `;
       titleText = "GOVSHIELD SECURITY NOTICE: POTENTIAL LOOKALIKE";
       pillText = `RISK SCORE: ${score}/100 • SUSPICIOUS`;
-      descHtml = `Caution: This website contains keywords matching <strong>${targetEntity}</strong> but is NOT hosted on an official .gov.in domain. Verify carefully before submitting details.`;
+      descHtml = `
+        <div style="font-weight: 600; color: #FFFFFF; margin-bottom: 2px;">
+          चेतावनी: यह वेबसाइट आधिकारिक सरकारी (.gov.in) पोर्टल नहीं है।
+        </div>
+        <div>
+          Caution: This website contains keywords matching <strong>${targetEntity}</strong> but is NOT hosted on an official .gov.in domain. Verify carefully before submitting details.
+        </div>
+      `;
       actionsHtml = `
+        <a href="tel:1930" class="govshield-btn" style="background:#DC2626; color:#FFF; text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-weight:700;">📞 1930</a>
         <button id="govshield-dismiss-btn" class="govshield-btn govshield-btn-secondary">Acknowledge</button>
       `;
     }

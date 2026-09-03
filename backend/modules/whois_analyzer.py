@@ -65,21 +65,51 @@ class WhoisAnalyzer:
         registrar = "Public / Cloudflare Registrar"
         created_date = (datetime.datetime.now() - datetime.timedelta(days=simulated_age_days)).strftime("%Y-%m-%d")
 
-        # Try live RDAP / WHOIS if available
+        # Try live RDAP (modern JSON WHOIS from rdap.org) or standard WHOIS
         try:
-            import whois
-            w = whois.whois(domain)
-            if w.creation_date:
-                c_date = w.creation_date[0] if isinstance(w.creation_date, list) else w.creation_date
-                if isinstance(c_date, datetime.datetime):
-                    age_delta = (datetime.datetime.now() - c_date).days
-                    simulated_age_days = max(age_delta, 1)
-                    is_nrd = (simulated_age_days < 90)
-                    created_date = c_date.strftime("%Y-%m-%d")
-                    if w.registrar:
-                        registrar = str(w.registrar)
+            import urllib.request
+            import json
+            rdap_url = f"https://rdap.org/domain/{domain}"
+            req = urllib.request.Request(rdap_url, headers={"User-Agent": "GovShield-CyberDefense/2.0"})
+            with urllib.request.urlopen(req, timeout=2.5) as response:
+                if response.status == 200:
+                    rdap_data = json.loads(response.read().decode('utf-8'))
+                    events = rdap_data.get("events", [])
+                    for ev in events:
+                        if ev.get("eventAction") == "registration":
+                            ev_date_str = ev.get("eventDate", "").replace("Z", "+00:00")
+                            reg_dt = datetime.datetime.fromisoformat(ev_date_str)
+                            # Remove tzinfo for local delta
+                            reg_dt = reg_dt.replace(tzinfo=None)
+                            simulated_age_days = max((datetime.datetime.now() - reg_dt).days, 0)
+                            is_nrd = (simulated_age_days < 90)
+                            created_date = reg_dt.strftime("%Y-%m-%d")
+                            break
+                    # Extract registrar if available
+                    for entity in rdap_data.get("entities", []):
+                        if "registrar" in entity.get("roles", []):
+                            vcard = entity.get("vcardArray", [])
+                            if len(vcard) > 1:
+                                for item in vcard[1]:
+                                    if item[0] == "fn":
+                                        registrar = str(item[3])
+                                        break
         except Exception:
-            pass
+            # Fallback to python-whois library if available
+            try:
+                import whois
+                w = whois.whois(domain)
+                if w.creation_date:
+                    c_date = w.creation_date[0] if isinstance(w.creation_date, list) else w.creation_date
+                    if isinstance(c_date, datetime.datetime):
+                        age_delta = (datetime.datetime.now() - c_date).days
+                        simulated_age_days = max(age_delta, 1)
+                        is_nrd = (simulated_age_days < 90)
+                        created_date = c_date.strftime("%Y-%m-%d")
+                        if w.registrar:
+                            registrar = str(w.registrar)
+            except Exception:
+                pass
 
         # Risk scoring based on domain age
         risk_score = 0.0

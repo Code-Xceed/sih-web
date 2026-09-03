@@ -17,9 +17,18 @@
                 <span class="brand-main"><span class="title-fake">Gov</span>Shield</span>
                 <span class="brand-sub">SENTINEL</span>
             </div>
-            <div class="status-pill" id="statusPill">
-                <span class="status-dot"></span>
-                <span id="engineLabel">Online</span>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <a href="tel:1930" class="btn-helpline-pill" title="National Cyber Fraud Helpline 1930">
+                    <span class="pulse-dot"></span> 1930
+                </a>
+                <div class="lang-switcher-mini">
+                    <button id="langEn" class="lang-mini-btn active" type="button">EN</button>
+                    <button id="langHi" class="lang-mini-btn" type="button">हि</button>
+                </div>
+                <div class="status-pill" id="statusPill">
+                    <span class="status-dot"></span>
+                    <span id="engineLabel">Online</span>
+                </div>
             </div>
         </header>
 
@@ -72,15 +81,23 @@
 
                     <!-- Citizen Advisory -->
                     <div class="advisory-footer">
-                        <span style="font-weight: 700; color: var(--text-pure);">ADVISORY:</span>
-                        <span id="remediationText" style="flex: 1;">Citizen advice loading...</span>
+                        <div style="display: flex; align-items: baseline; gap: 6px; flex: 1;">
+                            <span style="font-weight: 700; color: var(--text-pure);" id="lblAdvisory">ADVISORY:</span>
+                            <span id="remediationText" style="flex: 1;">Citizen advice loading...</span>
+                        </div>
+                        <button id="btnVoicePopup" class="btn-voice-mini" type="button" title="Listen in your language">
+                            🔊
+                        </button>
                     </div>
 
                     <!-- Action Bar -->
-                    <div class="verdict-actions-footer">
-                        <button id="btnQuickDossier" class="btn-dossier-pill" type="button">
-                            <span>📄</span> Copy CERT-In Takedown Report
+                    <div class="verdict-actions-footer" style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                        <button id="btnQuickDossier" class="btn-dossier-pill" type="button" style="flex: 1;">
+                            <span>📄</span> <span id="lblDossierBtn">CERT-In Report</span>
                         </button>
+                        <div id="blockchainProofBadge" class="blockchain-proof-badge" style="font-size: 0.65rem; font-family: var(--font-mono); color: var(--color-safe); display: flex; align-items: center; gap: 4px;">
+                            <span>⛓️</span> <span id="lblBlockHeightBadge">PoA Ledger #Block1</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -95,9 +112,12 @@
                 <button id="modalCloseBtn" class="modal-close-x">&times;</button>
             </div>
             <pre id="dossierText" class="dossier-code-box"></pre>
-            <div style="display: flex; justify-content: flex-end;">
-                <button id="copyDossierBtn" class="btn-scan-action">
-                    Copy Report to Clipboard
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                <button id="downloadDossierBtn" class="btn-dossier-pill" type="button">
+                    <span>💾</span> Download Report
+                </button>
+                <button id="copyDossierBtn" class="btn-scan-action" type="button">
+                    Copy to Clipboard
                 </button>
             </div>
         </div>

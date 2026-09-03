@@ -567,3 +567,73 @@ body::before {
     display: none !important;
 }
 
+/* Mini Helpline Pill */
+.btn-helpline-pill {
+    background: #DC2626;
+    color: #FFFFFF;
+    text-decoration: none;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: var(--radius-pill);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.pulse-dot {
+    width: 5px;
+    height: 5px;
+    background: #FFFFFF;
+    border-radius: 50%;
+    animation: toastPop 1s infinite alternate;
+}
+
+/* Mini Lang Switcher */
+.lang-switcher-mini {
+    display: flex;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-hairline);
+    border-radius: var(--radius-pill);
+    padding: 1px;
+}
+
+.lang-mini-btn {
+    background: transparent;
+    border: none;
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: var(--radius-pill);
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.lang-mini-btn.active {
+    background: #000000;
+    color: #FFFFFF;
+}
+
+/* Mini Voice Button */
+.btn-voice-mini {
+    background: transparent;
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-pill);
+    padding: 2px 6px;
+    font-size: 0.72rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.btn-voice-mini:hover {
+    background: var(--bg-hover);
+}
+
+.blockchain-proof-badge {
+    background: var(--color-safe-bg);
+    border: 1px solid var(--color-safe-border);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+}
+

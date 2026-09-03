@@ -318,35 +318,135 @@ GENUINE_PORTALS = {
             "layout_type": "voter_portal",
             "has_tricolor_header": True
         }
+    },
+    "sbi": {
+        "id": "sbi",
+        "name": "State Bank of India (SBI)",
+        "department": "Public Sector Banking & National Financial Infrastructure",
+        "primary_domain": "onlinesbi.sbi",
+        "valid_domains": ["onlinesbi.sbi", "sbi.co.in", "bank.sbi"],
+        "keywords": [
+            "state bank of india", "sbi", "onlinesbi", "internet banking", "yono",
+            "profile password", "cif number", "account number", "netbanking"
+        ],
+        "sensitive_fields": ["username", "password", "profile_password", "otp", "atm_pin"],
+        "official_emblems": ["sbi_keyhole_logo"],
+        "visual_signature": {
+            "primary_color": "#280071",
+            "secondary_color": "#00A3E0",
+            "layout_type": "banking_portal",
+            "has_tricolor_header": False
+        }
+    },
+    "npci_upi": {
+        "id": "npci_upi",
+        "name": "Unified Payments Interface (UPI / NPCI)",
+        "department": "National Payments Corporation of India (Reserve Bank of India)",
+        "primary_domain": "npci.org.in",
+        "valid_domains": ["npci.org.in", "upi.org.in", "bhimupi.org.in"],
+        "keywords": [
+            "upi", "npci", "bhim", "unified payments interface", "collect request",
+            "upi pin", "qr code", "virtual payment address", "vpa"
+        ],
+        "sensitive_fields": ["upi_pin", "mpin", "otp", "mobile_number", "bank_account"],
+        "official_emblems": ["npci_logo", "upi_logo"],
+        "visual_signature": {
+            "primary_color": "#F37021",
+            "secondary_color": "#007A3D",
+            "layout_type": "payment_portal",
+            "has_tricolor_header": False
+        }
+    },
+    "paytm": {
+        "id": "paytm",
+        "name": "Paytm Payments Bank & Wallet",
+        "department": "Consumer Digital Banking & Payments Infrastructure",
+        "primary_domain": "paytm.com",
+        "valid_domains": ["paytm.com", "paytmbank.com"],
+        "keywords": [
+            "paytm", "paytm kyc", "paytm wallet", "passcode", "paytm fastag", "paytm payment"
+        ],
+        "sensitive_fields": ["mobile_number", "passcode", "password", "otp", "cvv"],
+        "official_emblems": ["paytm_logo"],
+        "visual_signature": {
+            "primary_color": "#002E6E",
+            "secondary_color": "#00BAF2",
+            "layout_type": "fintech_portal",
+            "has_tricolor_header": False
+        }
+    },
+    "hdfc": {
+        "id": "hdfc",
+        "name": "HDFC Bank NetBanking",
+        "department": "Scheduled Commercial Banking Infrastructure",
+        "primary_domain": "hdfcbank.com",
+        "valid_domains": ["hdfcbank.com", "netbanking.hdfcbank.com"],
+        "keywords": [
+            "hdfc", "hdfc bank", "netbanking", "customer id", "ipin", "credit card kyc"
+        ],
+        "sensitive_fields": ["customer_id", "password", "ipin", "otp", "card_number"],
+        "official_emblems": ["hdfc_logo"],
+        "visual_signature": {
+            "primary_color": "#004C8F",
+            "secondary_color": "#ED1C24",
+            "layout_type": "banking_portal",
+            "has_tricolor_header": False
+        }
+    },
+    "icici": {
+        "id": "icici",
+        "name": "ICICI Bank Internet Banking",
+        "department": "Scheduled Commercial Banking Infrastructure",
+        "primary_domain": "icicibank.com",
+        "valid_domains": ["icicibank.com", "infinity.icicibank.com"],
+        "keywords": [
+            "icici", "icici bank", "internet banking", "user id", "grid card", "imobile"
+        ],
+        "sensitive_fields": ["user_id", "password", "grid_values", "otp", "pin"],
+        "official_emblems": ["icici_logo"],
+        "visual_signature": {
+            "primary_color": "#F58220",
+            "secondary_color": "#9E1F24",
+            "layout_type": "banking_portal",
+            "has_tricolor_header": False
+        }
     }
 }
 
-# Core Government Semantic Brand Tokens
+# Core Sovereign & Public Infrastructure Brand Tokens
 GOVERNMENT_BRAND_TOKENS = {
     "gst", "incometax", "income-tax", "pmkisan", "pm-kisan", "aadhaar", "aadhar",
     "uidai", "parivahan", "epfindia", "epfo", "passport", "digilocker", "cybercrime",
     "scholarship", "scholarships", "cbse", "irctc", "challan", "eshram", "e-shram",
     "ayushman", "pmjay", "pmay", "rationcard", "ration-card", "voterid", "voter-id",
-    "voter", "nvsp", "fastag", "jeevanpramaan", "swachhbharat", "digitalindia"
+    "voter", "nvsp", "fastag", "jeevanpramaan", "swachhbharat", "digitalindia",
+    # BFSI & Critical National Payment Systems
+    "sbi", "statebank", "onlinesbi", "npci", "upi", "bhim", "paytm", "phonepe",
+    "hdfc", "icici", "pnb", "baroda", "canara"
 }
 
 GOVERNMENT_ACTION_TOKENS = {
     "refund", "kyc", "update", "verify", "claim", "status", "download", "link",
     "apply", "login", "portal", "subsidy", "yojana", "dbt", "bonus", "instant",
-    "form", "check", "registration", "pay", "services"
+    "form", "check", "registration", "pay", "services",
+    # Specific Indian fraud vectors
+    "digital-arrest", "arrest", "electricity", "bijli", "customs", "parcel",
+    "courier", "lottery", "disconnection", "sanction", "disburse", "billpay"
 }
 
 SUSPICIOUS_TLDS = {
     ".xyz", ".top", ".tk", ".ml", ".ga", ".cf", ".gq", ".live", ".online",
     ".site", ".vip", ".cc", ".icu", ".click", ".link", ".buzz", ".work",
     ".app", ".support", ".fit", ".rest", ".monster", ".fun", ".country", ".pw",
+    ".loan", ".cam", ".surf", ".bar", ".kim", ".cyou", ".zip", ".mov",
     ".example", ".test", ".invalid", ".localhost"
 }
 
 HIGH_RISK_KEYWORDS = [
     "kyc", "update", "refund", "subsidy", "bonus", "claim", "instant", "login",
     "verify", "portal", "secure", "free-money", "yojana", "account-blocked",
-    "urgent", "action-required", "otp", "aadhaar-link", "pan-update"
+    "urgent", "action-required", "otp", "aadhaar-link", "pan-update",
+    "digital-arrest", "bijli", "electricity-disconnection", "instant-loan"
 ]
 
 AUTHENTIC_COMMERCIAL_DOMAINS = {

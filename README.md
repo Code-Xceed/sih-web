@@ -48,10 +48,23 @@ Phishing kits actively clone Indian Government web portals (PM-Kisan, Income Tax
 │     - Calibrated 0–100 risk score + explainable reasons     │
 └───────────────────────────┬─────────────────────────────────┘
                             │
+                            │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  Forensic Evidence & CERT-In Takedown Dossier Generator     │
-│  • Incident Dossier formatted for CERT-In / NCRP ingestion  │
+│  Sovereign Blockchain Threat Intelligence Ledger (PoA)     │
+│  • Tamper-evident SHA-256 block chaining & Merkle trees     │
+│  • Proof-of-Authority nodes (NIC, CERT-In, NIXI, MeitY)     │
+│  • Section 65B Indian Evidence Act court certificates       │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Bharat-First Rural Citizen Defense & Accessibility Hub     │
+│  • Bilingual UI: Instant English & हिंदी vernacular toggle  │
+│  • Ultra-Lite Bharat Mode: Optimized for budget 2G/3G phones│
+│  • 🔊 Web Speech Voice Advisory for semi-literate citizens  │
+│  • 📞 1-Tap 1930 National Cyber Financial Fraud Helpline    │
+│  • Section 69A IT Act emergency takedown dossiers           │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -65,6 +78,7 @@ SIH/
 │   ├── requirements.txt            # Python dependencies
 │   ├── main.py                     # FastAPI REST API endpoints
 │   └── modules/
+│       ├── blockchain_ledger.py    # Sovereign Blockchain Ledger (PoA + Sec 65B)
 │       ├── reference_database.py   # Ground-truth Gov portals database
 │       ├── lexical_analyzer.py     # URL string & typosquatting analysis
 │       ├── dom_analyzer.py         # DOM forms & sensitive inputs inspection
@@ -73,17 +87,20 @@ SIH/
 │       ├── fusion_engine.py        # Multi-signal AI/ML risk fusion
 │       └── certin_reporter.py      # CERT-In takedown incident exporter
 │
+├── website/
+│   ├── index.html                  # Sovereign Sentinel Grid Web Portal
+│   ├── style.css                   # Responsive CSS + Ultra-Lite Bharat Mode
+│   └── app.js                      # Bilingual, Voice Advisory & Blockchain Explorer
+│
 ├── extension/
 │   ├── manifest.json               # Manifest V3 configuration
 │   ├── background.js               # Service worker with tab listeners & edge fallback
-│   ├── content.js                  # In-page DOM inspector & alert banner
+│   ├── content.js                  # In-page DOM inspector & Hindi/English alert banner
 │   ├── content.css                 # Banner styling
-│   ├── generate_icons.py           # Extension icon generator
-│   ├── icons/                      # 16, 32, 48, 128px shield icons
 │   └── popup/
-│       ├── popup.html              # Government cyber defense UI
+│       ├── popup.html              # Government cyber defense UI (1930 & Voice)
 │       ├── popup.css               # Minimal dark theme & animated risk gauge
-│       └── popup.js                # Live metric binder & CERT-In dispatcher
+│       └── popup.js                # Bilingual controller & PoA ledger badge
 │
 ├── demo/
 │   ├── mock_phishing_server.py     # Local test harness on port 8080

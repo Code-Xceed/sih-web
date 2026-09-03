@@ -23,7 +23,8 @@ class FusionEngine:
         lexical_result: Dict[str, Any],
         dom_result: Dict[str, Any],
         visual_result: Dict[str, Any],
-        whois_result: Dict[str, Any]
+        whois_result: Dict[str, Any],
+        content_sim_result: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Perform multi-signal weighted fusion and generate explainable reasons."""
 
@@ -91,6 +92,14 @@ class FusionEngine:
             fused_score = max(fused_score, 78.0)
             is_cloned_impersonation = True
 
+        # MinHash Content & Structural DOM Similarity Confirmation
+        cnt_sim = 0.0
+        if content_sim_result:
+            cnt_sim = float(content_sim_result.get("similarity", 0.0))
+            if cnt_sim >= 0.70 and not lexical_result.get("is_genuine_gov_tld"):
+                fused_score = max(fused_score, 88.0)
+                is_cloned_impersonation = True
+
         # Clean baseline for standard web platforms without government spoofing
         if lex_score == 0 and not is_lookalike and not gov_inputs and len(dom_result.get("hotlinked_gov_assets", [])) == 0 and not lexical_result.get("target_entity_id"):
             fused_score = 0.0
@@ -111,6 +120,8 @@ class FusionEngine:
         # Synthesize plain-English explainability reasons
         all_reasons: List[str] = []
         all_reasons.extend(lexical_result.get("reasons", []))
+        if content_sim_result and content_sim_result.get("reasons"):
+            all_reasons.extend(content_sim_result.get("reasons"))
         all_reasons.extend(dom_result.get("reasons", []))
         all_reasons.extend(visual_result.get("reasons", []))
         all_reasons.extend(whois_result.get("reasons", []))
@@ -145,6 +156,7 @@ class FusionEngine:
                 "lexical_score": round(lex_score, 1),
                 "dom_score": round(dom_score, 1),
                 "visual_similarity": round(vis_sim, 1),
+                "content_similarity": round(cnt_sim * 100, 1) if cnt_sim else 0.0,
                 "domain_age_days": whois_result.get("domain_age_days", 0),
                 "sensitive_fields_found": [s["field"] for s in dom_result.get("sensitive_inputs", [])],
                 "registrar": whois_result.get("registrar", "Unknown")
