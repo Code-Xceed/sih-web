@@ -255,33 +255,6 @@ ${(result.reasons || []).map((r, i) => `[${i + 1}] ${r}`).join('\n') || 'None de
               {loading ? `⏳ ${t.verifying}` : `🛡️ ${t.verifyBtn}`}
             </button>
           </div>
-
-          {/* Quick Demo Chips */}
-          <div className="ux4g-chips-row ux4g-lang-morph" key={`chips-${lang}`}>
-            <span className="chips-tag-label">{t.quickTry}</span>
-            <button 
-              type="button" 
-              className="ux4g-sample-chip"
-              onClick={() => { setUrl('https://pmkisan.gov.in'); handleScan('https://pmkisan.gov.in'); }}
-            >
-              ✅ {t.safeSite}
-            </button>
-            <button 
-              type="button" 
-              className="ux4g-sample-chip danger-chip"
-              onClick={() => { setUrl('https://g0v.in'); handleScan('https://g0v.in'); }}
-            >
-              🚨 {t.fakeSite}
-            </button>
-            <button 
-              type="button" 
-              className="ux4g-sample-chip"
-              onClick={() => { setUrl('https://incometax.gov.in'); handleScan('https://incometax.gov.in'); }}
-            >
-              🏛️ {t.incomeTax}
-            </button>
-          </div>
-
         </div>
       </section>
 

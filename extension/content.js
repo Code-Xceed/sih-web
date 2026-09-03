@@ -288,20 +288,23 @@ function renderSecurityAlert(data, currentHostname, scoreParam) {
     <div id="gs-top-banner" class="gs-banner ${isCritical ? 'gs-critical' : 'gs-caution'}">
       <div class="gs-tricolor-line"></div>
       <div class="gs-banner-content">
+        <!-- Left: Urgent Siren Icon & Threat Badges -->
         <div class="gs-left-cluster">
           <div class="gs-siren-wrap">
             <span class="gs-siren-icon">${isCritical ? '🚨' : '⚠️'}</span>
           </div>
-          <div class="gs-message-cluster">
-            <div class="gs-alert-badge-row">
-              <span class="gs-alert-tag">${isCritical ? t.criticalTag : t.suspiciousTag}</span>
-              <span class="gs-target-tag">${t.mimicking} ${escapeHtml(targetEntity)}</span>
-            </div>
-            <span class="gs-main-warning">
-              ${t.mainWarning(currentHostname)}
-            </span>
-            <span class="gs-sub-advice">${t.subAdvice}</span>
+          <div class="gs-alert-badge-col">
+            <span class="gs-alert-tag">${isCritical ? t.criticalTag : t.suspiciousTag}</span>
+            <span class="gs-target-tag">${t.mimicking} ${escapeHtml(targetEntity)}</span>
           </div>
+        </div>
+
+        <!-- Center: Big, Bold, Catchy Warning Message -->
+        <div class="gs-center-cluster">
+          <div class="gs-main-warning">
+            ${t.mainWarning(currentHostname)}
+          </div>
+          <div class="gs-sub-advice">${t.subAdvice}</div>
         </div>
 
         <div class="gs-banner-actions-col">

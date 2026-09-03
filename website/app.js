@@ -155,18 +155,6 @@ function renderLocalizedUI() {
   if (urlInput) urlInput.placeholder = t.placeholder;
   if (verifyBtnText) verifyBtnText.textContent = t.verifyBtn;
 
-  const quickTryLabel = document.getElementById('quickTryLabel');
-  if (quickTryLabel) quickTryLabel.textContent = t.quickTry;
-
-  const chipSafe = document.getElementById('chipSafe');
-  if (chipSafe) chipSafe.innerHTML = `✅ ${t.safeSite}`;
-
-  const chipFake = document.getElementById('chipFake');
-  if (chipFake) chipFake.innerHTML = `🚨 ${t.fakeSite}`;
-
-  const chipIncomeTax = document.getElementById('chipIncomeTax');
-  if (chipIncomeTax) chipIncomeTax.innerHTML = `🏛️ ${t.incomeTax}`;
-
   // Citizen Cards
   const sectionTitleEl = document.getElementById('sectionTitleEl');
   if (sectionTitleEl) sectionTitleEl.textContent = t.sectionTitle;
@@ -708,15 +696,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Verify Button
   btnVerify.addEventListener('click', () => handleScan());
-
-  // Quick Demo Chips
-  document.querySelectorAll('.ux4g-sample-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      const targetUrl = chip.dataset.url;
-      urlInput.value = targetUrl;
-      handleScan(targetUrl);
-    });
-  });
 
   // Audio Button
   btnSpeechTrigger.addEventListener('click', handleSpeakVerdict);
