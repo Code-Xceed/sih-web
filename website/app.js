@@ -10,7 +10,9 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    const API_BASE = window.location.origin.startsWith('http') ? window.location.origin : '';
+    const API_BASE = (window.location.origin && window.location.origin.startsWith('http')) 
+        ? window.location.origin 
+        : 'http://localhost:8000';
     let currentAnalysisResult = null;
     let currentLang = 'en';
     let isLiteMode = false;
@@ -566,6 +568,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 stepsEl.appendChild(step);
             });
+        }
+
         const compBtn = document.getElementById('btnComparePhishGuard');
         if (compBtn && originalUrl) {
             compBtn.href = `http://localhost:8001?url=${encodeURIComponent(originalUrl)}`;
@@ -825,7 +829,7 @@ ${(report.mitigation_recommendations || [
             const url = e.currentTarget.getAttribute('data-url');
             if (url && urlInput) {
                 urlInput.value = url;
-                triggerScan();
+                executeScan(url);
             }
         });
     });
