@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "GovShield Sentinel Grid 3.0 — Sovereign Cyber Defense",
-  "version": "3.1.3",
+  "version": "3.1.4",
   "description": "Real-time AI detection of fake government portals, typosquats, and citizen credential phishing. UX4G 3.0 Government Standard (SIH1454).",
   "icons": {
     "16": "icons/icon-16.png",
