@@ -87,36 +87,23 @@ const a11yState = {
 // Language & Localization Engine (12 Indic Languages)
 // -------------------------------------------------------------
 function initLanguages() {
+  if (!langOptionsList) return;
   langOptionsList.innerHTML = '';
   INDIC_LANGUAGES.forEach(item => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = `lang-option-item ${currentLang === item.code ? 'selected' : ''}`;
+    btn.setAttribute('data-lang-code', item.code);
     btn.innerHTML = `
       <span class="lang-native-script">${item.name}</span>
       <span class="lang-english-label">${item.englishName}</span>
     `;
-    btn.addEventListener('click', () => {
-      setLanguage(item.code);
-      langMenuEl.style.display = 'none';
-      langTriggerBtn.setAttribute('aria-expanded', 'false');
-    });
     langOptionsList.appendChild(btn);
   });
 
-  langTriggerBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isExpanded = langMenuEl.style.display === 'block';
-    langMenuEl.style.display = isExpanded ? 'none' : 'block';
-    langTriggerBtn.setAttribute('aria-expanded', String(!isExpanded));
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('#langDropdownWrapper')) {
-      langMenuEl.style.display = 'none';
-      langTriggerBtn.setAttribute('aria-expanded', 'false');
-    }
-  });
+  const langObj = INDIC_LANGUAGES.find(l => l.code === currentLang) || INDIC_LANGUAGES[0];
+  const labelEl = document.getElementById('currentLangLabel');
+  if (labelEl) labelEl.textContent = langObj.name;
 }
 
 function setLanguage(langCode) {
@@ -124,26 +111,37 @@ function setLanguage(langCode) {
   currentLang = langCode;
   try { localStorage.setItem('gs_user_lang', langCode); } catch (_) {}
   const langObj = INDIC_LANGUAGES.find(l => l.code === langCode) || INDIC_LANGUAGES[0];
-  if (currentLangLabel) currentLangLabel.textContent = langObj.name;
+  
+  const labelEl = document.getElementById('currentLangLabel');
+  if (labelEl) labelEl.textContent = langObj.name;
   if (document.documentElement) document.documentElement.lang = langCode;
 
   // Update selected class in dropdown
-  if (langOptionsList) {
-    const options = langOptionsList.querySelectorAll('.lang-option-item');
-    options.forEach(btn => {
-      btn.classList.toggle('selected', btn.dataset.langCode === langCode);
-    });
-  }
+  const options = document.querySelectorAll('.lang-option-item');
+  options.forEach(btn => {
+    btn.classList.toggle('selected', btn.getAttribute('data-lang-code') === langCode);
+  });
 
   // Cancel any running audio speech
   if (window.speechSynthesis) window.speechSynthesis.cancel();
   isSpeaking = false;
 
   renderLocalizedUI();
+
+  // Re-render complete scan results in new language if a scan is active
+  if (activeResult) {
+    renderScanResult(activeResult);
+  }
 }
 
 function renderLocalizedUI() {
   const t = UX4G_STRINGS[currentLang] || UX4G_STRINGS['hi'];
+
+  // Keep top-bar language label 100% in sync with currentLang
+  const langObj = INDIC_LANGUAGES.find(l => l.code === currentLang) || INDIC_LANGUAGES[0];
+  const currentLangLabelEl = document.getElementById('currentLangLabel');
+  if (currentLangLabelEl) currentLangLabelEl.textContent = langObj.name;
+  if (document.documentElement) document.documentElement.lang = currentLang;
 
   // Top bar & header
   const govIndiaEl = document.getElementById('govIndiaEl');
@@ -588,7 +586,7 @@ function renderVerdict(res) {
 // -------------------------------------------------------------
 // Natural Speech Narration Engine
 // -------------------------------------------------------------
-function handleSpeakVerdict() {
+async function handleSpeakVerdict() {
   if (!('speechSynthesis' in window)) {
     alert("Text-to-speech is not supported on this browser.");
     return;
@@ -606,7 +604,7 @@ function handleSpeakVerdict() {
   let soundType = 'safe';
 
   if (activeResult) {
-    const score = activeResult.risk_score || 0;
+    const score = Math.round(activeResult.risk_score || 0);
     if (score >= 66 || activeResult.verdict === 'PHISHING_CLONE') {
       soundType = 'threat';
       textToSpeak = t.speechThreat || t.advisoryThreat;
@@ -623,29 +621,59 @@ function handleSpeakVerdict() {
     textToSpeak = t.heroSub || "आधार, पैन या बैंक विवरण दर्ज करने से पहले जांचें कि वेबसाइट असली है या फर्जी।";
   }
 
-  // 1. Play audio acoustic chime
-  playAcousticAlert(soundType);
+  // 1. Play crystal clear acoustic chime and wait until it completes smoothly
+  await playAcousticAlert(soundType);
 
-  // 2. Build speech synthesis utterance
-  const currentLangObj = INDIC_LANGUAGES.find(l => l.code === currentLang) || INDIC_LANGUAGES[0];
-  const utterance = new SpeechSynthesisUtterance(textToSpeak);
-  utterance.lang = currentLangObj.bcp47 || 'hi-IN';
-  utterance.rate = 0.88;
-  utterance.pitch = 1.04;
+  // 2. Select optimal voice
+  const voiceInfo = selectBestVoice(currentLang);
 
-  const bestVoice = selectBestVoice(currentLang);
-  if (bestVoice) utterance.voice = bestVoice;
+  // If the browser lacks an exact native voice for this language (e.g. Odia/Assamese on bare Windows):
+  // Gracefully speak the English or Hindi translated advisory with Indian phonetics rather than failing
+  if (!voiceInfo.isNative && currentLang !== 'en' && currentLang !== 'hi') {
+    const fallbackT = UX4G_STRINGS['en'] || UX4G_STRINGS['hi'];
+    if (soundType === 'threat') {
+      textToSpeak = fallbackT.speechThreat || fallbackT.advisoryThreat;
+    } else if (soundType === 'safe') {
+      textToSpeak = fallbackT.speechSafe || fallbackT.advisorySafe;
+    } else {
+      textToSpeak = fallbackT.speechCaution || fallbackT.advisoryCaution;
+    }
+  }
 
-  utterance.onend = () => { isSpeaking = false; updateSpeechButton(); };
-  utterance.onerror = () => { isSpeaking = false; updateSpeechButton(); };
+  // 3. Clean text: replace triple dots with natural pauses and normalize whitespace
+  const cleanText = textToSpeak.replace(/\.{2,}/g, ', ').replace(/\s+/g, ' ').trim();
+
+  // 4. Build utterance with natural conversational rate & pitch
+  const utterance = new SpeechSynthesisUtterance(cleanText);
+  utterance.lang = voiceInfo.langTag || 'en-IN';
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+  utterance.volume = 1.0;
+
+  if (voiceInfo.voice) {
+    utterance.voice = voiceInfo.voice;
+  }
+
+  utterance.onstart = () => {
+    isSpeaking = true;
+    updateSpeechButton();
+  };
+
+  utterance.onend = () => {
+    isSpeaking = false;
+    updateSpeechButton();
+  };
+
+  utterance.onerror = () => {
+    isSpeaking = false;
+    updateSpeechButton();
+  };
 
   isSpeaking = true;
   updateSpeechButton();
 
   window.speechSynthesis.cancel();
-  setTimeout(() => {
-    window.speechSynthesis.speak(utterance);
-  }, 150);
+  window.speechSynthesis.speak(utterance);
 }
 
 function updateSpeechButton() {
@@ -976,6 +1004,46 @@ function initApp() {
     if (e.target === aBackdrop) {
       if (aBackdrop) aBackdrop.style.display = 'none';
       return;
+    }
+
+    // 8. Language Dropdown Trigger Toggle
+    const langTrigger = e.target.closest('#langTriggerBtn');
+    if (langTrigger) {
+      e.preventDefault();
+      e.stopPropagation();
+      const menu = document.getElementById('langMenuEl');
+      if (menu) {
+        const isExp = menu.style.display === 'block';
+        menu.style.display = isExp ? 'none' : 'block';
+        langTrigger.setAttribute('aria-expanded', String(!isExp));
+      }
+      return;
+    }
+
+    // 9. Language Option Item Selection
+    const langOption = e.target.closest('.lang-option-item');
+    if (langOption) {
+      e.preventDefault();
+      e.stopPropagation();
+      const langCode = langOption.getAttribute('data-lang-code');
+      if (langCode) {
+        setLanguage(langCode);
+      }
+      const menu = document.getElementById('langMenuEl');
+      const trigger = document.getElementById('langTriggerBtn');
+      if (menu) menu.style.display = 'none';
+      if (trigger) trigger.setAttribute('aria-expanded', 'false');
+      return;
+    }
+
+    // 10. Close Language Menu if clicked anywhere outside
+    if (!e.target.closest('#langDropdownWrapper')) {
+      const menu = document.getElementById('langMenuEl');
+      const trigger = document.getElementById('langTriggerBtn');
+      if (menu && menu.style.display === 'block') {
+        menu.style.display = 'none';
+        if (trigger) trigger.setAttribute('aria-expanded', 'false');
+      }
     }
   });
 
