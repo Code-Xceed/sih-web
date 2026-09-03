@@ -100,11 +100,20 @@ class DNSSecurityAnalyzer:
             dns_risk += 45.0
             findings.append("Hosted on dynamic / disposable free DNS provider.")
 
-        if not has_mx and not is_gov:
+        # C4 Fix: Only penalize missing MX for domains that claim to be government entities.
+        # Legitimate commercial sites (google.com, amazon.com) often lack bare-domain MX records.
+        has_sovereign_tokens = any(
+            token in domain for token in [
+                "gov", "nic", "pmkisan", "aadhaar", "uidai", "incometax", "epf",
+                "parivahan", "passport", "digilocker", "sbi", "irctc", "scholarship",
+                "yojana", "subsidy", "kyc", "eshram", "samagra"
+            ]
+        )
+        if not has_mx and not is_gov and has_sovereign_tokens:
             dns_risk += 20.0
             findings.append("No active Mail Exchange (MX) records found (typical of throwaway phishing clones).")
 
-        if not has_dmarc and not has_spf and not is_gov:
+        if not has_dmarc and not has_spf and not is_gov and has_sovereign_tokens:
             dns_risk += 15.0
             findings.append("Missing SPF/DMARC records (vulnerable to email impersonation).")
 

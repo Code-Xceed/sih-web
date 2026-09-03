@@ -55,7 +55,7 @@ RISKY_TLDS = {
 
 ABUSED_FREE_HOSTS = [
     r"\.firebaseapp\.com$", r"\.web\.app$", r"\.vercel\.app$",
-    r"\.netlify\.app$", r"\.pages\.dev$", r"\.onrender\.com$",
+    r"\.netlify\.app$", r"\.pages\.dev$",
     r"\.github\.io$", r"sites\.google\.com", r"\.glitch\.me$",
     r"\.weebly\.com$", r"\.wixsite\.com$", r"\.000webhostapp\.com$"
 ]

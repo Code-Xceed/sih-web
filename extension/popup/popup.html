@@ -1,131 +1,129 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GovShield | AI Phishing Sentinel</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="popup.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GovShield Sentinel 3.0</title>
+  <link rel="stylesheet" href="popup.css">
 </head>
-<body>
-    <div class="app-container">
-        <!-- Compact Brand Bar -->
-        <header class="top-bar">
-            <div class="brand-row">
-                <span class="brand-main"><span class="title-fake">Gov</span>Shield</span>
-                <span class="brand-sub">SENTINEL</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-                <a href="tel:1930" class="btn-helpline-pill" title="National Cyber Fraud Helpline 1930">
-                    <span class="pulse-dot"></span> 1930
-                </a>
-                <div class="lang-switcher-mini">
-                    <button id="langEn" class="lang-mini-btn active" type="button">EN</button>
-                    <button id="langHi" class="lang-mini-btn" type="button">हि</button>
-                </div>
-                <div class="status-pill" id="statusPill">
-                    <span class="status-dot"></span>
-                    <span id="engineLabel">Online</span>
-                </div>
-            </div>
-        </header>
+<body class="ux4g-popup-body">
+  <!-- Tricolor Accent Top Bar -->
+  <div class="popup-tricolor-bar"></div>
 
-        <!-- URL Scanner Core -->
-        <main class="scanner-section">
-            <!-- Search Box -->
-            <div class="search-box-minimal">
-                <input 
-                    type="url" 
-                    id="urlInput" 
-                    class="url-input-clean" 
-                    placeholder="Enter website URL..." 
-                    autocomplete="off"
-                    spellcheck="false"
-                >
-                <button id="scanBtn" class="btn-scan-action">
-                    <span>Inspect</span> ↵
-                </button>
-            </div>
+  <!-- Header -->
+  <header class="popup-header">
+    <div class="popup-brand">
+      <img src="logo.png" alt="GovShield Emblem" class="popup-logo">
+      <div>
+        <div class="popup-brand-title">GovShield <span class="popup-pill">Grid 3.0</span></div>
+        <div class="popup-brand-sub" id="popupBrandSub">राष्ट्रीय AI साइबर सुरक्षा प्रणाली</div>
+      </div>
+    </div>
+    <div class="popup-header-actions">
+      <select id="popupLangSelect" class="popup-lang-select" aria-label="Language">
+        <option value="hi" selected>हिन्दी</option>
+        <option value="en">English</option>
+        <option value="bn">বাংলা</option>
+        <option value="ta">தமிழ்</option>
+        <option value="te">తెలుగు</option>
+        <option value="mr">मराठी</option>
+        <option value="gu">ગુજરાતી</option>
+        <option value="kn">ಕನ್ನಡ</option>
+        <option value="ml">മലയാളം</option>
+        <option value="pa">ਪੰਜਾਬੀ</option>
+        <option value="or">ଓଡ଼ିଆ</option>
+        <option value="as">অসমীয়া</option>
+      </select>
+    </div>
+  </header>
 
-            <!-- Dynamic Result Card -->
-            <div id="resultsWrapper">
-                <div class="verdict-card-minimal">
-                    <!-- Verdict Header -->
-                    <div class="verdict-header-block">
-                        <div class="verdict-number-row">
-                            <div class="giant-score" id="scoreNumber">00</div>
-                            <div class="verdict-text-group">
-                                <span id="verdictBadge" class="verdict-badge-clean badge-safe">VERIFIED OFFICIAL</span>
-                                <div class="target-url-line" id="urlHeadline">Inspecting active tab...</div>
-                                <p class="verdict-summary-line" id="verdictSummary">Evaluating domain against national cyber defense baseline...</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Expandable Forensic Inspection Steps -->
-                    <div class="forensic-section-header">
-                        <span class="forensic-title">FORENSIC INSPECTION</span>
-                        <button id="toggleDetailsBtn" class="btn-toggle-details" type="button">
-                            <span id="toggleDetailsText">Show Details</span>
-                            <span id="toggleDetailsIcon" class="toggle-icon">▾</span>
-                        </button>
-                    </div>
-
-                    <div class="inspection-steps-container collapsed" id="inspectionStepsContainer">
-                        <div class="inspection-steps-grid" id="inspectionSteps">
-                            <!-- Injected dynamically -->
-                        </div>
-                    </div>
-
-                    <!-- Citizen Advisory -->
-                    <div class="advisory-footer">
-                        <div style="display: flex; align-items: baseline; gap: 6px; flex: 1;">
-                            <span style="font-weight: 700; color: var(--text-pure);" id="lblAdvisory">ADVISORY:</span>
-                            <span id="remediationText" style="flex: 1;">Citizen advice loading...</span>
-                        </div>
-                        <button id="btnVoicePopup" class="btn-voice-mini" type="button" title="Listen in your language">
-                            🔊
-                        </button>
-                    </div>
-
-                    <!-- Action Bar -->
-                    <div class="verdict-actions-footer" style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
-                        <button id="btnQuickDossier" class="btn-dossier-pill" type="button" style="flex: 1;">
-                            <span>📄</span> <span id="lblDossierBtn">CERT-In Report</span>
-                        </button>
-                        <div id="blockchainProofBadge" class="blockchain-proof-badge" style="font-size: 0.65rem; font-family: var(--font-mono); color: var(--color-safe); display: flex; align-items: center; gap: 4px;">
-                            <span>⛓️</span> <span id="lblBlockHeightBadge">PoA Ledger #Block1</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
+  <!-- Main Active Tab Scanner Card -->
+  <main class="popup-main">
+    <div class="popup-tab-banner">
+      <span class="pulse-dot"></span>
+      <span id="activeTabDomain">Scanning current tab...</span>
     </div>
 
-    <!-- CERT-In Dossier Modal -->
-    <div id="dossierModal" class="modal-overlay">
-        <div class="modal-content-clean">
-            <div class="modal-top">
-                <span class="modal-title-clean">CERT-In Incident Takedown Report</span>
-                <button id="modalCloseBtn" class="modal-close-x">&times;</button>
-            </div>
-            <pre id="dossierText" class="dossier-code-box"></pre>
-            <div style="display: flex; justify-content: flex-end; gap: 8px;">
-                <button id="downloadDossierBtn" class="btn-dossier-pill" type="button">
-                    <span>💾</span> Download Report
-                </button>
-                <button id="copyDossierBtn" class="btn-scan-action" type="button">
-                    Copy to Clipboard
-                </button>
-            </div>
+    <!-- Quick Search Input -->
+    <div class="popup-search-box">
+      <input type="text" id="popupUrlInput" class="popup-input" placeholder="Enter URL or verify tab..." spellcheck="false">
+      <button type="button" id="btnPopupScan" class="popup-verify-btn">🛡️ Scan</button>
+    </div>
+
+    <!-- Verdict Card -->
+    <div class="popup-verdict-card" id="popupVerdictCard" style="display: none;">
+      <div class="popup-verdict-header safe" id="popupVerdictHeader">
+        <div class="popup-verdict-title-row">
+          <span class="popup-verdict-icon" id="popupVerdictIcon">✅</span>
+          <div>
+            <h4 class="popup-verdict-title" id="popupVerdictTitle">VERIFIED AUTHENTIC</h4>
+            <p class="popup-verdict-entity" id="popupVerdictEntity">Government Sovereign Portal</p>
+          </div>
         </div>
+        <button type="button" id="btnPopupAudio" class="popup-audio-btn" title="Listen Audio">🔊</button>
+      </div>
+
+      <!-- Score Gauge & Status -->
+      <div class="popup-gauge-row">
+        <div class="popup-score-box">
+          <span class="popup-score-num safe" id="popupScoreNum">02</span>
+          <span class="popup-score-denom">/ 100</span>
+        </div>
+        <div class="popup-advisory-box">
+          <div class="popup-advisory-label">Citizen Advisory:</div>
+          <div class="popup-advisory-text" id="popupAdvisoryText">
+            Verified authentic government portal accredited by NIC India.
+          </div>
+        </div>
+      </div>
+
+      <!-- 5-Layer Forensic List -->
+      <div class="popup-forensic-list">
+        <div class="popup-forensic-row" id="rowLayer1">
+          <span class="p-icon" id="pIcon1">🟢</span>
+          <span class="p-name">1. Sovereign TLD</span>
+          <span class="p-badge pass" id="pBadge1">VERIFIED</span>
+        </div>
+        <div class="popup-forensic-row" id="rowLayer2">
+          <span class="p-icon" id="pIcon2">🟢</span>
+          <span class="p-name">2. Typosquat Check</span>
+          <span class="p-badge pass" id="pBadge2">CLEAN</span>
+        </div>
+        <div class="popup-forensic-row" id="rowLayer3">
+          <span class="p-icon" id="pIcon3">🟢</span>
+          <span class="p-name">3. Credential Forms</span>
+          <span class="p-badge pass" id="pBadge3">SECURE</span>
+        </div>
+        <div class="popup-forensic-row" id="rowLayer4">
+          <span class="p-icon" id="pIcon4">🟢</span>
+          <span class="p-name">4. Sovereign ML</span>
+          <span class="p-badge pass" id="pBadge4">AUTHENTIC</span>
+        </div>
+        <div class="popup-forensic-row" id="rowLayer5">
+          <span class="p-icon" id="pIcon5">🟢</span>
+          <span class="p-name">5. DNS / Mail Security</span>
+          <span class="p-badge pass" id="pBadge5">ANALYZED</span>
+        </div>
+      </div>
+
+      <!-- PoA Blockchain Proof Chip -->
+      <div class="popup-blockchain-pill" id="popupBlockchainPill">
+        ⛓️ Blockchain Verified: Block #142 | RFC 8785 Canonical Anchored
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="popup-actions-row">
+        <button type="button" id="btnPopupCopyDossier" class="popup-action-btn primary">📋 Copy Dossier</button>
+        <a href="tel:1930" class="popup-action-btn danger">📞 1930 Helpline</a>
+      </div>
     </div>
+  </main>
 
-    <!-- Toast Notifications -->
-    <div id="toastContainer" class="toast-container"></div>
+  <!-- Footer -->
+  <footer class="popup-footer">
+    <span>Smart India Hackathon 2026 • SIH1454 • UX4G 3.0</span>
+  </footer>
 
-    <script src="popup.js"></script>
+  <script src="popup.js"></script>
 </body>
 </html>

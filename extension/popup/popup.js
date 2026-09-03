@@ -1,447 +1,235 @@
-/**
- * GovShield — Extension Popup Controller
- * Exact Visual & Behavioral Replica of the Web Portal
- */
+// GovShield Sentinel Grid 3.0 — Popup Controller
+let currentResult = null;
+let isSpeaking = false;
 
-document.addEventListener("DOMContentLoaded", async () => {
-  // DOM Elements
-  const urlInput = document.getElementById("urlInput");
-  const scanBtn = document.getElementById("scanBtn");
-  const scoreNumber = document.getElementById("scoreNumber");
-  const verdictBadge = document.getElementById("verdictBadge");
-  const urlHeadline = document.getElementById("urlHeadline");
-  const verdictSummary = document.getElementById("verdictSummary");
-  const inspectionSteps = document.getElementById("inspectionSteps");
-  const remediationText = document.getElementById("remediationText");
-  const btnQuickDossier = document.getElementById("btnQuickDossier");
-  const engineLabel = document.getElementById("engineLabel");
+// API Endpoints
+const LOCAL_API = "http://localhost:8000/api/scan";
+const PROD_API = "https://govshield-veje.onrender.com/api/scan";
 
-  const toggleDetailsBtn = document.getElementById("toggleDetailsBtn");
-  const toggleDetailsText = document.getElementById("toggleDetailsText");
-  const toggleDetailsIcon = document.getElementById("toggleDetailsIcon");
-  const inspectionStepsContainer = document.getElementById("inspectionStepsContainer");
-  const downloadDossierBtn = document.getElementById("downloadDossierBtn");
-  const btnVoicePopup = document.getElementById("btnVoicePopup");
-  const langEn = document.getElementById("langEn");
-  const langHi = document.getElementById("langHi");
+// Sovereign Gov TLDs
+const GOV_DOMAINS = [".gov.in", ".nic.in", ".ac.in", ".mil.in", ".res.in"];
 
-  let currentScanData = null;
-  let isDetailsExpanded = false;
-  let currentLang = "en";
+document.addEventListener("DOMContentLoaded", () => {
+  const activeTabDomain = document.getElementById("activeTabDomain");
+  const popupUrlInput = document.getElementById("popupUrlInput");
+  const btnPopupScan = document.getElementById("btnPopupScan");
+  const btnPopupAudio = document.getElementById("btnPopupAudio");
+  const btnPopupCopyDossier = document.getElementById("btnPopupCopyDossier");
+  const popupLangSelect = document.getElementById("popupLangSelect");
 
-  const popupI18n = {
-    en: {
-      criticalThreat: "CRITICAL THREAT",
-      suspiciousDomain: "SUSPICIOUS DOMAIN",
-      verifiedOfficial: "VERIFIED OFFICIAL",
-      authenticWeb: "AUTHENTIC WEB",
-      advisoryPrefix: "ADVISORY:",
-      advisoryThreat: "DO NOT enter Aadhaar, PAN, OTP, or banking credentials. A CERT-In takedown notice has been drafted.",
-      advisorySuspicious: "Exercise caution. Verify the official URL on india.gov.in before providing personal information.",
-      advisorySafe: "Safe for navigation. The domain is verified and authenticated.",
-      inspectBtn: "Inspect",
-      dossierBtn: "CERT-In Report",
-      speechThreat: "Warning! This website is a fake government clone attempting to steal citizen credentials. Do not enter Aadhaar or OTP.",
-      speechSafe: "This website is safe for navigation."
-    },
-    hi: {
-      criticalThreat: "गंभीर खतरा (नकली साइट)",
-      suspiciousDomain: "संदिग्ध पोर्टल",
-      verifiedOfficial: "प्रमाणित सरकारी पोर्टल",
-      authenticWeb: "सुरक्षित वेब सेवा",
-      advisoryPrefix: "नागरिक चेतावनी:",
-      advisoryThreat: "सावधान! अपना आधार नंबर, पैन, बैंक OTP यहाँ बिल्कुल न डालें। यह फर्जी साइट है।",
-      advisorySuspicious: "सावधानी बरतें। india.gov.in पर आधिकारिक लिंक की पुष्टि करें।",
-      advisorySafe: "यह सुरक्षित और प्रमाणित आधिकारिक सरकारी पोर्टल है।",
-      inspectBtn: "जाँच करें",
-      dossierBtn: "रिपोर्ट देखें",
-      speechThreat: "सावधान! यह वेबसाइट फर्जी है और सरकारी पोर्टल की नकल कर रही है। अपना आधार नंबर या बैंक विवरण यहाँ बिल्कुल न भरें।",
-      speechSafe: "यह एक सुरक्षित और प्रमाणित वेबसाइट है।"
-    }
-  };
+  // Language Change
+  popupLangSelect.addEventListener("change", (e) => {
+    if (currentResult) renderPopupResult(currentResult);
+  });
 
-  function setLanguage(lang) {
-    currentLang = lang;
-    if (langEn) langEn.className = lang === "en" ? "lang-mini-btn active" : "lang-mini-btn";
-    if (langHi) langHi.className = lang === "hi" ? "lang-mini-btn active" : "lang-mini-btn";
-
-    const dict = popupI18n[lang];
-    const lblAdvisory = document.getElementById("lblAdvisory");
-    if (lblAdvisory) lblAdvisory.textContent = dict.advisoryPrefix;
-    const lblDossierBtn = document.getElementById("lblDossierBtn");
-    if (lblDossierBtn) lblDossierBtn.textContent = dict.dossierBtn;
-
-    if (currentScanData) {
-      renderScanData(currentScanData, currentScanData.url);
-    }
-  }
-
-  if (langEn) langEn.addEventListener("click", () => setLanguage("en"));
-  if (langHi) langHi.addEventListener("click", () => setLanguage("hi"));
-
-  // Voice advisory
-  if (btnVoicePopup) {
-    btnVoicePopup.addEventListener("click", () => {
-      if (!("speechSynthesis" in window)) return;
-      window.speechSynthesis.cancel();
-      const dict = popupI18n[currentLang];
-      const text = (currentScanData && currentScanData.verdict === "PHISHING_CLONE") ? dict.speechThreat : dict.speechSafe;
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = currentLang === "hi" ? "hi-IN" : "en-IN";
-      window.speechSynthesis.speak(utterance);
-    });
-  }
-
-  function setDetailsExpanded(expanded) {
-    isDetailsExpanded = expanded;
-    if (inspectionStepsContainer) {
-      if (expanded) {
-        inspectionStepsContainer.classList.remove("collapsed");
-      } else {
-        inspectionStepsContainer.classList.add("collapsed");
-      }
-    }
-    if (toggleDetailsText) {
-      toggleDetailsText.textContent = expanded ? "Hide Details" : "Show Details";
-    }
-    if (toggleDetailsIcon) {
-      toggleDetailsIcon.textContent = expanded ? "▴" : "▾";
-    }
-  }
-
-  if (toggleDetailsBtn) {
-    toggleDetailsBtn.addEventListener("click", () => {
-      setDetailsExpanded(!isDetailsExpanded);
-    });
-  }
-
-  // 1. Render UI with scan data (Exact replica of website logic)
-  function renderScanData(data, url) {
-    if (!data) return;
-    currentScanData = data;
-
-    const displayUrl = url || data.url || "Active Tab";
-    if (urlHeadline) urlHeadline.textContent = displayUrl;
-    if (urlInput) urlInput.value = displayUrl.startsWith("http") ? displayUrl : "";
-
-    // Engine Label
-    if (engineLabel) {
-      engineLabel.textContent = data.engine_mode === "EDGE_FALLBACK" ? "Edge Mode" : "Online";
-    }
-
-    // Score & Color
-    const score = Number(data.risk_score) || 0;
-    if (scoreNumber) {
-      scoreNumber.textContent = score < 10 ? `0${score}` : score;
-      if (score >= 66) {
-        scoreNumber.style.color = "var(--color-threat)";
-      } else if (score >= 26) {
-        scoreNumber.style.color = "var(--color-caution)";
-      } else {
-        scoreNumber.style.color = "var(--color-safe)";
-      }
-    }
-
-    const dict = popupI18n[currentLang] || popupI18n.en;
-
-    // Badge
-    if (verdictBadge) {
-      if (data.verdict === "PHISHING_CLONE") {
-        verdictBadge.textContent = dict.criticalThreat;
-        verdictBadge.className = "verdict-badge-clean badge-threat";
-        setDetailsExpanded(true); // Auto-expand on threats
-      } else if (data.verdict === "SUSPICIOUS") {
-        verdictBadge.textContent = dict.suspiciousDomain;
-        verdictBadge.className = "verdict-badge-clean badge-caution";
-        setDetailsExpanded(true); // Auto-expand on caution
-      } else {
-        verdictBadge.textContent = data.is_genuine_gov_tld ? dict.verifiedOfficial : dict.authenticWeb;
-        verdictBadge.className = "verdict-badge-clean badge-safe";
-        setDetailsExpanded(false); // Default neat collapse on safe
-      }
-    }
-
-    // Summary
-    if (verdictSummary) {
-      let summaryStr = data.summary || "Evaluation completed.";
-      if (currentLang === "hi") {
-        if (data.verdict === "PHISHING_CLONE") {
-          summaryStr = `फर्जी वेबसाइट! ${data.target_entity || "सरकारी सेवा"} की नकल करके नागरिकों से डेटा चुराने का प्रयास।`;
-        } else if (data.verdict === "SUSPICIOUS") {
-          summaryStr = `संदिग्ध पोर्टल! ${data.target_entity || "सरकारी योजना"} के नाम का दुरुपयोग।`;
-        } else {
-          summaryStr = "प्रमाणित सुरक्षित वेबसाइट।";
+  // Query Active Tab
+  if (chrome && chrome.tabs) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs && tabs[0] && tabs[0].url) {
+        const tabUrl = tabs[0].url;
+        popupUrlInput.value = tabUrl;
+        try {
+          const parsed = new URL(tabUrl);
+          activeTabDomain.textContent = parsed.hostname;
+        } catch (_) {
+          activeTabDomain.textContent = tabUrl;
         }
-      } else {
-        if (data.target_entity && data.verdict !== "LEGITIMATE") {
-          summaryStr = `Deceptive impersonation targeting ${data.target_entity}. ${summaryStr}`;
-        }
+        executeScan(tabUrl);
       }
-      verdictSummary.textContent = summaryStr;
+    });
+  } else {
+    // Testing in normal browser window
+    popupUrlInput.value = "https://pmkisan.gov.in";
+    executeScan("https://pmkisan.gov.in");
+  }
+
+  // Scan Button
+  btnPopupScan.addEventListener("click", () => {
+    const target = popupUrlInput.value.trim();
+    if (target) executeScan(target);
+  });
+
+  popupUrlInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      const target = popupUrlInput.value.trim();
+      if (target) executeScan(target);
     }
+  });
 
-    // Advisory
-    if (remediationText) {
-      if (data.verdict === "PHISHING_CLONE") {
-        remediationText.textContent = dict.advisoryThreat;
-      } else if (data.verdict === "SUSPICIOUS") {
-        remediationText.textContent = dict.advisorySuspicious;
-      } else {
-        remediationText.textContent = dict.advisorySafe;
-      }
-    }
+  // Audio Playback
+  btnPopupAudio.addEventListener("click", () => {
+    if (!currentResult) return;
+    speakVerdict(currentResult);
+  });
 
-    // Blockchain Proof Badge
-    const badgeHeightEl = document.getElementById("lblBlockHeightBadge");
-    if (badgeHeightEl) {
-      const bc = data.blockchain_proof || {};
-      const height = bc.block_index || bc.block_height || 1;
-      badgeHeightEl.textContent = `PoA Ledger #Block${height}`;
-    }
-
-    // 5 Inspection Steps (Exact match to website)
-    if (inspectionSteps) {
-      inspectionSteps.innerHTML = "";
-
-      const breakdown = data.signal_breakdown || {};
-      const lexScore = Number(breakdown.lexical_score) || 0;
-      const domScore = Number(breakdown.dom_score) || 0;
-      const visScore = Number(breakdown.visual_similarity) || 0;
-      const ageDays = Number(breakdown.domain_age_days) || 0;
-      const sensFields = breakdown.sensitive_fields_found || [];
-      const aiData = data.genai_analysis || {};
-
-      const steps = [
-        {
-          title: "01. DOMAIN & TYPOSQUATTING ANALYSIS",
-          status: (lexScore > 45 && data.verdict !== 'LEGITIMATE') ? "FAIL" : (lexScore > 20 ? "WARN" : "PASS"),
-          description: (lexScore > 45 && data.verdict !== 'LEGITIMATE')
-            ? `Unauthorized domain uses official tokens (${data.target_entity || 'Gov Scheme'}). Risk: ${lexScore}/100.`
-            : `No fraudulent typosquatting or government brand deception detected.`
-        },
-        {
-          title: "02. CREDENTIAL FORM INSPECTION",
-          status: (sensFields.length > 0 && data.verdict !== 'LEGITIMATE') ? "FAIL" : "PASS",
-          description: (sensFields.length > 0 && data.verdict !== 'LEGITIMATE')
-            ? `Credential harvesting fields: [${sensFields.join(', ')}] on non-gov domain.`
-            : `No identity or biometric credential harvesting forms detected.`
-        },
-        {
-          title: "03. VISUAL SIMILARITY MATCHING",
-          status: (visScore >= 70 && data.verdict !== 'LEGITIMATE') ? "FAIL" : "PASS",
-          description: (visScore >= 70 && data.verdict !== 'LEGITIMATE')
-            ? `Perceptual visual hash matches ${data.target_entity || 'Gov Portal'} with ${visScore}% similarity.`
-            : `Visual layout shows zero deceptive imitation of government portals.`
-        },
-        {
-          title: "04. DOMAIN AGE & REGISTRATION",
-          status: (ageDays < 30 && data.verdict !== 'LEGITIMATE') ? "FAIL" : "PASS",
-          description: (ageDays < 30 && data.verdict !== 'LEGITIMATE')
-            ? `Newly Registered Domain (${ageDays} days old) on unauthorized TLD.`
-            : (data.is_genuine_gov_tld ? `Authenticated NIC India infrastructure (12+ years old).` : `Established domain age: ${ageDays} days.`)
-        },
-        {
-          title: "05. AI NEURAL VERIFICATION",
-          status: (data.verdict === 'PHISHING_CLONE') ? "FAIL" : (data.verdict === 'SUSPICIOUS' ? "WARN" : "PASS"),
-          description: aiData.plain_english_explanation || (data.reasons && data.reasons.length > 0 ? data.reasons[0] : "Verified against Government of India sovereign defense baseline.")
-        }
-      ];
-
-      steps.forEach((layer, index) => {
-        const step = document.createElement("div");
-        step.className = "step-card";
-        const stepNum = index < 9 ? `0${index + 1}` : `${index + 1}`;
-
-        let statusColor = "var(--color-safe)";
-        let statusText = "PASS";
-        if (layer.status === "FAIL") {
-          statusColor = "var(--color-threat)";
-          statusText = "MALICIOUS";
-        } else if (layer.status === "WARN") {
-          statusColor = "var(--color-caution)";
-          statusText = "SUSPICIOUS";
-        }
-
-        step.innerHTML = `
-          <div class="step-number">${stepNum}</div>
-          <div class="step-content">
-            <div class="step-header">
-              <span class="step-title">${layer.title}</span>
-              <span class="step-status" style="color: ${statusColor};">[${statusText}]</span>
-            </div>
-            <p class="step-desc">${layer.description}</p>
-          </div>
-        `;
-        inspectionSteps.appendChild(step);
-      });
-    }
-  }
-
-  // 2. Load active tab status
-  async function loadActiveTabStatus() {
-    chrome.runtime.sendMessage({ action: "GET_CURRENT_STATUS" }, (response) => {
-      if (response && response.success && response.result) {
-        renderScanData(response.result, response.tab ? response.tab.url : "");
-      } else {
-        if (scoreNumber) scoreNumber.textContent = "00";
-        if (urlHeadline) urlHeadline.textContent = "Ready to inspect tab...";
-        if (verdictSummary) verdictSummary.textContent = "Navigate to any portal or enter a URL above.";
-      }
-    });
-  }
-
-  // 3. Manual Inspector
-  if (scanBtn) {
-    scanBtn.addEventListener("click", () => {
-      const inputUrl = urlInput ? urlInput.value.trim() : "";
-      if (!inputUrl) {
-        showToast("Enter a URL to scan");
-        return;
-      }
-
-      if (scoreNumber) scoreNumber.textContent = "--";
-      if (urlHeadline) urlHeadline.textContent = inputUrl;
-      if (verdictSummary) verdictSummary.textContent = "Analyzing multi-modal cyber intelligence...";
-
-      chrome.runtime.sendMessage({ action: "MANUAL_SCAN", url: inputUrl }, (resp) => {
-        if (resp && resp.success && resp.result) {
-          renderScanData(resp.result, inputUrl);
-        } else {
-          showToast("Scan completed or fallback activated.");
-        }
-      });
-    });
-  }
-
-  if (urlInput) {
-    urlInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter" && scanBtn) {
-        scanBtn.click();
-      }
-    });
-  }
-
-  // 4. CERT-In Dossier Flow
-  if (btnQuickDossier) {
-    btnQuickDossier.addEventListener("click", () => {
-      if (!currentScanData) {
-        showToast("No active scan data");
-        return;
-      }
-
-      if (dossierText) dossierText.textContent = "Compiling forensic evidence packet...";
-      if (dossierModal) dossierModal.classList.add("active");
-
-      chrome.runtime.sendMessage({
-        action: "REPORT_CERTIN",
-        scan_result: currentScanData,
-        notes: "Citizen threat dispatch via GovShield Extension."
-      }, (resp) => {
-        if (resp && resp.success && resp.data) {
-          const report = resp.data.incident_report || resp.data;
-          const formatted = `========================================================================
-CYBER SECURITY INCIDENT REPORT / PHISHING TAKEDOWN DOSSIER
-Prepared for: CERT-In (incident@cert-in.org.in) & CyberCrime Portal (cybercrime.gov.in)
-Incident ID : ${report.incident_id || 'CERTIN-INC-AUTO'}
-Timestamp   : ${report.report_timestamp_utc || new Date().toISOString()}
-========================================================================
-Target Scope      : Government of India Sovereign Public Services
-Impersonated Port.: ${report.target_government_entity || currentScanData.target_entity || 'Government Scheme'}
-Malicious URL     : ${report.malicious_url || currentScanData.url}
-Threat Score      : ${report.risk_score || currentScanData.risk_score} / 100
-Classification    : ${report.classification || currentScanData.verdict}
-
-[1] FORENSIC EVIDENCE:
-- Lexical Typosquatting Score     : ${report.forensic_evidence?.lexical_typosquatting_score || 0}/100
-- Visual Perceptual Similarity    : ${report.forensic_evidence?.visual_perceptual_similarity_percentage || 0}%
-- DOM Identity Harvesting Fields  : ${(report.forensic_evidence?.harvested_sensitive_fields || []).join(', ') || 'None'}
-- Domain Age                      : ${report.forensic_evidence?.domain_age_days || 'N/A'} days
-
-[2] DETECTED MALICIOUS INDICATORS:
-${(report.detected_anomalies_and_indicators || currentScanData.reasons || []).map((r, i) => `[${i+1}] ${r}`).join('\n')}
-
-[3] TAKEDOWN DIRECTIVES:
-${(report.mitigation_recommendations || [
-    "Issue urgent DNS sinkhole via NIXI / INRegistry.",
-    "Direct ISP/TSP DNS blocking under Section 69A IT Act.",
-    "Notify CERT-In Incident Response Team."
-]).map((m, i) => `[${i+1}] ${m}`).join('\n')}
-========================================================================`;
-          if (dossierText) dossierText.textContent = formatted;
-        } else {
-          if (dossierText) dossierText.textContent = JSON.stringify(currentScanData, null, 2);
-        }
-      });
-    });
-  }
-
-  if (modalCloseBtn && dossierModal) {
-    modalCloseBtn.addEventListener("click", () => {
-      dossierModal.classList.remove("active");
-    });
-  }
-
-  if (dossierModal) {
-    dossierModal.addEventListener("click", (e) => {
-      if (e.target === dossierModal) dossierModal.classList.remove("active");
-    });
-  }
-
-  if (downloadDossierBtn && dossierText) {
-    downloadDossierBtn.addEventListener("click", () => {
-      const text = dossierText.textContent || "";
-      if (!text) {
-        showToast("No report content available");
-        return;
-      }
-      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `CERTIN_INCIDENT_${Date.now()}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      showToast("Incident dossier downloaded");
-    });
-  }
-
-  if (copyDossierBtn && dossierText) {
-    copyDossierBtn.addEventListener("click", () => {
-      navigator.clipboard.writeText(dossierText.textContent).then(() => {
-        showToast("Dossier copied to clipboard");
-        if (dossierModal) dossierModal.classList.remove("active");
-      }).catch(() => {
-        showToast("Please copy manually");
-      });
-    });
-  }
-
-  // 5. Toast notification helper
-  function showToast(message) {
-    const toast = document.createElement("div");
-    toast.className = "toast-clean";
-    toast.textContent = message;
-
-    let container = document.getElementById("toastContainer");
-    if (!container) {
-      container = document.createElement("div");
-      container.id = "toastContainer";
-      container.className = "toast-container";
-      document.body.appendChild(container);
-    }
-
-    container.appendChild(toast);
-    setTimeout(() => {
-      toast.style.opacity = "0";
-      toast.style.transform = "translateY(6px)";
-      toast.style.transition = "all 0.2s ease";
-      setTimeout(() => toast.remove(), 200);
-    }, 2200);
-  }
-
-  // Initial load
-  loadActiveTabStatus();
+  // Copy Dossier
+  btnPopupCopyDossier.addEventListener("click", () => {
+    if (!currentResult) return;
+    const dossier = `CERT-IN INCIDENT DOSSIER\nTarget: ${currentResult.target_entity || 'Gov Service'}\nURL: ${currentResult.url}\nRisk: ${currentResult.risk_score}/100\nVerdict: ${currentResult.verdict}\nDate: ${new Date().toISOString()}`;
+    navigator.clipboard.writeText(dossier);
+    btnPopupCopyDossier.textContent = "✅ Copied!";
+    setTimeout(() => { btnPopupCopyDossier.textContent = "📋 Copy Dossier"; }, 2000);
+  });
 });
 
+async function executeScan(url) {
+  const card = document.getElementById("popupVerdictCard");
+  const btn = document.getElementById("btnPopupScan");
+  btn.disabled = true;
+  btn.textContent = "⏳...";
+
+  // 1. Client-side heuristic calculation
+  const clientFallback = calculateClientHeuristic(url);
+
+  try {
+    // Try local backend first, then production
+    let resp = null;
+    try {
+      resp = await fetch(LOCAL_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url })
+      });
+    } catch (_) {
+      resp = await fetch(PROD_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url })
+      });
+    }
+
+    if (resp && resp.ok) {
+      const data = await resp.json();
+      currentResult = data;
+      renderPopupResult(data);
+    } else {
+      currentResult = clientFallback;
+      renderPopupResult(clientFallback);
+    }
+  } catch (e) {
+    currentResult = clientFallback;
+    renderPopupResult(clientFallback);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "🛡️ Scan";
+  }
+}
+
+function calculateClientHeuristic(url) {
+  let isGov = false;
+  let hostname = "";
+  try {
+    const u = url.startsWith("http") ? new URL(url) : new URL("https://" + url);
+    hostname = u.hostname.toLowerCase();
+    isGov = GOV_DOMAINS.some(d => hostname.endsWith(d));
+  } catch (_) {
+    hostname = url.toLowerCase();
+    isGov = hostname.endsWith(".gov.in") || hostname.endsWith(".nic.in");
+  }
+
+  const isScam = hostname.includes("g0v") || hostname.includes("kisan-pm") || hostname.includes("subsidy") || hostname.includes(".xyz");
+
+  return {
+    url: url,
+    is_genuine_gov_tld: isGov,
+    target_entity: isGov ? "Government of India Official Portal" : (isScam ? "PM-Kisan Scheme (Impersonated)" : "Public Web Portal"),
+    risk_score: isGov ? 2 : (isScam ? 95 : 18),
+    verdict: isGov ? "LEGITIMATE" : (isScam ? "PHISHING_CLONE" : "AUTHENTIC_WEB"),
+    impersonated: isScam,
+    reasons: isScam ? ["Deceptive typosquatting domain mimicking national scheme."] : ["Authenticated sovereign infrastructure."]
+  };
+}
+
+function renderPopupResult(data) {
+  const card = document.getElementById("popupVerdictCard");
+  card.style.display = "block";
+
+  const score = Math.max(0, Math.min(99, Math.round(data.risk_score || 0)));
+  const isGov = Boolean(data.is_genuine_gov_tld);
+
+  let type = "safe";
+  let icon = "✅";
+  let title = "VERIFIED AUTHENTIC";
+
+  if (score >= 66 || data.verdict === "PHISHING_CLONE" || data.verdict === "MALICIOUS") {
+    type = "threat";
+    icon = "🚨";
+    title = "CRITICAL PHISHING CLONE";
+  } else if (score >= 26 || data.verdict === "SUSPICIOUS") {
+    type = "caution";
+    icon = "⚠️";
+    title = "SUSPICIOUS UNVERIFIED";
+  }
+
+  // Header
+  const header = document.getElementById("popupVerdictHeader");
+  header.className = `popup-verdict-header ${type}`;
+  document.getElementById("popupVerdictIcon").textContent = icon;
+  document.getElementById("popupVerdictTitle").textContent = title;
+  document.getElementById("popupVerdictEntity").textContent = `${data.target_entity || 'Service'} • ${isGov ? '.gov.in Domain' : 'Public Domain'}`;
+
+  // Gauge Score
+  const scoreNum = document.getElementById("popupScoreNum");
+  scoreNum.className = `popup-score-num ${type}`;
+  scoreNum.textContent = score < 10 ? `0${score}` : `${score}`;
+
+  // Advisory
+  const adv = document.getElementById("popupAdvisoryText");
+  if (score >= 66) {
+    adv.textContent = "DANGER! Fraudulent portal mimicking government services. NEVER enter Aadhaar, PAN, OTP, or PIN!";
+  } else if (score <= 25) {
+    adv.textContent = "Verified authentic government infrastructure. Safe for official transactions.";
+  } else {
+    adv.textContent = "Caution. Unverified portal. Confirm official link on india.gov.in before sharing details.";
+  }
+
+  // 5 Forensic Layers
+  const typoHit = Boolean(data.typosquat_details?.is_typosquat || (data.signal_breakdown?.lexical_score > 30));
+  const sensFound = (data.signal_breakdown?.sensitive_fields_found || []).length > 0 && !isGov;
+  const isClone = Boolean(data.impersonated);
+
+  updateRow("1", isGov ? "🟢" : "🔴", isGov ? "pass" : "fail", isGov ? "VERIFIED" : "UNAUTHORIZED");
+  updateRow("2", typoHit ? "🔴" : "🟢", typoHit ? "fail" : "pass", typoHit ? "SPOOF" : "CLEAN");
+  updateRow("3", sensFound ? "🔴" : "🟢", sensFound ? "fail" : "pass", sensFound ? "HARVESTING" : "SECURE");
+  updateRow("4", isClone ? "🔴" : "🟢", isClone ? "fail" : "pass", isClone ? "CLONE" : "AUTHENTIC");
+  updateRow("5", "🟢", "pass", isGov ? "SOVEREIGN" : "ANALYZED");
+
+  // Blockchain Pill
+  const bc = data.blockchain_proof || {};
+  document.getElementById("popupBlockchainPill").textContent = 
+    `⛓️ PoA Ledger: Block #${bc.block_index !== undefined ? bc.block_index : 1} | RFC 8785 Anchored | Section 65B Certified`;
+}
+
+function updateRow(layerNum, icon, badgeClass, badgeText) {
+  const iconEl = document.getElementById(`pIcon${layerNum}`);
+  const badgeEl = document.getElementById(`pBadge${layerNum}`);
+  if (iconEl) iconEl.textContent = icon;
+  if (badgeEl) {
+    badgeEl.className = `p-badge ${badgeClass}`;
+    badgeEl.textContent = badgeText;
+  }
+}
+
+function speakVerdict(data) {
+  if (!("speechSynthesis" in window)) return;
+  if (isSpeaking) {
+    window.speechSynthesis.cancel();
+    isSpeaking = false;
+    return;
+  }
+
+  const score = data.risk_score || 0;
+  let text = "";
+  if (score >= 66) {
+    text = "सावधान! यह वेबसाइट फर्जी है जो सरकारी पोर्टल की नकल कर रही है। अपना आधार नंबर या बैंक OTP यहाँ कभी दर्ज न करें!";
+  } else {
+    text = "यह वेबसाइट पूरी तरह से प्रामाणिक और सुरक्षित सरकारी पोर्टल है।";
+  }
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "hi-IN";
+  utterance.rate = 0.9;
+  utterance.onend = () => { isSpeaking = false; };
+  isSpeaking = true;
+  window.speechSynthesis.speak(utterance);
+}

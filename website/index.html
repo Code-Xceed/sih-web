@@ -1,345 +1,291 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi" class="notranslate" translate="no">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GovShield | Phishing Domain Verification Engine</title>
-    <meta name="description" content="Intelligent multi-signal verification engine for detecting deceptive lookalike domains and credential harvesting.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="google" content="notranslate">
+  <title>GovShield Sentinel Grid 3.0 — National Cyber Defense Infrastructure</title>
+  <meta name="description" content="Official UX4G 3.0 National Cyber Threat Intelligence & Multi-Signal AI Phishing Detection. Smart India Hackathon 2026 (SIH1454).">
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+Devanagari:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .backend-evidence-card { margin-top: 16px; padding: 16px; border: 1px solid var(--border-light); border-radius: 12px; background: var(--bg-subtle); }
+    .evidence-accordion-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: 700; color: var(--text-main); user-select: none; }
+    .evidence-accordion-body { margin-top: 12px; font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; }
+    .badge-pill-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 50px; font-size: 0.76rem; font-weight: 700; font-family: var(--font-mono); }
+    .badge-pill-tag.verified { background: #dcfce7; color: #15803d; }
+    .badge-pill-tag.warning { background: #fef3c7; color: #b45309; }
+    .badge-pill-tag.danger { background: #fee2e2; color: #b91c1c; }
+    .blockchain-proof-pill { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 6px 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.78rem; word-break: break-all; }
+  </style>
 </head>
-<body>
-
-    <!-- Interactive Spatial Parallax Background Stage -->
-    <div class="spatial-stage" id="spatialStage">
-        <!-- Deep Layer (Max distance, heavy blur & soft tilt) -->
-        <div class="spatial-card depth-deep pos-1">
-            <div class="card-inner">
-                <span class="icon">⬡</span>
-                <div>SYS.SEC // OK</div>
-            </div>
+<body class="ux4g-theme">
+  <a href="#mainSearch" class="skip-link" id="skipLinkEl">मुख्य सामग्री पर जाएं</a>
+  <div class="ux4g-top-bar" role="banner">
+    <div class="ux4g-top-container">
+      <a href="https://india.gov.in" target="_blank" rel="noreferrer" class="ux4g-gov-link">
+        <span>🇮🇳</span><span id="govIndiaEl">भारत सरकार ↗</span>
+      </a>
+      <div class="ux4g-top-controls">
+        <a href="#mainSearch" style="color: #94a3b8; text-decoration: none;" id="skipTopEl">मुख्य सामग्री पर जाएं</a>
+        <button type="button" class="ux4g-top-action-btn" id="btnOpenDrawerTop" aria-label="Open Accessibility Options"><span>♿</span><span>Accessibility</span></button>
+        <div class="ux4g-lang-wrapper" id="langDropdownWrapper">
+          <button type="button" class="ux4g-top-action-btn lang-select-trigger" id="langTriggerBtn" aria-expanded="false" aria-label="Select Language">
+            <span>🌐</span><span class="lang-trigger-text" id="currentLangLabel">हिन्दी</span><span class="dropdown-arrow-icon">▾</span>
+          </button>
+          <div class="ux4g-lang-menu" id="langMenuEl" style="display: none;">
+            <div class="lang-menu-header"><span class="lang-menu-title">Select Language</span><span class="lang-count-badge">12 Languages</span></div>
+            <div class="lang-menu-list" id="langOptionsList"></div>
+            <div class="lang-menu-footer"><span>Powered by Bhashini & UX4G</span></div>
+          </div>
         </div>
-        <div class="spatial-card depth-deep pos-2">
-            <div class="card-inner">
-                <span class="icon">⬡</span>
-                <div>NODE 44.A</div>
-            </div>
-        </div>
-        <div class="spatial-card depth-deep pos-7">
-            <div class="card-inner">
-                <div class="tech-header">ADVISORY // 01</div>
-                <div class="tech-code">Check for valid .gov.in TLDs.</div>
-            </div>
-        </div>
-
-        <!-- Mid Layer (Intermediate distance, medium blur) -->
-        <div class="spatial-card depth-mid pos-3">
-            <div class="card-inner">
-                <div class="tech-header">IP ROUTING LOG</div>
-                <div class="tech-code">
-                    &gt; TRACE 192.168.x.x<br>
-                    &gt; HOP 1: SECURE<br>
-                    &gt; HOP 2: VERIFIED
-                </div>
-            </div>
-        </div>
-        <div class="spatial-card depth-mid pos-4">
-            <div class="card-inner">
-                <div class="tech-header">DATA HASH</div>
-                <div class="tech-code">0x9F4B...A210</div>
-            </div>
-        </div>
-        <div class="spatial-card depth-mid pos-8">
-            <div class="card-inner">
-                <div class="tech-header">GUIDELINE: PHISHING</div>
-                <div class="tech-code">
-                    Govt agencies will NEVER ask<br>for your OTP or ATM PIN via SMS.
-                </div>
-            </div>
-        </div>
-        <div class="spatial-card depth-mid pos-10">
-            <div class="card-inner">
-                <div class="tech-header">SSL VERIFICATION</div>
-                <div class="tech-code">
-                    Always ensure the lock icon<br>is present before submitting PII.
-                </div>
-            </div>
-        </div>
-        <div class="spatial-card depth-mid pos-11">
-            <div class="card-inner">
-                <div class="tech-header">DOMAIN HEURISTICS</div>
-                <div class="tech-code">
-                    Scanning for homoglyphs<br>
-                    (e.g., g0v.in vs gov.in)
-                </div>
-            </div>
-        </div>
-
-        <!-- Foreground Layer (Crisp, detailed, dynamic focus) -->
-        <div class="spatial-card depth-front pos-5">
-            <div class="card-inner">
-                <div class="tech-header threat-text">THREAT GAUGE</div>
-                <div class="gauge-bar"><div class="gauge-fill"></div></div>
-                <div class="tech-code">LEVEL: ELEVATED</div>
-            </div>
-        </div>
-        <div class="spatial-card depth-front pos-6">
-            <div class="card-inner">
-                <div class="tech-header">VERIFICATION METRICS</div>
-                <div class="tech-code">
-                    SIG: MATCH<br>
-                    SSL: VALID<br>
-                    BIOMETRIC: PENDING...
-                </div>
-            </div>
-        </div>
-        <div class="spatial-card depth-front pos-9">
-            <div class="card-inner">
-                <div class="tech-header">REPORT CYBERCRIME</div>
-                <div class="tech-code">
-                    Helpline: 1930<br>
-                    Portal: cybercrime.gov.in
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
-
-    <div class="app-container">
-        <!-- National Sovereign Cyber Defense Header & Controls -->
-        <header class="national-defense-header">
-            <div class="sovereign-badge-group">
-                <span class="emblem-symbol">🇮🇳</span>
-                <div>
-                    <span class="sovereign-title" id="lblBrandTitle">GovShield Sentinel Grid</span>
-                    <span class="sovereign-sub" id="lblBrandSub">Sovereign Cyber Defense & Blockchain Threat Ledger</span>
-                </div>
-            </div>
-            <div class="header-controls">
-                <a href="tel:1930" class="btn-helpline-1930" title="National Cyber Financial Fraud Helpline">
-                    <span class="helpline-pulse"></span>
-                    <span id="lblHelpline">1930 Helpline</span>
-                </a>
-                <button id="btnOpenBlockchain" class="btn-blockchain-pill" type="button">
-                    <span>⛓️</span> <span id="lblBlockchain">Blockchain Ledger</span>
-                </button>
-                <a href="http://localhost:8001" target="_blank" class="btn-mode-pill" style="text-decoration: none; color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.1);" title="Test PhishGuard ML Engine on Port 8001">
-                    <span>🧬</span> <span>PhishGuard ML (8001)</span>
-                </a>
-                <button id="btnToggleLiteMode" class="btn-mode-pill" type="button">
-                    <span id="liteModeIcon">⚡</span> <span id="lblLiteMode">Bharat Lite</span>
-                </button>
-                <div class="lang-switcher">
-                    <button id="langEn" class="lang-btn active" type="button">EN</button>
-                    <button id="langHi" class="lang-btn" type="button">हिंदी</button>
-                </div>
-            </div>
-        </header>
-
-        <!-- Centered Hero & Input Content -->
-        <div class="hero-center-container">
-            <!-- Hero Section (Exact Match to Design) -->
-            <section class="hero-minimal">
-                <h1 class="hero-title-large" id="heroTitle">
-                    <span class="title-fake">Fake</span> Government<br>Portal Detector.
-                </h1>
-                <p class="hero-tagline" id="heroTagline">
-                    Algorithmic 6-layer scanner identifying typosquatting, subdomain masquerading, and fraudulent clones targeting Indian citizens.
-                </p>
-            </section>
-
-            <!-- URL Scanner Core -->
-            <main class="scanner-section">
-                <!-- Search Box -->
-                <div class="search-box-minimal">
-                    <input 
-                        type="url" 
-                        id="urlInput" 
-                        class="url-input-clean" 
-                        placeholder="Enter website URL (e.g., https://pmkisan-gov-in-" 
-                        autocomplete="off"
-                        spellcheck="false"
-                    >
-                    <button id="scanBtn" class="btn-scan-action">
-                        <span id="scanBtnText">Inspect</span> ↵
-                    </button>
-                </div>
-
-                <!-- Minimal 1-Click Quick Samples for Easy Evaluation -->
-                <div class="quick-samples-row" id="quickSamplesRow">
-                    <span class="quick-samples-label" id="lblQuickTest">Try sample:</span>
-                    <button class="sample-chip chip-threat" data-url="http://pmkisan-kyc-update.xyz" type="button">🔴 PM-Kisan Scam</button>
-                    <button class="sample-chip chip-threat" data-url="http://sbi-instant-kyc-update.xyz/login" type="button">🔴 SBI KYC Fraud</button>
-                    <button class="sample-chip chip-safe" data-url="https://pmkisan.gov.in" type="button">🟢 Official Gov.in</button>
-                </div>
-
-                <!-- Dynamic Result Card -->
-                <div id="resultsWrapper" style="display: none;" role="region" aria-live="polite" aria-label="Inspection Verdict and Threat Analysis">
-                    <div class="verdict-card-minimal">
-                        <!-- Big High-Clarity Villager Citizen Notice Banner -->
-                        <div id="villagerNoticeBox" class="villager-notice-box notice-threat">
-                            <div class="notice-icon-box" id="noticeIcon">⚠️</div>
-                            <div class="notice-text-content">
-                                <h3 class="notice-heading" id="noticeHeading">DO NOT ENTER OTP OR BANK PIN</h3>
-                                <p class="notice-desc" id="noticeDesc">This is an illegal clone website trying to steal citizen funds and identities.</p>
-                            </div>
-                            <div class="notice-action-group">
-                                <a href="tel:1930" class="btn-notice-dial" id="noticeDialBtn" title="Call 1930 National Cyber Fraud Helpline">
-                                    <span>📞</span> <span id="lblNoticeCall">Call 1930</span>
-                                </a>
-                            </div>
-                        </div>
-
-                        <!-- Verdict Header -->
-                        <div class="verdict-header-block">
-                            <div class="verdict-number-row">
-                                <div class="giant-score" id="scoreNumber">00</div>
-                                <div class="verdict-text-group">
-                                    <span id="verdictBadge" class="verdict-badge-clean badge-threat">CRITICAL THREAT</span>
-                                    <div class="target-url-line" id="urlHeadline">https://example.com</div>
-                                    <p class="verdict-summary-line" id="verdictSummary">Summary loading...</p>
-                                </div>
-                            </div>
-                            <div class="verdict-actions" style="display: flex; gap: 8px;">
-                                <button id="btnDownloadDossierQuick" class="btn-dossier-pill" type="button">
-                                    <span>💾</span> <span id="lblSaveDossier">Save Dossier</span>
-                                </button>
-                                <button id="btnQuickDossier" class="btn-dossier-pill" type="button">
-                                    <span>📄</span> <span id="lblViewReport">View Report</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Inline AI/ML MinHash & Blockchain Proof Strip -->
-                        <div class="inline-proof-strip" id="inlineProofStrip">
-                            <div class="proof-pill">
-                                <span class="proof-icon">⛓️</span>
-                                <span class="proof-tag">BLOCKCHAIN:</span>
-                                <span class="proof-val" id="proofBlockVal">PoA Block #1 Verified</span>
-                            </div>
-                            <div class="proof-pill">
-                                <span class="proof-icon">🧬</span>
-                                <span class="proof-tag">MINHASH SIMILARITY:</span>
-                                <span class="proof-val" id="proofMinHashVal">Structural Clone Match</span>
-                            </div>
-                            <div class="proof-pill">
-                                <span class="proof-icon">⚖️</span>
-                                <span class="proof-tag">LEGAL EVIDENCE:</span>
-                                <span class="proof-val" id="proofSec65BVal">Sec 65B Certified</span>
-                            </div>
-                        </div>
-
-                        <!-- Citizen Safety Vectors & Security Checklist (OTP, Paywalls, Links, Authority) -->
-                        <div class="security-checklist-container" id="securityChecklistContainer">
-                            <div class="checklist-header">
-                                <span class="checklist-title-badge">🛡️ CITIZEN SAFETY CHECKLIST & CAUTION VECTORS</span>
-                                <span class="checklist-model-badge" id="mlModelBadge">SOVEREIGN AI ML &bull; 99.9% ACCURACY</span>
-                            </div>
-                            <div class="checklist-grid" id="checklistGrid">
-                                <!-- Populated dynamically by app.js -->
-                            </div>
-                        </div>
-
-                        <!-- Collapsible Forensic Details for Villager Simplicity -->
-                        <div class="forensics-collapse-header" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <button id="btnToggleForensics" class="btn-toggle-forensics" type="button">
-                                <span id="lblToggleForensics">Show Technical Forensic Analysis</span> <span id="toggleForensicsArrow">▾</span>
-                            </button>
-                            <a id="btnComparePhishGuard" href="http://localhost:8001" target="_blank" class="btn-toggle-forensics" style="text-decoration: none; border-color: rgba(99, 102, 241, 0.4); color: #a5b4fc;" title="Benchmark this URL against PhishGuard 30-feature ML model">
-                                <span>⚔️ Test on PhishGuard (Port 8001)</span>
-                            </a>
-                        </div>
-
-                        <!-- 5 Numbered Inspection Steps (Collapsible) -->
-                        <div class="inspection-steps-grid" id="inspectionSteps" style="display: none;">
-                            <!-- Injected dynamically -->
-                        </div>
-
-                        <!-- Citizen Advisory -->
-                        <div class="advisory-footer">
-                            <div class="advisory-content">
-                                <span style="font-weight: 700; color: var(--text-pure);" id="lblAdvisory">ADVISORY:</span>
-                                <span id="remediationText" style="flex: 1;">Citizen advice loading...</span>
-                            </div>
-                            <button id="btnVoiceReadout" class="btn-voice-readout" type="button" title="Listen to advisory in your language">
-                                <span id="voiceIcon">🔊</span> <span id="lblVoice">Listen</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </main>
+  </div>
+  <header class="ux4g-nav-header">
+    <div class="ux4g-nav-container">
+      <div class="ux4g-brand-group">
+        <img src="/logo.png" alt="GovShield Sovereign Cyber Defense Emblem" class="emblem-icon-ux4g">
+        <div>
+          <div class="brand-title-ux4g">GovShield <span class="accent-pill">Grid 3.0</span></div>
+          <div class="brand-subtitle-ux4g ux4g-lang-morph" id="brandSubtitleEl">राष्ट्रीय मल्टी-सिग्नल AI फिशिंग व फर्जी पोर्टल पहचान प्रणाली</div>
         </div>
+      </div>
+      <div class="nav-cta-group">
+        <a href="tel:1930" class="btn-secondary-ux4g" style="color: var(--gov-red); font-weight: 800;">📞 1930 Helpline</a>
+        <button type="button" class="btn-primary-ux4g" id="btnOpenDrawerNav">♿ Options (Ctrl+F2)</button>
+      </div>
     </div>
-
-    <!-- CERT-In Dossier Modal -->
-    <div id="dossierModal" class="modal-overlay">
-        <div class="modal-content-clean">
-            <div class="modal-top">
-                <span class="modal-title-clean">CERT-In Incident Takedown Report</span>
-                <button id="modalCloseBtn" class="modal-close-x">&times;</button>
-            </div>
-            <pre id="dossierText" class="dossier-code-box"></pre>
-            <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                <button id="downloadDossierModalBtn" class="btn-dossier-pill" type="button">
-                    <span>💾</span> Download Report (.txt)
-                </button>
-                <button id="copyDossierBtn" class="btn-scan-action" type="button">
-                    Copy Report to Clipboard
-                </button>
-            </div>
+  </header>
+  <section class="ux4g-hero-section" id="mainSearch">
+    <div class="ux4g-hero-container ux4g-lang-morph" id="heroContainerEl">
+      <div class="ux4g-version-pill"><span>🛡️</span><span>CERT-In Standard • Sovereign PoA Blockchain • SIH1454</span></div>
+      <h1 class="ux4g-hero-heading" id="heroHeadingEl">किसी भी सरकारी वेबसाइट की तुरंत जांच करें।</h1>
+      <p class="ux4g-hero-subtext" id="heroSubtextEl">आधार, पैन या बैंक विवरण दर्ज करने से पहले जांचें कि वेबसाइट असली (.gov.in) है या फर्जी साइबर क्लोन।</p>
+      <div class="ux4g-search-card">
+        <input type="text" class="ux4g-search-input" id="urlInput" placeholder="वेबसाइट का लिंक यहाँ पेस्ट करें (उदा: pmkisan.gov.in या g0v.in)..." aria-label="Enter website URL to verify" autocomplete="off" spellcheck="false">
+        <button type="button" class="verify-action-btn" id="btnVerify" aria-label="Verify Portal">🛡️ <span id="verifyBtnText">सत्यापन करें</span></button>
+      </div>
+      <div class="ux4g-chips-row ux4g-lang-morph" id="chipsRowEl">
+        <span class="chips-tag-label" id="quickTryLabel">परीक्षण हेतु लिंक:</span>
+        <button type="button" class="ux4g-sample-chip" data-url="https://pmkisan.gov.in" id="chipSafe">✅ सुरक्षित (PM-Kisan)</button>
+        <button type="button" class="ux4g-sample-chip danger-chip" data-url="https://g0v.in" id="chipFake">🚨 फर्जी क्लोन (g0v.in)</button>
+        <button type="button" class="ux4g-sample-chip" data-url="https://incometax.gov.in" id="chipIncomeTax">🏛️ आयकर पोर्टल (Authentic)</button>
+      </div>
+    </div>
+  </section>
+  <section class="ux4g-verdict-section" id="verdictSection" style="display: none;" role="region" aria-live="polite">
+    <div class="verdict-master-box ux4g-lang-morph" id="verdictBox">
+      <div class="verdict-header-banner safe" id="verdictHeaderBanner">
+        <div class="verdict-main-meta">
+          <span class="verdict-icon-badge" id="verdictIconBadge">✅</span>
+          <div>
+            <h3 class="verdict-status-title" id="verdictStatusTitle">सत्यापित एवं प्रामाणिक</h3>
+            <p class="verdict-status-sub" id="verdictStatusSub">PM-Kisan Samman Nidhi Portal • Sovereign .gov.in Domain</p>
+          </div>
         </div>
-    </div>
-
-    <!-- Sovereign Blockchain Threat Ledger Modal -->
-    <div id="blockchainModal" class="modal-overlay">
-        <div class="modal-content-clean modal-blockchain">
-            <div class="modal-top">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 1.3rem;">⛓️</span>
-                    <div>
-                        <span class="modal-title-clean" id="lblBlockchainModalTitle">Sovereign Blockchain Threat Intelligence Ledger</span>
-                        <div style="font-size: 0.72rem; color: var(--text-secondary);" id="lblBlockchainModalSub">Proof-of-Authority Consensus • Immutable Evidence (Section 65B Indian Evidence Act)</div>
-                    </div>
-                </div>
-                <button id="blockchainCloseBtn" class="modal-close-x">&times;</button>
-            </div>
-            
-            <!-- Live Ledger Metrics -->
-            <div class="ledger-metrics-strip" id="ledgerMetricsStrip">
-                <div class="metric-card">
-                    <span class="metric-val" id="metricBlockHeight">1</span>
-                    <span class="metric-lbl" id="lblMetricHeight">Block Height</span>
-                </div>
-                <div class="metric-card">
-                    <span class="metric-val" id="metricThreatsLogged">0</span>
-                    <span class="metric-lbl" id="lblMetricThreats">Threats Logged</span>
-                </div>
-                <div class="metric-card">
-                    <span class="metric-val" id="metricChainStatus" style="color: var(--color-safe);">VALID</span>
-                    <span class="metric-lbl" id="lblMetricIntegrity">Chain Integrity</span>
-                </div>
-            </div>
-
-            <!-- Block Stream Box -->
-            <div class="blocks-stream-box" id="blocksStreamBox">
-                <!-- Dynamically injected blocks -->
-            </div>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 10px; flex-wrap: wrap;">
-                <button id="btnDownloadSec65B" class="btn-dossier-pill" type="button">
-                    <span>⚖️</span> <span id="lblDownloadSec65B">Download Sec 65B Court Certificate</span>
-                </button>
-                <button id="btnCloseBlockchainModal" class="btn-scan-action" type="button">
-                    Close Explorer
-                </button>
-            </div>
+        <button type="button" class="btn-speech-trigger" id="btnSpeechTrigger" aria-label="Listen to voice verdict">🔊 <span id="speechBtnText">आवाज़ में सुनें</span></button>
+      </div>
+      <div class="verdict-layout-grid">
+        <div class="gauge-score-panel">
+          <span class="gauge-header-title" id="threatScoreLabel">जोखिम स्कोर (Threat Score)</span>
+          <div class="gauge-big-number safe" id="gaugeScoreNumber">02</div>
+          <span style="font-size: 0.9rem; color: #64748b; font-weight: 700;">/ 100</span>
+          <div class="scanned-url-chip" id="scannedUrlChip">https://pmkisan.gov.in</div>
+          <div style="margin-top: 12px;" id="statusPillContainer"><span class="badge-pill-tag verified" id="statusPillTag">AUTHENTIC SERVICE</span></div>
         </div>
+        <div>
+          <div class="citizen-advisory-pill-box">
+            <div class="advisory-header"><span>⚠️</span><span id="advisoryTitleLabel">Advisory:</span></div>
+            <p class="advisory-body-text" id="advisoryBodyText">यह वेबसाइट पूरी तरह से प्रामाणिक और आधिकारिक सरकारी पोर्टल है।</p>
+          </div>
+          <div class="forensics-stack">
+            <div class="forensic-tile-item" id="layer1Tile">
+              <span class="tile-status-icon" id="layer1Icon">🟢</span>
+              <div class="tile-content-wrapper">
+                <div class="tile-header-line"><span class="tile-title" id="layer1Title">1. सरकारी डोमेन प्रमाणन (.gov.in / .nic.in)</span><span class="tile-status-tag pass" id="layer1Tag">VERIFIED</span></div>
+                <p class="tile-desc" id="layer1Desc">Authenticated NIC India sovereign registry.</p>
+              </div>
+            </div>
+            <div class="forensic-tile-item" id="layer2Tile">
+              <span class="tile-status-icon" id="layer2Icon">🟢</span>
+              <div class="tile-content-wrapper">
+                <div class="tile-header-line"><span class="tile-title" id="layer2Title">2. वर्तनी व नाम की नकल (Typosquatting)</span><span class="tile-status-tag pass" id="layer2Tag">CLEAN</span></div>
+                <p class="tile-desc" id="layer2Desc">No typosquatting, zero-width homoglyphs, or lookalike patterns.</p>
+              </div>
+            </div>
+            <div class="forensic-tile-item" id="layer3Tile">
+              <span class="tile-status-icon" id="layer3Icon">🟢</span>
+              <div class="tile-content-wrapper">
+                <div class="tile-header-line"><span class="tile-title" id="layer3Title">3. आधार व पासवर्ड चोरी फॉर्म (Credential Theft)</span><span class="tile-status-tag pass" id="layer3Tag">SECURE</span></div>
+                <p class="tile-desc" id="layer3Desc">No unauthorized credential harvesting forms detected.</p>
+              </div>
+            </div>
+            <div class="forensic-tile-item" id="layer4Tile">
+              <span class="tile-status-icon" id="layer4Icon">🟢</span>
+              <div class="tile-content-wrapper">
+                <div class="tile-header-line"><span class="tile-title" id="layer4Title">4. एआई विजुअल व संप्रभु ML क्लासिफायर</span><span class="tile-status-tag pass" id="layer4Tag">AUTHENTIC</span></div>
+                <p class="tile-desc" id="layer4Desc">Visual styling consistent with authentic baseline.</p>
+              </div>
+            </div>
+            <div class="forensic-tile-item" id="layer5Tile">
+              <span class="tile-status-icon" id="layer5Icon">🟢</span>
+              <div class="tile-content-wrapper">
+                <div class="tile-header-line"><span class="tile-title" id="layer5Title">5. डोमेन पंजीकरण व DNS मेल सुरक्षा (url.vet)</span><span class="tile-status-tag pass" id="layer5Tag">ANALYZED</span></div>
+                <p class="tile-desc" id="layer5Desc">Domain registration and DNS MX/SPF/DMARC records verified.</p>
+              </div>
+            </div>
+          </div>
+          <div class="backend-evidence-card" id="deepEvidenceCard">
+            <div class="evidence-accordion-header" id="evidenceAccordionToggle">
+              <span>🔬 Deep Forensics: Sovereign ML, DNS & PoA Blockchain Proof</span><span id="evidenceToggleIcon">▾</span>
+            </div>
+            <div class="evidence-accordion-body" id="evidenceAccordionBody" style="display: none;">
+              <div style="margin-bottom: 12px;" id="aiSynthesisBox">
+                <strong>🤖 AI Semantic Threat Intelligence:</strong>
+                <p id="aiSummaryText" style="margin-top: 4px; color: var(--text-main);">Verified authentic sovereign infrastructure conforming to CERT-In guidelines.</p>
+              </div>
+              <div style="margin-bottom: 12px;">
+                <strong>⛓️ Proof-of-Authority (PoA) Blockchain Anchor:</strong>
+                <div class="blockchain-proof-pill" style="margin-top: 4px;" id="blockchainProofPill">Incident ID: CERTIN-SIH-001 | Block #142 | RFC 8785 Hash: 8f4a...29b1 | Section 65B Certified</div>
+              </div>
+              <div id="dnsRedirectBox" style="font-size: 0.82rem; color: var(--text-muted);">
+                <span>🔀 Redirect Status: <strong id="redirectStatusText">Direct (0 Hops)</strong></span> • <span>✉️ Mail Exchange (MX): <strong id="mxStatusText">Active</strong></span> • <span>🛡️ DMARC/SPF: <strong id="dmarcStatusText">Configured</strong></span>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
+            <button type="button" class="btn-primary-ux4g" id="btnOpenDossier">📄 <span id="dossierBtnLabel">डोजियर डाउनलोड करें</span></button>
+            <a href="tel:1930" class="btn-secondary-ux4g" style="background: var(--gov-red); color: #fff; border: none; font-weight: 800;">📞 <span id="helpline1930Label">1930 पर कॉल करें</span></a>
+          </div>
+        </div>
+      </div>
     </div>
-
-    <!-- Toast Notifications -->
-    <div id="toastContainer" class="toast-container"></div>
-
-    <script src="app.js"></script>
+  </section>
+  <section class="ux4g-cards-section">
+    <div class="cards-headline-block ux4g-lang-morph" id="cardsHeadlineBlock">
+      <h2 class="cards-headline-title" id="sectionTitleEl">नागरिक साइबर सुरक्षा सेवाएं</h2>
+      <p class="cards-headline-sub" id="sectionSubEl">फर्जी और संदिग्ध वेबसाइटों के खिलाफ तत्काल व वास्तविक समय सुरक्षा</p>
+    </div>
+    <div class="ux4g-cards-grid ux4g-lang-morph" id="cardsGridEl">
+      <div class="ux4g-card-item">
+        <div class="card-banner-graphic-custom">
+          <svg viewBox="0 0 400 200" fill="none" xmlns="http://www.w3.org/2000/svg" class="card-custom-svg">
+            <defs><linearGradient id="bgGrad1" x1="0" y1="0" x2="400" y2="200" gradientUnits="userSpaceOnUse"><stop stop-color="#ff7675"/><stop offset="1" stop-color="#d63031"/></linearGradient><linearGradient id="shieldGrad1" x1="0" y1="0" x2="0" y2="140" gradientUnits="userSpaceOnUse"><stop stop-color="#ffffff" stop-opacity="0.95"/><stop offset="1" stop-color="#ffeaa7" stop-opacity="0.9"/></linearGradient></defs>
+            <rect width="400" height="200" fill="url(#bgGrad1)"/>
+            <circle cx="200" cy="100" r="140" stroke="#ffffff" stroke-opacity="0.1" stroke-width="2" stroke-dasharray="6 6"/>
+            <circle cx="200" cy="100" r="90" stroke="#ffffff" stroke-opacity="0.15" stroke-width="2"/>
+            <g><path d="M200 20 L260 50 C260 125 200 165 200 165 C200 165 140 125 140 50 Z" fill="url(#shieldGrad1)" stroke="#ffffff" stroke-width="4"/><path d="M200 32 L248 56 C248 116 200 150 200 150 C200 150 152 116 152 56 Z" fill="#fff5f5"/></g>
+            <circle cx="188" cy="74" r="13" fill="#d63031"/><path d="M168 120 C168 98 208 98 208 120 Z" fill="#d63031"/><circle cx="214" cy="85" r="9" fill="#e17055"/><path d="M198 122 C198 106 230 106 230 122 Z" fill="#e17055"/>
+            <g transform="translate(35, 55)"><rect width="90" height="90" rx="45" fill="#ffffff"/><circle cx="45" cy="45" r="38" fill="#ff7675"/><rect x="41" y="26" width="9" height="26" rx="4" fill="#ffffff"/><rect x="30" y="32" width="9" height="20" rx="4" fill="#ffffff"/><rect x="52" y="30" width="9" height="22" rx="4" fill="#ffffff"/><path d="M27 48 C27 62 38 70 45 70 C52 70 63 62 63 48 L63 40 L27 40 Z" fill="#ffffff"/></g>
+            <g transform="translate(275, 55)"><rect width="90" height="90" rx="45" fill="#ffffff"/><circle cx="45" cy="45" r="38" fill="#2d3436"/><rect x="30" y="44" width="30" height="24" rx="4" fill="#ffeaa7"/><path d="M37 44 V34 C37 28 53 28 53 34 V44" stroke="#ffeaa7" stroke-width="5" stroke-linecap="round" fill="none"/><circle cx="45" cy="54" r="3" fill="#2d3436"/></g>
+          </svg>
+        </div>
+        <div class="card-text-body">
+          <h3 class="card-title-header" id="card1TitleEl">महिला एवं बाल सुरक्षा</h3>
+          <p class="card-desc-paragraph" id="card1DescEl">ऑनलाइन उत्पीड़न, अवांछित संदेशों और साइबर अपराधों की गोपनीय रिपोर्ट दर्ज करें।</p>
+          <a href="https://cybercrime.gov.in" target="_blank" rel="noreferrer" class="card-cta-button" id="card1BtnEl">सुरक्षित रिपोर्ट करें →</a>
+        </div>
+      </div>
+      <div class="ux4g-card-item">
+        <div class="card-banner-graphic-custom">
+          <svg viewBox="0 0 400 200" fill="none" xmlns="http://www.w3.org/2000/svg" class="card-custom-svg">
+            <defs><linearGradient id="bgGrad2" x1="0" y1="0" x2="400" y2="200" gradientUnits="userSpaceOnUse"><stop stop-color="#0984e3"/><stop offset="1" stop-color="#00cec9"/></linearGradient><linearGradient id="cardGrad" x1="0" y1="0" x2="160" y2="100" gradientUnits="userSpaceOnUse"><stop stop-color="#2d3436"/><stop offset="1" stop-color="#636e72"/></linearGradient></defs>
+            <rect width="400" height="200" fill="url(#bgGrad2)"/>
+            <circle cx="200" cy="100" r="140" stroke="#ffffff" stroke-opacity="0.1" stroke-width="2" stroke-dasharray="6 6"/>
+            <circle cx="200" cy="100" r="90" stroke="#ffffff" stroke-opacity="0.15" stroke-width="2"/>
+            <g transform="translate(35, 45)"><rect width="160" height="100" rx="12" fill="url(#cardGrad)" stroke="#ffffff" stroke-width="2.5"/><rect x="20" y="26" width="24" height="20" rx="4" fill="#fdcb6e"/><line x1="20" y1="36" x2="44" y2="36" stroke="#b2bec3" stroke-width="1.5"/><path d="M52 28 C57 33 57 39 52 44" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.85"/><circle cx="26" cy="68" r="3.5" fill="#ffffff" opacity="0.9"/><circle cx="36" cy="68" r="3.5" fill="#ffffff" opacity="0.9"/><circle cx="46" cy="68" r="3.5" fill="#ffffff" opacity="0.9"/><circle cx="56" cy="68" r="3.5" fill="#ffffff" opacity="0.9"/><circle cx="74" cy="68" r="3.5" fill="#ffffff" opacity="0.9"/><circle cx="84" cy="68" r="3.5" fill="#ffffff" opacity="0.9"/><circle cx="94" cy="68" r="3.5" fill="#ffffff" opacity="0.9"/><circle cx="104" cy="68" r="3.5" fill="#ffffff" opacity="0.9"/><circle cx="128" cy="78" r="11" fill="#eb4d4b" opacity="0.9"/><circle cx="140" cy="78" r="11" fill="#f0932b" opacity="0.9"/><g transform="translate(118, -10)"><polygon points="18,0 36,32 0,32" fill="#e74c3c" stroke="#ffffff" stroke-width="2.5"/><text x="18" y="27" text-anchor="middle" fill="#ffffff" font-size="18" font-weight="900">!</text></g></g>
+            <g transform="translate(225, 35)"><rect width="140" height="120" rx="16" fill="#ffffff" stroke="#00cec9" stroke-width="3.5"/><circle cx="70" cy="42" r="24" fill="#d63031"/><text x="70" y="51" text-anchor="middle" fill="#ffffff" font-size="22">📞</text><text x="70" y="86" text-anchor="middle" fill="#0984e3" font-size="24" font-weight="900" font-family="sans-serif">1930</text><text x="70" y="104" text-anchor="middle" fill="#2d3436" font-size="10" font-weight="900" letter-spacing="0.8">24x7 HELPLINE</text></g>
+          </svg>
+        </div>
+        <div class="card-text-body">
+          <h3 class="card-title-header" id="card2TitleEl">वित्तीय धोखाधड़ी रोकथाम</h3>
+          <p class="card-desc-paragraph" id="card2DescEl">नकली बैंक KYC, फर्जी सब्सिडी, लॉटरी व आधार OTP फ्रॉड से तुरंत सुरक्षा व सहायता।</p>
+          <a href="tel:1930" class="card-cta-button" style="background: var(--gov-red);" id="card2BtnEl">1930 पर कॉल करें</a>
+        </div>
+      </div>
+      <div class="ux4g-card-item">
+        <div class="card-banner-graphic-custom">
+          <svg viewBox="0 0 400 200" fill="none" xmlns="http://www.w3.org/2000/svg" class="card-custom-svg">
+            <defs><linearGradient id="bgGrad3" x1="0" y1="0" x2="400" y2="200" gradientUnits="userSpaceOnUse"><stop stop-color="#6c5ce7"/><stop offset="1" stop-color="#4834d4"/></linearGradient></defs>
+            <rect width="400" height="200" fill="url(#bgGrad3)"/>
+            <circle cx="200" cy="100" r="140" stroke="#ffffff" stroke-opacity="0.1" stroke-width="2" stroke-dasharray="6 6"/>
+            <circle cx="200" cy="100" r="90" stroke="#ffffff" stroke-opacity="0.15" stroke-width="2"/>
+            <line x1="80" y1="60" x2="200" y2="100" stroke="#ffffff" stroke-opacity="0.2" stroke-width="2" stroke-dasharray="4 4"/>
+            <line x1="320" y1="60" x2="200" y2="100" stroke="#ffffff" stroke-opacity="0.2" stroke-width="2" stroke-dasharray="4 4"/>
+            <line x1="80" y1="140" x2="200" y2="100" stroke="#ffffff" stroke-opacity="0.2" stroke-width="2" stroke-dasharray="4 4"/>
+            <line x1="320" y1="140" x2="200" y2="100" stroke="#ffffff" stroke-opacity="0.2" stroke-width="2" stroke-dasharray="4 4"/>
+            <g transform="translate(145, 30)"><path d="M55 25 C30 25 22 55 20 85 C32 85 78 85 90 85 C88 55 80 25 55 25 Z" fill="#1e272e" stroke="#00d2d3" stroke-width="2"/><ellipse cx="55" cy="55" rx="16" ry="10" fill="#0f172a"/><rect x="42" y="52" width="10" height="6" rx="2" fill="#00d2d3"/><rect x="58" y="52" width="10" height="6" rx="2" fill="#00d2d3"/><rect x="15" y="85" width="80" height="42" rx="4" fill="#2f3640" stroke="#ffffff" stroke-width="1.5"/><rect x="22" y="90" width="66" height="28" rx="2" fill="#000000"/><circle cx="55" cy="100" r="5" fill="#ff4757"/><rect x="52" y="105" width="6" height="3" rx="1" fill="#ff4757"/><line x1="30" y1="96" x2="42" y2="96" stroke="#00d2d3" stroke-width="1.5" stroke-linecap="round"/><line x1="30" y1="102" x2="38" y2="102" stroke="#00d2d3" stroke-width="1.5" stroke-linecap="round"/><line x1="68" y1="96" x2="80" y2="96" stroke="#00d2d3" stroke-width="1.5" stroke-linecap="round"/><line x1="72" y1="102" x2="80" y2="102" stroke="#00d2d3" stroke-width="1.5" stroke-linecap="round"/><path d="M5 127 L105 127 L95 133 L15 133 Z" fill="#718093"/></g>
+            <g transform="translate(45, 30)"><circle cx="30" cy="30" r="26" fill="#ffffff"/><circle cx="30" cy="30" r="18" fill="#4834d4"/><text x="30" y="38" text-anchor="middle" fill="#ffffff" font-size="18">⚙️</text></g>
+            <g transform="translate(295, 30)"><circle cx="30" cy="30" r="26" fill="#ffffff"/><polygon points="30,12 48,44 12,44" fill="#fbc531" stroke="#2f3640" stroke-width="2"/><text x="30" y="40" text-anchor="middle" fill="#2f3640" font-size="16" font-weight="900">!</text></g>
+            <g transform="translate(45, 115)"><circle cx="30" cy="30" r="26" fill="#ffffff"/><rect x="18" y="30" width="24" height="18" rx="3" fill="#38ada9"/><path d="M22 30 V22 C22 17 34 17 34 22" stroke="#38ada9" stroke-width="4" stroke-linecap="round" fill="none"/><circle cx="30" cy="39" r="2" fill="#ffffff"/></g>
+            <g transform="translate(295, 115)"><circle cx="30" cy="30" r="26" fill="#ffffff"/><rect x="16" y="20" width="28" height="22" rx="4" fill="#0984e3"/><circle cx="30" cy="28" r="4" fill="#ffffff"/><path d="M22 40 C22 35 38 35 38 40 Z" fill="#ffffff"/><circle cx="40" cy="20" r="7" fill="#e84118"/><text x="40" y="24" text-anchor="middle" fill="#ffffff" font-size="9" font-weight="900">🔒</text></g>
+          </svg>
+        </div>
+        <div class="card-text-body">
+          <h3 class="card-title-header" id="card3TitleEl">अन्य साइबर अपराध</h3>
+          <p class="card-desc-paragraph" id="card3DescEl">रैंसमवेयर, पहचान चोरी, मैलवेयर, सोशल मीडिया हैकिंग व अन्य साइबर अपराधों की रिपोर्ट दर्ज करें।</p>
+          <a href="https://cybercrime.gov.in" target="_blank" rel="noreferrer" class="card-cta-button" id="card3BtnEl">शिकायत दर्ज करें →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+  <button type="button" class="ux4g-fab-btn" id="btnFabA11y" aria-label="Open Accessibility Options (Ctrl+F2)" title="Accessibility Options (Ctrl+F2)"><span class="fab-icon">♿</span><span class="fab-shortcut-text">Ctrl+F2</span></button>
+  <div class="ux4g-drawer-backdrop" id="a11yDrawerBackdrop" style="display: none;">
+    <div class="ux4g-drawer-panel" id="a11yDrawerPanel" role="dialog" aria-modal="true" aria-labelledby="a11yDrawerTitle">
+      <div class="ux4g-drawer-header"><div class="ux4g-header-title"><span>♿</span><span id="a11yDrawerTitle">Accessibility Options by UX4G</span></div><button type="button" class="ux4g-close-btn" id="btnCloseDrawer" aria-label="Close Drawer">✕</button></div>
+      <div class="ux4g-drawer-scroll">
+        <div class="ux4g-section-group">
+          <h4 class="ux4g-section-title" id="colorContrastHeading">Color & Contrast</h4>
+          <div class="ux4g-tiles-grid cols-3">
+            <button type="button" class="ux4g-tile-btn" data-color="monochrome"><span class="tile-icon">💧</span><span class="tile-label" id="lblMonochrome">Monochrome</span></button>
+            <button type="button" class="ux4g-tile-btn" data-color="highSaturate"><span class="tile-icon">🌓</span><span class="tile-label" id="lblHighSaturate">High Saturate</span></button>
+            <button type="button" class="ux4g-tile-btn" data-color="lowSaturate"><span class="tile-icon">🌘</span><span class="tile-label" id="lblLowSaturate">Low Saturate</span></button>
+            <button type="button" class="ux4g-tile-btn" data-color="darkMode"><span class="tile-icon">🌙</span><span class="tile-label" id="lblDarkMode">Dark Mode</span></button>
+            <button type="button" class="ux4g-tile-btn" data-color="invert"><span class="tile-icon">🔄</span><span class="tile-label" id="lblInvert">Invert Colors</span></button>
+          </div>
+        </div>
+        <div class="ux4g-section-group">
+          <h4 class="ux4g-section-title" id="contentAdjustHeading">Content Adjustment</h4>
+          <div class="ux4g-tiles-grid cols-3">
+            <button type="button" class="ux4g-tile-btn" data-content="biggerText"><span class="tile-icon">A+</span><span class="tile-label" id="lblBiggerText">Bigger Text</span></button>
+            <button type="button" class="ux4g-tile-btn" data-content="lineHeight"><span class="tile-icon">⇕</span><span class="tile-label" id="lblLineHeight">Line Height</span></button>
+            <button type="button" class="ux4g-tile-btn" data-content="textSpacing"><span class="tile-icon">A↔A</span><span class="tile-label" id="lblTextSpacing">Text Spacing</span></button>
+            <button type="button" class="ux4g-tile-btn" data-content="highlightLinks"><span class="tile-icon">🔗</span><span class="tile-label" id="lblHighlightLinks">Highlight Links</span></button>
+            <button type="button" class="ux4g-tile-btn" data-content="dyslexiaFont"><span class="tile-icon">Df</span><span class="tile-label" id="lblDyslexia">Dyslexia Font</span></button>
+            <button type="button" class="ux4g-tile-btn" data-content="hideImages"><span class="tile-icon">🚫</span><span class="tile-label" id="lblHideImages">Hide Images</span></button>
+          </div>
+        </div>
+        <button type="button" class="ux4g-reset-btn" id="btnResetA11y">🔄 <span id="lblResetAll">Reset All Options</span></button>
+      </div>
+    </div>
+  </div>
+  <div class="ux4g-drawer-backdrop" id="dossierModalBackdrop" style="display: none;">
+    <div class="verdict-master-box" style="max-width: 740px; width: 92%; margin: auto; max-height: 85vh; display: flex; flex-direction: column; padding: 0; overflow: hidden;" id="dossierModalPanel">
+      <div style="background: #0f172a; color: #fff; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-weight: 800; font-size: 1.15rem; margin: 0;">📄 CERT-In Cyber Incident Takedown Dossier</h3>
+        <button type="button" style="background: transparent; border: none; color: #fff; font-size: 1.5rem; cursor: pointer;" id="btnCloseDossier">✕</button>
+      </div>
+      <pre id="dossierPreText" style="padding: 24px; overflow-y: auto; font-family: var(--font-mono); font-size: 0.82rem; background: #f8fafc; color: #0f172a; flex: 1; white-space: pre-wrap; word-break: break-all; margin: 0; line-height: 1.6;">Please perform a scan first.</pre>
+      <div style="padding: 16px 24px; background: #fff; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 12px;">
+        <button type="button" class="btn-primary-ux4g" id="btnCopyDossier">📋 <span id="copyDossierBtnText">कॉपी करें (Copy Dossier)</span></button>
+        <button type="button" class="btn-secondary-ux4g" id="btnCloseDossierBottom">बंद करें (Close)</button>
+      </div>
+    </div>
+  </div>
+  <footer class="ux4g-portal-footer ux4g-lang-morph" id="footerSection" role="contentinfo">
+    <div class="footer-inner-wrap">
+      <div class="footer-main-columns">
+        <div><h4 class="footer-heading">GovShield Sentinel Grid (SIH1454)</h4><p class="footer-text" id="footerAboutEl">140 करोड़ भारतीय नागरिकों को फर्जी सरकारी पोर्टल और साइबर धोखाधड़ी से बचाने के लिए UX4G डिजाइन सिस्टम 3.0 के अनुरूप विकसित।</p></div>
+        <div><h4 class="footer-heading" id="nationalPortalsHeadingEl">राष्ट्रीय पोर्टल</h4><ul class="footer-nav-list"><li><a href="https://india.gov.in" target="_blank" rel="noreferrer">National Portal of India (india.gov.in)</a></li><li><a href="https://cybercrime.gov.in" target="_blank" rel="noreferrer">Cyber Crime Reporting Portal (I4C)</a></li></ul></div>
+        <div><h4 class="footer-heading" id="emergencyHelplinesHeadingEl">आपातकालीन हेल्पलाइन</h4><ul class="footer-nav-list"><li><a href="tel:1930">1930 — National Cyber Crime Helpline</a></li><li><a href="tel:112">112 — National Emergency Service</a></li><li><a href="tel:14440">14440 — Financial Fraud Toll-Free</a></li></ul></div>
+      </div>
+      <div class="footer-credits-bar"><p id="footerSIHEl">UX4G डिजाइन सिस्टम 3.0 के अनुरूप • स्मार्ट इंडिया हैकाथॉन 2026 के अंतर्गत विकसित</p></div>
+    </div>
+  </footer>
+  <script type="module" src="/app.js"></script>
 </body>
 </html>

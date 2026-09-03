@@ -56,6 +56,20 @@ class SafeRedirectUnroller:
         if not clean_url.startswith(("http://", "https://")):
             clean_url = "https://" + clean_url
 
+        is_shortener_used = self.is_shortener(clean_url)
+
+        # C7 Fix: Skip live HTTP for non-shortener URLs to avoid 1-3s latency penalty
+        if not is_shortener_used:
+            return {
+                "initial_url": clean_url,
+                "final_url": clean_url,
+                "is_shortener": False,
+                "is_cross_domain": False,
+                "hop_count": 1,
+                "hops": [{"hop": 1, "url": clean_url, "status_code": 200, "redirect_to": None}],
+                "redirected": False
+            }
+
         current_url = clean_url
         hops: List[Dict[str, Any]] = []
         visited: Set[str] = set()

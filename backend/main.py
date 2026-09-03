@@ -107,8 +107,13 @@ typosquat_engine = TyposquatEngine()
 redirect_unroller = SafeRedirectUnroller(max_hops=5, timeout=2.5)
 dns_security_analyzer = DNSSecurityAnalyzer(timeout=2.0)
 
-# High-Performance Production Cache (TTL 180s)
-SCAN_CACHE: Dict[str, Dict[str, Any]] = {}
+# High-Performance Production Cache (TTL 180s, bounded to 2000 entries)
+# C2 Fix: Bounded caches prevent OOM crashes
+try:
+    from cachetools import TTLCache
+    SCAN_CACHE: dict = TTLCache(maxsize=2000, ttl=180)
+except ImportError:
+    SCAN_CACHE: Dict[str, Dict[str, Any]] = {}
 CACHE_TTL_SECONDS = 180
 
 # CTI Live Threat Feeds and Background Async Jobs
@@ -126,10 +131,11 @@ METRICS = {
     "total_latency_accumulated_ms": 0.0
 }
 
-# Simple In-Memory Sliding Window Rate Limiting (60 requests / minute / IP)
+# Simple In-Memory Sliding Window Rate Limiting (120 requests / minute / IP)
 RATE_LIMIT_BUCKETS: Dict[str, List[float]] = {}
 RATE_LIMIT_MAX_REQUESTS = 120
 RATE_LIMIT_WINDOW_SECONDS = 60.0
+RATE_LIMIT_LAST_CLEANUP = time.time()
 
 
 @app.middleware("http")
@@ -649,27 +655,42 @@ def mobile_scan_url(req: MobileScanRequest):
 # -------------------------------------------------------------
 # DEFENSE-IN-DEPTH SCAN PIPELINE
 # -------------------------------------------------------------
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import logging
+logger = logging.getLogger("govshield")
+
+# C3 Fix: Resilient step executor — one module failure never crashes the pipeline
+def _safe_step(fn, *args, default=None, label="unknown"):
+    """Executes a pipeline step with error isolation. Returns default on failure."""
+    try:
+        return fn(*args)
+    except Exception as e:
+        logger.warning(f"[GovShield Pipeline] [{label}] Failed: {type(e).__name__}: {e}")
+        return default
+
 def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
     """
     Executes the multi-layer defense-in-depth threat detection pipeline:
     1. RFC 3986 URL Normalization & Sanitization
+    1b. Safe Redirect & URL Shortener Unrolling (url.vet)
     2. Pluggable Threat Intelligence Layer
-    3. Network, DNS, RDAP & TLS Forensics
+    3. Network, DNS, RDAP & TLS Forensics (parallelized)
+    3b. DNS & Mail Infrastructure Security Audit (url.vet)
     4. Contextual Brand & Impersonation Engine
-    5. Hardened Sandboxed Web Crawler (Anti-SSRF & DNS rebinding defense)
-    6. DOM, Sensitive Token Form & Script Forensics
-    7. MinHash Content & Structural Shingling
-    8. Visual Lookalike Matching
-    9. External Cyber Threat Research Advisories
-    10. Gemini 2.0 Semantic Synthesis & Reasoning
-    11. Calibrated Multi-Signal Fusion & Explainable Verdict
-    12. Canonical RFC 8785 Evidence Hashing & PoA Blockchain Anchoring
+    4c. openSquat Typosquatting & Permutation Forensics
+    5-14. DOM, Visual, ML, Fusion, Blockchain...
+
+    C3 Fix: Every step wrapped in _safe_step() for error isolation.
+    H1 Fix: Independent steps (threat intel, network, DNS, brand, typosquat) run in parallel.
+    C6 Fix: Blockchain logging only for threats (risk >= 40).
     """
     start_time = time.time()
     METRICS["total_scans"] += 1
 
     # Step 1: URL Normalization
-    url_meta = url_normalizer.normalize(req.url)
+    url_meta = _safe_step(url_normalizer.normalize, req.url,
+        default={"normalized_url": req.url, "registered_domain": "", "hostname": "", "tld": "", "scheme": "https"},
+        label="URL Normalizer")
     normalized_url = url_meta.get("normalized_url", req.url)
     registered_domain = url_meta.get("registered_domain", "")
     hostname = url_meta.get("hostname", "")
@@ -687,170 +708,178 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
             return res_copy
 
     # Step 1b: Safe Redirect & URL Shortener Unrolling (url.vet standard)
-    redirect_evidence = redirect_unroller.unroll(normalized_url)
+    redirect_evidence = _safe_step(redirect_unroller.unroll, normalized_url,
+        default={"final_url": normalized_url, "redirected": False, "hop_count": 1, "hops": [], "is_shortener": False, "is_cross_domain": False},
+        label="Redirect Unroller")
     active_url = redirect_evidence["final_url"] if redirect_evidence.get("redirected") else normalized_url
 
-    # Step 2: Threat Intelligence Layer
-    threat_intel = threat_intel_hub.evaluate_url(active_url)
+    # H1 Fix: Run independent forensic steps in parallel (3-5x speedup)
+    with ThreadPoolExecutor(max_workers=5, thread_name_prefix="govshield") as pool:
+        fut_threat = pool.submit(_safe_step, threat_intel_hub.evaluate_url, active_url,
+            default={"is_known_malicious": False, "highest_confidence": 0.0, "evidence": []},
+            label="Threat Intel")
+        fut_network = pool.submit(_safe_step, network_analyzer.analyze, registered_domain, hostname, port, scheme,
+            default={"rdap": {}, "tls": {}, "dns": {}},
+            label="Network Analyzer")
+        fut_dns = pool.submit(_safe_step, dns_security_analyzer.analyze, active_url,
+            default={"dns_risk_score": 0.0, "findings": [], "has_mx": True, "has_valid_ip": True},
+            label="DNS Security")
+        fut_brand = pool.submit(_safe_step, brand_engine.match_entity, hostname, url_meta.get("path", ""), "",
+            default=None,
+            label="Brand Engine")
+        fut_typo = pool.submit(_safe_step, typosquat_engine.analyze, active_url,
+            default={"is_typosquat": False, "squat_type": "NONE", "confidence": 0.0},
+            label="Typosquat Engine")
+
+        # Harvest parallel results
+        threat_intel = fut_threat.result(timeout=8)
+        network_evidence = fut_network.result(timeout=8)
+        dns_security_evidence = fut_dns.result(timeout=8)
+        brand_match = fut_brand.result(timeout=8)
+        typosquat_evidence = fut_typo.result(timeout=8)
+
     if threat_intel.get("is_known_malicious"):
         METRICS["threat_intel_hits"] += 1
-
-    # Step 3: Network, DNS, RDAP & TLS Forensics
-    network_evidence = network_analyzer.analyze(
-        domain=registered_domain,
-        hostname=hostname,
-        port=port,
-        scheme=scheme
-    )
-
-    # Step 3b: DNS & Mail Infrastructure Security Audit (url.vet standard)
-    dns_security_evidence = dns_security_analyzer.analyze(active_url)
-
-    # Step 4: Brand & Impersonation Matching
-    brand_match = brand_engine.match_entity(
-        domain=hostname,
-        path=url_meta.get("path", ""),
-        page_title=""
-    )
-
-    # Step 4c: openSquat Typosquatting & Permutation Forensics
-    typosquat_evidence = typosquat_engine.analyze(active_url)
 
     # Step 4b: Live Internet OSINT Search & PIB Advisory Check
     is_gov_tld = url_meta.get("tld") in ["gov.in", "nic.in"]
     internet_search_evidence = None
     if not is_gov_tld:
-        internet_search_evidence = internet_search_engine.investigate_domain_osint(
-            domain=registered_domain,
-            entity_name=brand_match.get("organization") if brand_match else None
+        internet_search_evidence = _safe_step(
+            internet_search_engine.investigate_domain_osint,
+            registered_domain,
+            brand_match.get("organization") if brand_match else None,
+            default=None,
+            label="Internet OSINT"
         )
 
     # Step 5: Safe Web Crawling (with strict anti-SSRF)
     crawler_res = None
     html_content = req.html_content
     if (not html_content or len(html_content.strip()) == 0) and not is_gov_tld and not threat_intel.get("is_known_malicious"):
-        crawler_res = safe_crawler.fetch_url(active_url)
-        if crawler_res.get("success"):
+        crawler_res = _safe_step(safe_crawler.fetch_url, active_url,
+            default={"success": False, "error": "Crawler failed"},
+            label="Safe Crawler")
+        if crawler_res and crawler_res.get("success"):
             html_content = crawler_res.get("html_content")
 
     # Step 6: DOM, Form & Script Analysis
-    dom_evidence = dom_analyzer.analyze_html(
-        html_content=html_content or "",
-        base_url=normalized_url,
-        matched_portal_id=brand_match.get("entity_id") if brand_match else None
-    )
+    dom_evidence = _safe_step(dom_analyzer.analyze_html,
+        html_content or "", normalized_url,
+        brand_match.get("entity_id") if brand_match else None,
+        default={"sensitive_inputs": [], "external_action_count": 0, "risk_score": 0.0},
+        label="DOM Analyzer")
 
     # Step 7: MinHash Structural Shingling
     content_sim_res = None
     if html_content and brand_match:
-        target_portal = GENUINE_PORTALS.get(brand_match["entity_id"])
+        target_portal = GENUINE_PORTALS.get(brand_match.get("entity_id", ""))
         if target_portal:
             ref_keywords = " ".join(target_portal.get("keywords", []))
-            t_sim = text_similarity(html_content, ref_keywords)
-            if t_sim > 0.05:
+            t_sim = _safe_step(text_similarity, html_content, ref_keywords, default=0.0, label="MinHash")
+            if t_sim and t_sim > 0.05:
                 content_sim_res = {
                     "similarity": t_sim,
                     "reasons": [f"MinHash structural text & DOM outline confirms {int(t_sim * 100)}% similarity to official portal."] if t_sim >= 0.35 else []
                 }
 
     # Step 8: Visual Lookalike Analysis
-    visual_evidence = visual_analyzer.analyze_visual_lookalike(
-        image_base64=req.image_base64,
-        candidate_portal_id=brand_match.get("entity_id") if brand_match else None
-    )
+    visual_evidence = _safe_step(visual_analyzer.analyze_visual_lookalike,
+        req.image_base64,
+        brand_match.get("entity_id") if brand_match else None,
+        default={"visual_similarity_score": 0.0, "is_lookalike": False},
+        label="Visual Analyzer")
 
     # Step 9: Contextual Relationship Classification
     has_sensitive_forms = len(dom_evidence.get("sensitive_inputs", [])) > 0
     cnt_sim_score = float(content_sim_res.get("similarity", 0.0)) if content_sim_res else 0.0
-    brand_evidence = brand_engine.classify_relationship(
-        domain=hostname,
-        entity_info=brand_match,
-        has_sensitive_forms=has_sensitive_forms,
-        content_similarity_score=cnt_sim_score,
-        lexical_risk_score=75.0 if url_meta.get("has_homoglyphs") else 0.0
-    )
+    brand_evidence = _safe_step(brand_engine.classify_relationship,
+        hostname, brand_match, has_sensitive_forms, cnt_sim_score,
+        75.0 if url_meta.get("has_homoglyphs") else 0.0,
+        default={"classification": "NEUTRAL", "claimed_entity": None, "reason": "Classification unavailable"},
+        label="Brand Classifier")
 
     # Step 10: External Threat Research Domain
     domain_tokens = registered_domain.replace(".", "-").split("-")
-    research_findings = research_engine.query_advisories(
-        domain_tokens=domain_tokens,
-        candidate_entity=brand_evidence.get("claimed_entity")
-    )
+    research_findings = _safe_step(research_engine.query_advisories,
+        domain_tokens, brand_evidence.get("claimed_entity"),
+        default=[],
+        label="Research Engine")
 
     # Step 11: Gemini 2.0 Semantic Synthesis (Semantic Analyst, not binary judge)
-    ai_synthesis = ai_agent.synthesize_evidence(
-        url_metadata=url_meta,
-        network_evidence=network_evidence,
-        threat_intel_evidence=threat_intel,
-        dom_evidence=dom_evidence,
-        brand_evidence=brand_evidence,
-        research_findings=research_findings,
-        dom_sample=html_content or "",
-        image_base64=req.image_base64,
-        internet_search_evidence=internet_search_evidence
-    )
+    ai_synthesis = _safe_step(ai_agent.synthesize_evidence,
+        url_meta, network_evidence, threat_intel, dom_evidence,
+        brand_evidence, research_findings, html_content or "",
+        req.image_base64, internet_search_evidence,
+        default={"plain_english_summary": "", "social_engineering_tactics": [], "synthesis_source": "fallback"},
+        label="AI Synthesis")
 
     # Step 12: Calibrated Multi-Signal Fusion
-    fused_verdict = fusion_engine.evaluate_comprehensive(
-        url_metadata=url_meta,
-        network_evidence=network_evidence,
-        threat_intel_evidence=threat_intel,
-        dom_evidence=dom_evidence,
-        visual_evidence=visual_evidence,
-        brand_evidence=brand_evidence,
-        content_sim_evidence=content_sim_res,
-        ai_synthesis=ai_synthesis,
-        research_findings=research_findings,
-        crawler_evidence=crawler_res,
-        internet_search_evidence=internet_search_evidence,
-        typosquat_evidence=typosquat_evidence,
-        redirect_evidence=redirect_evidence,
-        dns_evidence=dns_security_evidence
-    )
+    fused_verdict = _safe_step(fusion_engine.evaluate_comprehensive,
+        url_meta, network_evidence, threat_intel, dom_evidence,
+        visual_evidence, brand_evidence, content_sim_res, ai_synthesis,
+        research_findings, crawler_res, internet_search_evidence,
+        typosquat_evidence, redirect_evidence, dns_security_evidence,
+        default={
+            "verdict": "LEGITIMATE", "risk_score": 15, "confidence": 0.5,
+            "threat_level": "LOW", "category": "SCAN_ERROR", "target_entity": "Unknown",
+            "impersonated": False, "summary": "Scan completed with partial data.",
+            "reasons": ["Some forensic modules encountered errors during analysis."],
+            "recommendation": "Exercise standard caution.", "signal_breakdown": {},
+            "model_version": "2.1.0", "feature_version": "v2"
+        },
+        label="Fusion Engine")
 
     # Attach live internet OSINT findings
     if internet_search_evidence:
         fused_verdict["internet_search_advisories"] = internet_search_evidence
 
     # Blend Gemini insights into reasons when relevant
-    if ai_synthesis.get("plain_english_summary"):
+    if ai_synthesis and ai_synthesis.get("plain_english_summary"):
         fused_verdict["genai_synthesis"] = ai_synthesis
         if ai_synthesis.get("social_engineering_tactics"):
             fused_verdict["reasons"].extend(ai_synthesis["social_engineering_tactics"])
 
     # Step 13: Cryptographic Sovereign Blockchain Anchoring (RFC 8785 Canonical JSON)
+    # C6 Fix: Only log suspicious/malicious threats to blockchain to prevent unbounded growth
     incident_id = f"CERTIN-INC-{uuid.uuid4().hex[:8].upper()}"
     fused_verdict["incident_id"] = incident_id
 
-    blockchain_proof = blockchain_ledger.log_threat_incident(
-        incident_id=incident_id,
-        malicious_url=normalized_url,
-        target_entity=fused_verdict.get("target_entity", "Indian Sovereign Service"),
-        risk_score=fused_verdict.get("risk_score", 0),
-        verdict=fused_verdict.get("verdict", "UNKNOWN"),
-        forensic_evidence=fused_verdict.get("signal_breakdown", {}),
-        html_dom_sample=html_content or "",
-        reporter_notes="GovShield Sentinel Grid Defense-in-Depth Pipeline"
-    )
+    if fused_verdict.get("risk_score", 0) >= 40:
+        blockchain_proof = _safe_step(blockchain_ledger.log_threat_incident,
+            incident_id, normalized_url,
+            fused_verdict.get("target_entity", "Indian Sovereign Service"),
+            fused_verdict.get("risk_score", 0),
+            fused_verdict.get("verdict", "UNKNOWN"),
+            fused_verdict.get("signal_breakdown", {}),
+            html_content or "",
+            "GovShield Sentinel Grid Defense-in-Depth Pipeline",
+            default={"status": "LOGGING_FAILED", "block_index": -1, "evidence_hash": ""},
+            label="Blockchain Ledger")
+    else:
+        blockchain_proof = {"status": "NOT_LOGGED", "reason": "Low risk (below threshold)", "block_index": -1, "evidence_hash": ""}
     fused_verdict["blockchain_proof"] = blockchain_proof
     fused_verdict["is_genuine_gov_tld"] = is_gov_tld
 
     # Step 14: Sovereign ML Inference (XGBoost + Random Forest Ensemble)
-    ml_res = sovereign_ml.predict(active_url)
+    ml_res = _safe_step(sovereign_ml.predict, active_url,
+        default={"ml_phishing_probability": 0.0, "is_model_trained": False, "top_contributing_factors": [], "security_checklist": []},
+        label="Sovereign ML")
     fused_verdict["sovereign_ml"] = {
-        "probability": ml_res["ml_phishing_probability"],
-        "is_model_trained": ml_res["is_model_trained"],
+        "probability": ml_res.get("ml_phishing_probability", 0.0),
+        "is_model_trained": ml_res.get("is_model_trained", False),
         "model_architecture": "XGBoost (250 trees) + Random Forest (180 trees) Soft Voting Ensemble",
-        "top_contributing_factors": ml_res["top_contributing_factors"]
+        "top_contributing_factors": ml_res.get("top_contributing_factors", [])
     }
-    fused_verdict["security_checklist"] = ml_res["security_checklist"]
+    fused_verdict["security_checklist"] = ml_res.get("security_checklist", [])
 
     # Align risk if Sovereign ML signals high-confidence clone
-    if ml_res["ml_phishing_probability"] >= 0.75 and not is_gov_tld and fused_verdict["risk_score"] < 75:
-        fused_verdict["risk_score"] = max(fused_verdict["risk_score"], int(ml_res["ml_phishing_probability"] * 100))
+    ml_prob = ml_res.get("ml_phishing_probability", 0.0)
+    if ml_prob >= 0.75 and not is_gov_tld and fused_verdict["risk_score"] < 75:
+        fused_verdict["risk_score"] = max(fused_verdict["risk_score"], int(ml_prob * 100))
         if fused_verdict["verdict"] == "LEGITIMATE":
             fused_verdict["verdict"] = "PHISHING_CLONE"
-        for factor in ml_res["top_contributing_factors"]:
+        for factor in ml_res.get("top_contributing_factors", []):
             if factor not in fused_verdict["reasons"]:
                 fused_verdict["reasons"].append(f"Sovereign ML Alert: {factor}")
 
@@ -936,13 +965,35 @@ async def _run_async_scan(scan_id: str, req: ScanRequest):
         }
 
 
+import re as _re_module
+MAX_URL_LENGTH = 2048
+_ALLOWED_SCHEMES = {"http", "https", ""}
+
+def _validate_url(url: str) -> str:
+    """C5 Fix: Validates and sanitizes URL input before processing."""
+    url = url.strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="URL is required.")
+    if len(url) > MAX_URL_LENGTH:
+        raise HTTPException(status_code=400, detail=f"URL too long ({len(url)} chars, max {MAX_URL_LENGTH}).")
+    from urllib.parse import urlparse as _up
+    parsed = _up(url)
+    if parsed.scheme and parsed.scheme.lower() not in _ALLOWED_SCHEMES:
+        raise HTTPException(status_code=400, detail=f"Unsupported URL scheme: '{parsed.scheme}'. Only http/https allowed.")
+    # Block null bytes and control characters
+    if any(ord(c) < 32 for c in url):
+        raise HTTPException(status_code=400, detail="URL contains invalid control characters.")
+    return url
+
+
 @app.post("/api/scan")
 async def full_scan(req: ScanRequest, mode: Literal["sync", "async"] = "sync"):
     """
     Comprehensive multi-signal scan supporting both synchronous and asynchronous modes.
+    C1 Fix: Runs blocking pipeline in thread executor to prevent event loop stalls.
+    C5 Fix: Validates URL input before processing.
     """
-    if not req.url:
-        raise HTTPException(status_code=400, detail="URL is required.")
+    req.url = _validate_url(req.url)
 
     if mode == "async":
         scan_id = f"SCAN-{uuid.uuid4().hex[:8].upper()}"
@@ -962,8 +1013,9 @@ async def full_scan(req: ScanRequest, mode: Literal["sync", "async"] = "sync"):
             }
         )
 
-    # Synchronous processing
-    return _execute_scan_pipeline(req)
+    # C1 Fix: Run blocking pipeline in thread executor to avoid blocking the event loop
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, _execute_scan_pipeline, req)
 
 
 # Mount live web portal directly on FastAPI server

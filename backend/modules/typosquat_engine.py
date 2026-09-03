@@ -37,7 +37,10 @@ SOVEREIGN_TARGETS = {
     "pmvbry": {"name": "Pradhan Mantri Viksit Bharat Rozgar Yojana", "official_domain": "pmvbry.epfindia.gov.in"},
     "pmjay": {"name": "Ayushman Bharat (PM-JAY)", "official_domain": "pmjay.gov.in"},
     "sbi": {"name": "State Bank of India (OnlineSBI)", "official_domain": "onlinesbi.sbi"},
-    "onlinesbi": {"name": "State Bank of India", "official_domain": "onlinesbi.sbi"}
+    "onlinesbi": {"name": "State Bank of India", "official_domain": "onlinesbi.sbi"},
+    "gov": {"name": "Government of India Sovereign TLD (.gov.in)", "official_domain": "india.gov.in"},
+    "nic": {"name": "National Informatics Centre (.nic.in)", "official_domain": "nic.in"},
+    "india": {"name": "National Portal of India", "official_domain": "india.gov.in"}
 }
 
 
