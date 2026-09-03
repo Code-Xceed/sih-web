@@ -574,27 +574,40 @@ function updateRow(layerNum, icon, badgeClass, badgeText) {
   }
 }
 
+const POPUP_BCP47 = {
+  en: "en-IN", hi: "hi-IN", bn: "bn-IN", ta: "ta-IN", te: "te-IN", mr: "mr-IN",
+  gu: "gu-IN", kn: "kn-IN", ml: "ml-IN", pa: "pa-IN", or: "or-IN", as: "as-IN"
+};
+
 function speakVerdict(data) {
   if (!("speechSynthesis" in window)) return;
+  const audioBtn = document.getElementById("btnPopupAudio");
   if (isSpeaking) {
     window.speechSynthesis.cancel();
     isSpeaking = false;
+    if (audioBtn) audioBtn.textContent = "🔊";
     return;
   }
 
+  const lang = (document.getElementById("popupLangSelect")?.value) || "en";
+  const t = POPUP_I18N[lang] || POPUP_I18N.en;
   const score = data.risk_score || 0;
   let text = "";
   if (score >= 66) {
-    text = "सावधान! यह वेबसाइट फर्जी है जो सरकारी पोर्टल की नकल कर रही है। अपना आधार नंबर या बैंक OTP यहाँ कभी दर्ज न करें!";
+    text = t.dangerAdv;
+  } else if (score <= 25) {
+    text = t.safeAdv;
   } else {
-    text = "यह वेबसाइट पूरी तरह से प्रामाणिक और सुरक्षित सरकारी पोर्टल है।";
+    text = t.cautionAdv;
   }
 
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "hi-IN";
+  utterance.lang = POPUP_BCP47[lang] || "hi-IN";
   utterance.rate = 0.9;
-  utterance.onend = () => { isSpeaking = false; };
+  utterance.onend = () => { isSpeaking = false; if (audioBtn) audioBtn.textContent = "🔊"; };
+  utterance.onerror = () => { isSpeaking = false; if (audioBtn) audioBtn.textContent = "🔊"; };
   isSpeaking = true;
+  if (audioBtn) audioBtn.textContent = "⏹️";
   window.speechSynthesis.speak(utterance);
 }
 
