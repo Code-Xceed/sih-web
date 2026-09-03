@@ -22,7 +22,8 @@ chrome.storage.onChanged.addListener((changes, area) => {
 const OFFICIAL_GOV_DOMAINS = [
   "gov.in", "nic.in", "ac.in", "res.in", "edu.in",
   "pmkisan.gov.in", "incometax.gov.in", "uidai.gov.in",
-  "parivahan.gov.in", "epfindia.gov.in", "passportindia.gov.in", "digilocker.gov.in"
+  "parivahan.gov.in", "epfindia.gov.in", "passportindia.gov.in", "digilocker.gov.in",
+  "samagra.education.gov.in", "ssc.gov.in", "pmvbry.epfindia.gov.in"
 ];
 
 const AUTHENTIC_COMMERCIAL_DOMAINS = [
@@ -33,7 +34,8 @@ const AUTHENTIC_COMMERCIAL_DOMAINS = [
 ];
 
 const SUSPICIOUS_KEYWORDS = [
-  "pmkisan", "incometax", "uidai", "aadhaar", "parivahan", "epfindia", "passport", "digilocker"
+  "pmkisan", "incometax", "uidai", "aadhaar", "parivahan", "epfindia", "passport", "digilocker",
+  "samagra", "shikshaabhiyan", "sarvashiksha", "shiksha", "ssc", "pmvbry"
 ];
 
 // Helper: Set badge state

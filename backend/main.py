@@ -172,6 +172,15 @@ class VerifyEvidenceRequest(BaseModel):
     evidence_bundle: Dict[str, Any]
 
 
+class MobileMessageInspectRequest(BaseModel):
+    message_text: str = Field(..., description="Raw SMS or messaging text containing suspicious links")
+    sender_id: Optional[str] = Field(None, description="Sender alphanumeric header (e.g. VM-PMKISAN, SBIINB)")
+
+
+class MobileScanRequest(BaseModel):
+    url: str = Field(..., description="Target URL scanned via mobile app, camera QR, or clipboard")
+
+
 # -------------------------------------------------------------
 # Health, Readiness, and Observability Endpoints
 # -------------------------------------------------------------
@@ -394,6 +403,238 @@ def quick_check(req: QuickCheckRequest):
         "verdict": verdict,
         "target_entity": brand_match.get("organization") if brand_match else "Commercial Platform",
         "is_genuine_gov_tld": is_gov
+    }
+
+
+# -------------------------------------------------------------
+# DNS / DoH (DNS-over-HTTPS) & Network Firewall Endpoints
+# -------------------------------------------------------------
+@app.get("/dns-query")
+def dns_query_endpoint(name: str, type: str = "A"):
+    """
+    RFC 8484 / RFC 8427 DNS-over-HTTPS (DoH) Resolver & Threat Sinkhole.
+    Enables mobile phones (Android Private DNS), browser DoH, and home routers
+    to block phishing domains at the DNS resolver level before any connection is made.
+    """
+    import socket
+    clean_domain = name.strip().rstrip(".").lower()
+    url_meta = url_normalizer.normalize(clean_domain)
+    domain = url_meta.get("registered_domain", clean_domain)
+    is_gov = url_meta.get("tld") in ["gov.in", "nic.in"]
+
+    threat_intel = threat_intel_hub.evaluate_url(f"https://{clean_domain}")
+    brand_match = brand_engine.match_entity(domain)
+
+    is_malicious = bool(threat_intel.get("is_known_malicious"))
+    if brand_match and not is_gov and not brand_match.get("is_official_domain"):
+        rel = brand_engine.classify_relationship(domain, brand_match)
+        if rel["classification"] in ["MALICIOUS_IMPERSONATION", "SUSPICIOUS_IMPERSONATION"]:
+            is_malicious = True
+
+    if is_malicious and not is_gov:
+        return {
+            "Status": 0,
+            "TC": False,
+            "RD": True,
+            "RA": True,
+            "AD": True,
+            "CD": False,
+            "Question": [{"name": f"{clean_domain}.", "type": 1}],
+            "Answer": [{"name": f"{clean_domain}.", "type": 1, "TTL": 60, "data": "0.0.0.0"}],
+            "Comment": f"GovShield Sovereign DNS Sinkhole: Blocked Phishing / Impersonation Campaign ({domain})"
+        }
+
+    resolved_ip = "127.0.0.1"
+    try:
+        resolved_ip = socket.gethostbyname(clean_domain)
+    except Exception:
+        resolved_ip = "1.1.1.1"
+
+    return {
+        "Status": 0,
+        "TC": False,
+        "RD": True,
+        "RA": True,
+        "AD": True,
+        "CD": False,
+        "Question": [{"name": f"{clean_domain}.", "type": 1}],
+        "Answer": [{"name": f"{clean_domain}.", "type": 1, "TTL": 300, "data": resolved_ip}]
+    }
+
+
+@app.get("/api/dns/check")
+def dns_check_endpoint(domain: str):
+    """
+    Sub-millisecond domain inspection for firewalls, Pi-hole, and gateway routers.
+    """
+    clean_domain = domain.strip().rstrip(".").lower()
+    url_meta = url_normalizer.normalize(clean_domain)
+    reg_domain = url_meta.get("registered_domain", clean_domain)
+    is_gov = url_meta.get("tld") in ["gov.in", "nic.in"]
+
+    threat_intel = threat_intel_hub.evaluate_url(f"https://{clean_domain}")
+    brand_match = brand_engine.match_entity(reg_domain)
+
+    action = "ALLOW"
+    risk_score = 0
+    category = "AUTHENTIC_WEB"
+
+    if is_gov:
+        action = "ALLOW"
+        risk_score = 2
+        category = "OFFICIAL_GOVERNMENT_PORTAL"
+    elif threat_intel.get("is_known_malicious"):
+        action = "BLOCK"
+        risk_score = 99
+        category = "GOVERNMENT_IMPERSONATION_SCAM"
+    elif brand_match and not brand_match.get("is_official_domain"):
+        action = "BLOCK"
+        risk_score = 85
+        category = "UNAUTHORIZED_GOVERNMENT_LOOKALIKE"
+
+    return {
+        "domain": clean_domain,
+        "action": action,
+        "risk_score": risk_score,
+        "category": category,
+        "sinkhole_ip": "0.0.0.0" if action == "BLOCK" else None,
+        "target_entity": brand_match.get("organization") if brand_match else None,
+        "timestamp": time.time()
+    }
+
+
+@app.get("/api/dns/blocklist.txt")
+def dns_blocklist_hosts_format():
+    """
+    Exports live threat domains in standard Hosts / Pi-hole / AdGuard Home format.
+    Allows routers and network firewalls to subscribe to automated updates.
+    """
+    lines = [
+        "# ==================================================================",
+        "# GovShield Sentinel Grid — Sovereign Threat Intelligence Blocklist",
+        "# Format: Standard Hosts / Pi-hole / AdGuard Home Sinkhole",
+        f"# Generated: {datetime.datetime.now(datetime.timezone.utc).isoformat()}",
+        "# ==================================================================\n"
+    ]
+    dataset_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "indian_phishing_dataset.json")
+    blocked_domains = set()
+    if os.path.exists(dataset_path):
+        try:
+            with open(dataset_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                for entry in data.get("confirmed_scam_domains", []):
+                    blocked_domains.add(entry["domain"])
+                    for sub in entry.get("subdomains", []):
+                        blocked_domains.add(sub)
+        except Exception:
+            pass
+
+    for d in sorted(blocked_domains):
+        lines.append(f"0.0.0.0 {d}")
+
+    return StreamingResponse(
+        iter(["\n".join(lines)]),
+        media_type="text/plain",
+        headers={"Content-Disposition": "inline; filename=govshield_sinkhole_hosts.txt"}
+    )
+
+
+# -------------------------------------------------------------
+# Mobile Citizen App Endpoints (SMS / WhatsApp / Camera QR)
+# -------------------------------------------------------------
+@app.post("/api/mobile/inspect-message")
+def mobile_inspect_message(req: MobileMessageInspectRequest):
+    """
+    Mobile Citizen App Endpoint: Inspects suspicious SMS, WhatsApp messages,
+    or UPI text for deceptive scheme links, fake teacher recruitment, or power disconnection threats.
+    """
+    import re
+    url_regex = r'(https?://[^\s]+|[a-zA-Z0-9][-a-zA-Z0-9]*\.(?:co\.in|gov\.in|nic\.in|com|org|online|xyz|top|site|in)[^\s]*)'
+    found_urls = re.findall(url_regex, req.message_text)
+
+    if not found_urls:
+        return {
+            "is_threat": False,
+            "verdict": "NO_LINKS_DETECTED",
+            "risk_score": 0,
+            "headline_en": "No Website Links Found",
+            "headline_hi": "संदेश में कोई लिंक नहीं मिला",
+            "advisory_en": "No website link found in message text. If someone asks for OTP or bank PIN, ignore and report.",
+            "advisory_hi": "इस संदेश में कोई वेबसाइट लिंक नहीं है। यदि कोई आपसे OTP या पासवर्ड माँगे तो तुरंत अस्वीकार करें।",
+            "extracted_urls": [],
+            "action": "SAFE"
+        }
+
+    highest_risk = 0
+    primary_threat = None
+
+    for candidate_url in found_urls:
+        clean_target = candidate_url if "://" in candidate_url else f"http://{candidate_url}"
+        scan_res = _execute_scan_pipeline(ScanRequest(url=clean_target))
+        if scan_res.get("risk_score", 0) > highest_risk:
+            highest_risk = scan_res.get("risk_score", 0)
+            primary_threat = scan_res
+
+    is_threat = highest_risk >= 65
+
+    if is_threat and primary_threat:
+        entity = primary_threat.get("target_entity", "Government Scheme")
+        headline_en = f"🚨 CYBER FRAUD ALERT: Fake {entity}"
+        headline_hi = f"🚨 साइबर धोखाधड़ी चेतावनी: फर्जी {entity}"
+        advisory_en = (
+            f"WARNING: The link in this message is a fraudulent website mimicking {entity}. "
+            "DO NOT pay any registration fees, and NEVER share your Aadhaar, PAN, or OTP. "
+            "Dial 1930 immediately to report."
+        )
+        advisory_hi = (
+            f"सावधान! इस संदेश में दिया गया लिंक एक फर्जी वेबसाइट है जो {entity} की नकल कर रही है। "
+            "कोई भी आवेदन शुल्क न भरें और न ही अपना आधार या OTP साझा करें। "
+            "तुरंत 1930 पर कॉल करके शिकायत दर्ज कराएं।"
+        )
+        action = "BLOCK_AND_REPORT"
+    else:
+        headline_en = "✅ Authentic / Low Risk Message"
+        headline_hi = "✅ सुरक्षित संदेश"
+        advisory_en = "No significant malicious indicators detected in the message link."
+        advisory_hi = "इस लिंक में किसी दुर्भावनापूर्ण गतिविधि के प्रमाण नहीं मिले हैं।"
+        action = "SAFE"
+
+    return {
+        "is_threat": is_threat,
+        "verdict": primary_threat.get("verdict") if primary_threat else "LEGITIMATE",
+        "risk_score": highest_risk,
+        "threat_level": primary_threat.get("threat_level") if primary_threat else "LOW",
+        "target_entity": primary_threat.get("target_entity") if primary_threat else None,
+        "headline_en": headline_en,
+        "headline_hi": headline_hi,
+        "advisory_en": advisory_en,
+        "advisory_hi": advisory_hi,
+        "emergency_dial": "1930",
+        "action": action,
+        "extracted_urls": found_urls,
+        "details": primary_threat
+    }
+
+
+@app.post("/api/mobile/scan")
+def mobile_scan_url(req: MobileScanRequest):
+    """
+    Lightweight mobile app scan endpoint optimized for 2G/3G low-bandwidth connections.
+    """
+    full_res = _execute_scan_pipeline(ScanRequest(url=req.url))
+    return {
+        "url": full_res.get("url"),
+        "verdict": full_res.get("verdict"),
+        "risk_score": full_res.get("risk_score"),
+        "threat_level": full_res.get("threat_level"),
+        "target_entity": full_res.get("target_entity"),
+        "impersonated": full_res.get("impersonated"),
+        "summary": full_res.get("summary"),
+        "reasons": full_res.get("reasons", [])[:3],
+        "recommendation": full_res.get("recommendation"),
+        "emergency_dial": "1930",
+        "blockchain_block": full_res.get("blockchain_proof", {}).get("block_index"),
+        "incident_id": full_res.get("incident_id")
     }
 
 
