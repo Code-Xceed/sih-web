@@ -357,7 +357,9 @@ class AIAgent:
 
         evidence_payload = {
             "target_identification": {
-                "target_url": url_metadata.get("url"),
+                "target_url": url_metadata.get("normalized_url") or url_metadata.get("original_url"),
+                "full_path": url_metadata.get("path"),
+                "query_parameters": url_metadata.get("query"),
                 "registered_domain": url_metadata.get("registered_domain"),
                 "hostname": url_metadata.get("hostname"),
                 "tld": url_metadata.get("tld"),
