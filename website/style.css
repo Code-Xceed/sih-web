@@ -36,10 +36,15 @@
 }
 
 /* Accessibility Variable Overrides applied by UX4G Drawer */
-html.ux4g-monochrome, body.ux4g-monochrome { filter: grayscale(100%); }
-html.ux4g-high-saturate, body.ux4g-high-saturate { filter: saturate(200%); }
-html.ux4g-low-saturate, body.ux4g-low-saturate { filter: saturate(50%); }
-html.ux4g-invert, body.ux4g-invert { filter: invert(100%) hue-rotate(180deg); }
+html.ux4g-monochrome { filter: grayscale(100%) !important; }
+html.ux4g-high-saturate { filter: saturate(200%) !important; }
+html.ux4g-low-saturate { filter: saturate(50%) !important; }
+html.ux4g-invert { filter: invert(100%) hue-rotate(180deg) !important; }
+html.ux4g-invert img,
+html.ux4g-invert video,
+html.ux4g-invert .ux4g-drawer-panel {
+  filter: invert(100%) hue-rotate(180deg) !important;
+}
 html.ux4g-dark-mode, body.ux4g-dark-mode {
   --bg-canvas: #090d16;
   --bg-subtle: #131a29;
@@ -1485,18 +1490,6 @@ body.ux4g-dark-mode .ux4g-drawer-footer {
 /* =============================================================
    AI Webpage & Domain Analysis Card (UX4G 3.0 Standard)
    ============================================================= */
-.ai-analysis-card {
-  background: linear-gradient(135deg, #f8faff 0%, #f1f5fd 100%);
-  border: 1.5px solid #dbeafe;
-  border-radius: 12px;
-  padding: 16px 18px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 14px rgba(92, 60, 246, 0.05);
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
 .ai-analysis-card {
   position: relative;
   background: linear-gradient(135deg, #f8faff 0%, #f1f5fd 100%);

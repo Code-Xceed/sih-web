@@ -375,21 +375,36 @@ async function handleScan(targetUrl) {
   };
 
   try {
-    // 2. Query GovShield Defense-in-Depth Backend API
+    // 2. Query GovShield Defense-in-Depth Backend API with resilient 4500ms timeout
     let response = null;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4500);
+
     try {
       response = await fetch(getBackendUrl('/api/scan'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url })
+        body: JSON.stringify({ url: url }),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
     } catch (_) {
-      // Fallback probe to relative path if absolute failed
-      response = await fetch('/api/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url })
-      });
+      clearTimeout(timeoutId);
+      // Fallback probe to relative path if absolute failed or timed out
+      const fallbackCtrl = new AbortController();
+      const fallbackTimeoutId = setTimeout(() => fallbackCtrl.abort(), 2000);
+      try {
+        response = await fetch('/api/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: url }),
+          signal: fallbackCtrl.signal
+        });
+      } catch (fErr) {
+        // Ignored; fallback below
+      } finally {
+        clearTimeout(fallbackTimeoutId);
+      }
     }
 
     if (response && response.ok) {
@@ -397,7 +412,7 @@ async function handleScan(targetUrl) {
       activeResult = serverData;
       renderVerdict(serverData);
     } else {
-      console.warn("Backend API returned status", response ? response.status : "unknown", "- using client-side engine");
+      console.warn("Backend API returned non-OK or timed out - using client-side engine");
       activeResult = clientPreflight;
       renderVerdict(clientPreflight);
     }
@@ -414,9 +429,14 @@ async function handleScan(targetUrl) {
 window.handleScan = handleScan;
 
 function renderVerdict(res) {
-  const t = UX4G_STRINGS[currentLang] || UX4G_STRINGS['hi'];
-  verdictSection.style.display = 'block';
-  verdictSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  if (!res) return;
+  try {
+    const t = UX4G_STRINGS[currentLang] || UX4G_STRINGS['hi'];
+    const vSection = document.getElementById('verdictSection') || verdictSection;
+    if (vSection) {
+      vSection.style.display = 'block';
+      vSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
 
   const score = Math.max(0, Math.min(99, Math.round(res.risk_score || 0)));
   const formattedScore = score < 10 ? `0${score}` : `${score}`;
@@ -654,7 +674,6 @@ function renderVerdict(res) {
   // -----------------------------------------------------------
   // 5 Forensic Layers Dynamic Rendering
   // -----------------------------------------------------------
-  const isGov = Boolean(res.is_genuine_gov_tld);
   const typoHit = Boolean(res.typosquat_details?.is_typosquat || (res.signal_breakdown?.lexical_score > 30));
   const sensFields = res.signal_breakdown?.sensitive_fields_found || res.dom_details?.sensitive_inputs || [];
   const sensFound = sensFields.length > 0 && !isGov;
@@ -788,6 +807,9 @@ function renderVerdict(res) {
       bcAiForensicsEl.style.display = 'none';
     }
   }
+} catch (renderErr) {
+  console.error("Error in renderVerdict:", renderErr);
+}
 }
 
 // -------------------------------------------------------------
@@ -847,52 +869,72 @@ ${(activeResult.reasons || []).map((r, i) => `[${i + 1}] ${r}`).join('\n') || 'N
 }
 
 // -------------------------------------------------------------
-// Accessibility Drawer & WCAG 2.1 AAA Styling Overrides
+// Accessibility Engine & WCAG 2.1 AAA Styling Overrides
 // -------------------------------------------------------------
-function initAccessibilityDrawer() {
+function applyA11y() {
   const root = document.documentElement;
   const body = document.body;
 
-  function applyA11y() {
-    // Reset Color Filters
-    root.classList.remove('ux4g-monochrome', 'ux4g-high-saturate', 'ux4g-low-saturate', 'ux4g-dark-mode', 'ux4g-invert');
-    body.classList.remove('ux4g-monochrome', 'ux4g-high-saturate', 'ux4g-low-saturate', 'ux4g-dark-mode', 'ux4g-invert');
+  // Reset Color Filters strictly from root (avoiding body filter stacking bugs)
+  const filterClasses = ['ux4g-monochrome', 'ux4g-high-saturate', 'ux4g-low-saturate', 'ux4g-invert'];
+  root.classList.remove(...filterClasses, 'ux4g-dark-mode');
+  if (body) body.classList.remove(...filterClasses, 'ux4g-dark-mode');
 
-    if (a11yState.colorMode !== 'normal') {
-      const modeClass = `ux4g-${a11yState.colorMode.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)}`;
-      root.classList.add(modeClass);
+  if (a11yState.colorMode !== 'normal') {
+    const modeClass = `ux4g-${a11yState.colorMode.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)}`;
+    root.classList.add(modeClass);
+    if (modeClass === 'ux4g-dark-mode' && body) {
       body.classList.add(modeClass);
     }
-
-    // Content adjustments
-    const toggles = [
-      { key: 'biggerText', name: 'ux4g-bigger-text' },
-      { key: 'lineHeight', name: 'ux4g-line-height' },
-      { key: 'textSpacing', name: 'ux4g-text-spacing' },
-      { key: 'highlightLinks', name: 'ux4g-highlight-links' },
-      { key: 'dyslexiaFont', name: 'ux4g-dyslexia' },
-      { key: 'hideImages', name: 'ux4g-hide-images' }
-    ];
-
-    toggles.forEach(({ key, name }) => {
-      if (a11yState[key]) {
-        root.classList.add(name);
-        body.classList.add(name);
-      } else {
-        root.classList.remove(name);
-        body.classList.remove(name);
-      }
-    });
-
-    // Update active class on drawer buttons
-    document.querySelectorAll('[data-color]').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.color === a11yState.colorMode);
-    });
-    document.querySelectorAll('[data-content]').forEach(btn => {
-      btn.classList.toggle('active', Boolean(a11yState[btn.dataset.content]));
-    });
   }
 
+  // Content adjustments
+  const toggles = [
+    { key: 'biggerText', name: 'ux4g-bigger-text' },
+    { key: 'lineHeight', name: 'ux4g-line-height' },
+    { key: 'textSpacing', name: 'ux4g-text-spacing' },
+    { key: 'highlightLinks', name: 'ux4g-highlight-links' },
+    { key: 'dyslexiaFont', name: 'ux4g-dyslexia' },
+    { key: 'hideImages', name: 'ux4g-hide-images' }
+  ];
+
+  toggles.forEach(({ key, name }) => {
+    if (a11yState[key]) {
+      root.classList.add(name);
+      if (body) body.classList.add(name);
+    } else {
+      root.classList.remove(name);
+      if (body) body.classList.remove(name);
+    }
+  });
+
+  // Update active class on drawer buttons
+  document.querySelectorAll('[data-color]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.color === a11yState.colorMode);
+  });
+  document.querySelectorAll('[data-content]').forEach(btn => {
+    btn.classList.toggle('active', Boolean(a11yState[btn.dataset.content]));
+  });
+}
+
+function openA11yDrawer() {
+  const backdrop = document.getElementById('a11yDrawerBackdrop');
+  if (backdrop) backdrop.style.display = 'flex';
+}
+
+function closeA11yDrawer() {
+  const backdrop = document.getElementById('a11yDrawerBackdrop');
+  if (backdrop) backdrop.style.display = 'none';
+}
+
+function toggleA11yDrawer() {
+  const backdrop = document.getElementById('a11yDrawerBackdrop');
+  if (!backdrop) return;
+  const isVisible = backdrop.style.display === 'flex';
+  backdrop.style.display = isVisible ? 'none' : 'flex';
+}
+
+function initAccessibilityDrawer() {
   // Auto-detect system dark/light mode and restore saved theme
   const prefersDark = (typeof window !== 'undefined' && window.matchMedia) ? window.matchMedia('(prefers-color-scheme: dark)') : null;
   try {
@@ -918,76 +960,14 @@ function initAccessibilityDrawer() {
     });
   }
 
-  // Color button triggers
-  document.querySelectorAll('[data-color]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const mode = btn.dataset.color;
-      a11yState.colorMode = (a11yState.colorMode === mode) ? 'normal' : mode;
-      try {
-        if (a11yState.colorMode === 'darkMode') localStorage.setItem('gs_theme', 'dark');
-        else if (a11yState.colorMode === 'normal') localStorage.setItem('gs_theme', 'light');
-        else localStorage.setItem('gs_theme', a11yState.colorMode);
-      } catch (_) {}
-      applyA11y();
-    });
-  });
-
-  // Content adjustment triggers
-  document.querySelectorAll('[data-content]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const item = btn.dataset.content;
-      a11yState[item] = !a11yState[item];
-      applyA11y();
-    });
-  });
-
-  // Reset button
-  btnResetA11y.addEventListener('click', () => {
-    a11yState.colorMode = 'normal';
-    try { localStorage.removeItem('gs_theme'); } catch (_) {}
-    a11yState.biggerText = false;
-    a11yState.lineHeight = false;
-    a11yState.textSpacing = false;
-    a11yState.highlightLinks = false;
-    a11yState.dyslexiaFont = false;
-    a11yState.hideImages = false;
-    applyA11y();
-  });
-
-  // Open/close drawer listeners
-  const openDrawer = () => {
-    const backdrop = document.getElementById('a11yDrawerBackdrop');
-    if (backdrop) backdrop.style.display = 'flex';
-  };
-  const closeDrawer = () => {
-    const backdrop = document.getElementById('a11yDrawerBackdrop');
-    if (backdrop) backdrop.style.display = 'none';
-  };
-
-  if (btnOpenDrawerTop) btnOpenDrawerTop.addEventListener('click', openDrawer);
-  if (btnOpenDrawerNav) btnOpenDrawerNav.addEventListener('click', openDrawer);
-  if (btnFabA11y) btnFabA11y.addEventListener('click', openDrawer);
-  if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', closeDrawer);
-
-  if (a11yDrawerBackdrop) {
-    a11yDrawerBackdrop.addEventListener('click', (e) => {
-      if (e.target === a11yDrawerBackdrop) closeDrawer();
-    });
-  }
-
   // Global Keyboard Shortcuts
   window.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key === 'F2') {
       e.preventDefault();
-      const backdrop = document.getElementById('a11yDrawerBackdrop');
-      if (backdrop && backdrop.style.display === 'flex') {
-        closeDrawer();
-      } else {
-        openDrawer();
-      }
+      toggleA11yDrawer();
     }
     if (e.key === 'Escape') {
-      closeDrawer();
+      closeA11yDrawer();
       const modal = document.getElementById('dossierModalBackdrop');
       if (modal) modal.style.display = 'none';
     }
@@ -1024,10 +1004,7 @@ function initApp() {
     if (dModal) dModal.style.display = 'none';
   };
 
-  // Direct Event Listeners (Fast Path)
-  const vBtn = document.getElementById('btnVerify');
-  if (vBtn) vBtn.addEventListener('click', () => handleScan());
-
+  // Direct Event Listeners (Fast Path for modal buttons)
   const dBtn = document.getElementById('btnOpenDossier');
   if (dBtn) dBtn.addEventListener('click', openDossier);
 
@@ -1049,47 +1026,99 @@ function initApp() {
     });
   }
 
-  // Universal Delegated Click Handler (Guarantees clicks work 100% of the time)
+  // Universal Delegated Click Handler (Guarantees clicks work 100% of the time across all devices)
   document.addEventListener('click', (e) => {
-    // 1. Accessibility / Options Drawer triggers
-    const aTrigger = e.target.closest('#btnOpenDrawerTop, #btnOpenDrawerNav, #btnFabA11y');
-    if (aTrigger) {
+    // 1. Accessibility Drawer Toggle
+    if (e.target.closest('#btnOpenDrawerTop, #btnOpenDrawerNav, #btnFabA11y')) {
       e.preventDefault();
-      const backdrop = document.getElementById('a11yDrawerBackdrop');
-      if (backdrop) backdrop.style.display = 'flex';
+      toggleA11yDrawer();
       return;
     }
 
     // 2. Accessibility Drawer Close
     if (e.target.closest('#btnCloseDrawer')) {
       e.preventDefault();
-      const backdrop = document.getElementById('a11yDrawerBackdrop');
-      if (backdrop) backdrop.style.display = 'none';
+      closeA11yDrawer();
       return;
     }
 
-    // 3. Verify / Analyse Button
+    // 3. Accessibility Color Filter Buttons
+    const colorBtn = e.target.closest('[data-color]');
+    if (colorBtn) {
+      e.preventDefault();
+      const mode = colorBtn.getAttribute('data-color');
+      a11yState.colorMode = (a11yState.colorMode === mode) ? 'normal' : mode;
+      try {
+        if (a11yState.colorMode === 'darkMode') localStorage.setItem('gs_theme', 'dark');
+        else if (a11yState.colorMode === 'normal') localStorage.setItem('gs_theme', 'light');
+        else localStorage.setItem('gs_theme', a11yState.colorMode);
+      } catch (_) {}
+      applyA11y();
+      return;
+    }
+
+    // 4. Accessibility Content Adjustment Buttons
+    const contentBtn = e.target.closest('[data-content]');
+    if (contentBtn) {
+      e.preventDefault();
+      const item = contentBtn.getAttribute('data-content');
+      if (item && item in a11yState) {
+        a11yState[item] = !a11yState[item];
+        applyA11y();
+      }
+      return;
+    }
+
+    // 5. Accessibility Reset All Button
+    if (e.target.closest('#btnResetA11y')) {
+      e.preventDefault();
+      a11yState.colorMode = 'normal';
+      try { localStorage.removeItem('gs_theme'); } catch (_) {}
+      a11yState.biggerText = false;
+      a11yState.lineHeight = false;
+      a11yState.textSpacing = false;
+      a11yState.highlightLinks = false;
+      a11yState.dyslexiaFont = false;
+      a11yState.hideImages = false;
+      applyA11y();
+      return;
+    }
+
+    // 6. Quick-Try Sample Chips (1-click instantaneous verification)
+    const sampleChip = e.target.closest('.ux4g-sample-chip');
+    if (sampleChip) {
+      e.preventDefault();
+      const chipUrl = sampleChip.getAttribute('data-url');
+      if (chipUrl) {
+        const inp = document.getElementById('urlInput');
+        if (inp) inp.value = chipUrl;
+        handleScan(chipUrl);
+      }
+      return;
+    }
+
+    // 7. Verify / Analyse Button
     if (e.target.closest('#btnVerify')) {
       e.preventDefault();
       handleScan();
       return;
     }
 
-    // 4. Dossier Modal Open
+    // 8. Dossier Modal Open
     if (e.target.closest('#btnOpenDossier')) {
       e.preventDefault();
       openDossier();
       return;
     }
 
-    // 6. Dossier Modal Close
+    // 9. Dossier Modal Close
     if (e.target.closest('#btnCloseDossier, #btnCloseDossierBottom')) {
       e.preventDefault();
       closeDossier();
       return;
     }
 
-    // 7. Backdrop clicks outside
+    // 10. Backdrop clicks outside
     const dModal = document.getElementById('dossierModalBackdrop');
     if (e.target === dModal) {
       closeDossier();
@@ -1097,11 +1126,11 @@ function initApp() {
     }
     const aBackdrop = document.getElementById('a11yDrawerBackdrop');
     if (e.target === aBackdrop) {
-      if (aBackdrop) aBackdrop.style.display = 'none';
+      closeA11yDrawer();
       return;
     }
 
-    // 8. Language Dropdown Trigger Toggle
+    // 11. Language Dropdown Trigger Toggle
     const langTrigger = e.target.closest('#langTriggerBtn');
     if (langTrigger) {
       e.preventDefault();
@@ -1115,7 +1144,7 @@ function initApp() {
       return;
     }
 
-    // 9. Language Option Item Selection
+    // 12. Language Option Item Selection
     const langOption = e.target.closest('.lang-option-item');
     if (langOption) {
       e.preventDefault();
@@ -1131,7 +1160,7 @@ function initApp() {
       return;
     }
 
-    // 10. Close Language Menu if clicked anywhere outside
+    // 13. Close Language Menu if clicked anywhere outside
     if (!e.target.closest('#langDropdownWrapper')) {
       const menu = document.getElementById('langMenuEl');
       const trigger = document.getElementById('langTriggerBtn');
