@@ -68,10 +68,9 @@ def test_deep_ai_analysis_on_gov_portal():
     assert "executive_dossier_text" in deep
     dossier = deep["executive_dossier_text"]
     assert "GOVSHIELD SENTINEL GRID 3.0" in dossier
-    assert "[1. WHAT THIS WEBSITE IS ABOUT]" in dossier
-    assert "[2. WEB UI & DOM ARCHITECTURE ANALYSIS]" in dossier
-    assert "[3. DOMAIN & CORE INFRASTRUCTURE FORENSICS]" in dossier
-    assert "[4. SOVEREIGN POA BLOCKCHAIN LEDGER & LINEAGE]" in dossier
+    assert "AI WEBSITE ANALYSIS" in dossier
+    assert "AI UI/UX ANALYSIS" in dossier
+    assert "AI INFRASTRUCTURE ANALYSIS" in dossier
     print("  [OK] Executive Dossier pre-formatted text verified.")
 
 
