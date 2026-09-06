@@ -689,16 +689,19 @@ function renderPopupResult(data) {
   }
 
   // AI Webpage & Domain Analysis Card
+  const deepAi = data.deep_ai_analysis || data.ai_page_analysis?.deep_ai_analysis || {};
+  const about = deepAi.about_website || data.about_website || {};
+  const webUi = deepAi.web_ui_analysis || data.web_ui_analysis || {};
   const ai = data.ai_page_analysis || {};
-  let aiSummary = (lang === "hi" && ai.ai_summary_hi)
-    ? ai.ai_summary_hi
-    : (ai.ai_summary_en || ai.ai_summary || data.genai_synthesis?.plain_english_summary || data.summary || "AI Analysis evaluated domain architecture and webpage content.");
+  let aiSummary = (lang === "hi" && (about.summary_hi || ai.ai_summary_hi))
+    ? (about.summary_hi || ai.ai_summary_hi)
+    : (about.summary_en || ai.ai_summary_en || ai.ai_summary || data.genai_synthesis?.plain_english_summary || data.summary || "AI Analysis evaluated domain architecture and webpage content.");
   const aiBodyEl = document.getElementById("popupAiBodyText");
   if (aiBodyEl) aiBodyEl.textContent = aiSummary;
 
   const isClone = Boolean(data.impersonated || (data.risk_score >= 60));
   const aiIntentEl = document.getElementById("popupAiIntent");
-  if (aiIntentEl) aiIntentEl.textContent = ai.content_type || (isGov ? "Citizen Service" : (isClone ? "Phishing Trap" : "Web Platform"));
+  if (aiIntentEl) aiIntentEl.textContent = about.category || ai.content_type || (isGov ? "Citizen Service" : (isClone ? "Phishing Trap" : "Web Platform"));
 
   const chipDomainEl = document.getElementById("pChipDomain");
   if (chipDomainEl) chipDomainEl.textContent = isGov ? "🌐 Domain: Sovereign Gov" : (isClone ? "⚠️ Domain: Deceptive Clone" : "🌐 Domain: Commercial");

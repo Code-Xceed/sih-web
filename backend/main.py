@@ -1054,6 +1054,9 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
         normalized_url, url_meta, dom_evidence, brand_evidence,
         threat_intel, ml_res, html_content or "", fused_verdict,
         blockchain_audit, ai_synthesis,
+        network_evidence=network_evidence,
+        blockchain_proof=blockchain_proof,
+        dns_security_evidence=dns_security_evidence,
         default={},
         label="AI Content Analysis")
     fused_verdict["ai_page_analysis"] = ai_page_analysis
@@ -1063,6 +1066,12 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
         fused_verdict["ai_summary_hi"] = ai_page_analysis["ai_summary_hi"]
     if ai_page_analysis.get("blockchain_forensics"):
         fused_verdict["ai_blockchain_forensics"] = ai_page_analysis["blockchain_forensics"]
+    if ai_page_analysis.get("deep_ai_analysis"):
+        fused_verdict["deep_ai_analysis"] = ai_page_analysis["deep_ai_analysis"]
+        fused_verdict["about_website"] = ai_page_analysis["deep_ai_analysis"].get("about_website", {})
+        fused_verdict["web_ui_analysis"] = ai_page_analysis["deep_ai_analysis"].get("web_ui_analysis", {})
+        fused_verdict["domain_core_forensics"] = ai_page_analysis["deep_ai_analysis"].get("domain_core_forensics", {})
+        fused_verdict["executive_dossier_text"] = ai_page_analysis["deep_ai_analysis"].get("executive_dossier_text", "")
 
     # Attach forensic evidence modules for frontend & API clients
     fused_verdict["url"] = normalized_url

@@ -58,12 +58,22 @@ class DOMAnalyzer:
         current_host = (parsed_base.hostname or "").lower()
         is_gov_domain = current_host.endswith(".gov.in") or current_host.endswith(".nic.in")
 
-        # 1. Page Title & Meta Descriptions (PhishDetect check)
+        # 1. Page Title, Headings & Meta Descriptions
         title = soup.title.string.strip() if soup.title and soup.title.string else ""
         meta_desc = ""
-        meta_desc_tag = soup.find('meta', attrs={'name': 'description'}) or soup.find('meta', attrs={'property': 'og:description'})
+        meta_desc_tag = soup.find('meta', attrs={'name': 'description'}) or soup.find('meta', attrs={'property': 'og:description'}) or soup.find('meta', attrs={'name': 'twitter:description'})
         if meta_desc_tag and meta_desc_tag.get('content'):
             meta_desc = meta_desc_tag['content'].strip()
+
+        # Extract primary headings (H1, H2) for semantic comprehension
+        headings = [h.get_text(strip=True) for h in soup.find_all(['h1', 'h2']) if h.get_text(strip=True)][:6]
+
+        # Extract visible call-to-action buttons
+        buttons = [b.get_text(strip=True) for b in soup.find_all(['button', 'input']) if b.get_text(strip=True) and b.get('type') in ['submit', 'button', None]][:6]
+
+        # Extract clean visible body snippet for deep AI summarization
+        body_text_raw = soup.get_text(separator=' ')
+        body_snippet = re.sub(r'\s+', ' ', body_text_raw).strip()[:800]
 
         # Check deceptive sovereign title claim on non-gov domain
         is_deceptive_title = False
@@ -266,11 +276,17 @@ class DOMAnalyzer:
 
         normalized_risk = min(max(round(dom_risk, 1), 0.0), 100.0)
 
+        all_inputs = soup.find_all(['input', 'textarea', 'select'])
+
         return {
             "risk_score": normalized_risk,
             "page_title": title,
             "meta_description": meta_desc,
+            "headings": headings,
+            "buttons": buttons,
+            "body_snippet": body_snippet,
             "forms_detected": len(forms),
+            "inputs_detected": len(all_inputs),
             "sensitive_inputs": sensitive_inputs,
             "hotlinked_gov_assets": hotlinked_gov_assets[:10],
             "external_action_count": external_action_count,
