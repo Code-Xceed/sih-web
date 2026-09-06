@@ -712,8 +712,177 @@ Respond with ONLY a valid JSON object strictly matching this schema:
         **kwargs
     ) -> Dict[str, Any]:
         """
-        Synthesizes a deep-level explainable AI analysis of the website, its web UI structure,
-        its core domain infrastructure, and the sovereign blockchain threat audit.
+        Synthesizes a deep-level explainable AI analysis of the website.
+        Tries genuine Google Gemini API first; falls back to templates if unavailable.
+        """
+        if self.client_ready and self.client:
+            try:
+                ai_result = self._gemini_deep_analysis(
+                    url=url,
+                    url_metadata=url_metadata,
+                    dom_evidence=dom_evidence,
+                    brand_evidence=brand_evidence,
+                    threat_intel_evidence=threat_intel_evidence,
+                    sovereign_ml_evidence=sovereign_ml_evidence,
+                    html_sample=html_sample,
+                    verdict_data=verdict_data,
+                    blockchain_audit=blockchain_audit,
+                    **kwargs
+                )
+                if ai_result:
+                    ai_result["ai_generated"] = True
+                    return ai_result
+            except Exception as e:
+                print(f"[AIAgent] Gemini synthesis failed, falling back to templates: {e}")
+        
+        # Fallback
+        res = self._template_content_synthesis(
+            url, url_metadata, dom_evidence, brand_evidence, 
+            threat_intel_evidence, sovereign_ml_evidence, html_sample, 
+            verdict_data, blockchain_audit, ai_synthesis_data, **kwargs
+        )
+        res["ai_generated"] = False
+        return res
+
+    def _gemini_deep_analysis(
+        self,
+        url: str,
+        url_metadata: Dict[str, Any],
+        dom_evidence: Dict[str, Any],
+        brand_evidence: Dict[str, Any],
+        threat_intel_evidence: Dict[str, Any],
+        sovereign_ml_evidence: Optional[Dict[str, Any]] = None,
+        html_sample: str = "",
+        verdict_data: Optional[Dict[str, Any]] = None,
+        blockchain_audit: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ) -> Optional[Dict[str, Any]]:
+        network_evidence = kwargs.get("network_evidence") or {}
+        dns_security_evidence = kwargs.get("dns_security_evidence") or {}
+        internet_search_evidence = kwargs.get("internet_search_evidence") or {}
+        blockchain_proof = kwargs.get("blockchain_proof") or {}
+        
+        prompt = self._build_synthesis_prompt(
+            url_metadata=url_metadata,
+            network_evidence=network_evidence,
+            threat_intel_evidence=threat_intel_evidence,
+            dom_evidence=dom_evidence,
+            brand_evidence=brand_evidence,
+            research_findings=[], # We could pass them if we had them here
+            raw_html=html_sample,
+            internet_search_evidence=internet_search_evidence,
+            blockchain_audit_evidence=blockchain_audit,
+            **kwargs
+        )
+        
+        # Provide extra instructions for the specific format needed for display
+        prompt += "\n\nAdditionally, write a detailed summary (summary_en and summary_hi), list key_offerings, and provide layout and domain assessments."
+        
+        schema = {
+            "type": "OBJECT",
+            "properties": {
+                "site_name": {"type": "STRING"},
+                "site_category": {"type": "STRING"},
+                "operator": {"type": "STRING"},
+                "summary_en": {"type": "STRING", "description": "A 3-5 sentence AI-written analysis of what this website is and its threat level."},
+                "summary_hi": {"type": "STRING", "description": "Hindi translation of the summary."},
+                "key_offerings": {"type": "ARRAY", "items": {"type": "STRING"}},
+                "layout_analysis": {"type": "STRING", "description": "Description of the UI/UX structure and forms."},
+                "ui_risk_assessment": {"type": "STRING"},
+                "domain_assessment": {"type": "STRING", "description": "Description of domain infrastructure."},
+                "overall_threat_narrative": {"type": "STRING"}
+            },
+            "required": ["site_name", "site_category", "operator", "summary_en", "summary_hi", "key_offerings", "layout_analysis", "ui_risk_assessment", "domain_assessment", "overall_threat_narrative"]
+        }
+        
+        response = self.client.models.generate_content(
+            model=self.model_name,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.2,
+                response_mime_type="application/json",
+                response_json_schema=schema
+            )
+        )
+        
+        parsed = json.loads(response.text.strip())
+        
+        # Format it into the structure expected by the frontend
+        v_score = int(round((verdict_data or {}).get("risk_score", 0)))
+        v_verdict = (verdict_data or {}).get("verdict", "")
+        is_gov_tld = url_metadata.get("tld") in ["gov.in", "nic.in", "mil.in"]
+        
+        dossier_text = f"════════════════════════════════════════════════════════════════════════════════\n"
+        dossier_text += f"GOVSHIELD SENTINEL GRID 3.0 — DEEP AI INTELLIGENCE & FORENSIC DOSSIER\n"
+        dossier_text += f"════════════════════════════════════════════════════════════════════════════════\n"
+        dossier_text += f"TARGET URL         : {url}\n"
+        dossier_text += f"OVERALL VERDICT    : {v_verdict}\n"
+        dossier_text += f"RISK SCORE         : {v_score}/100\n"
+        dossier_text += f"EVALUATION ENGINE  : Genuine Google Gemini AI Analysis ({self.model_name})\n\n"
+        dossier_text += f"[1. AI WEBSITE ANALYSIS]\n{parsed.get('summary_en', '')}\n\n"
+        dossier_text += f"[2. AI UI/UX ANALYSIS]\n{parsed.get('layout_analysis', '')}\n\n"
+        dossier_text += f"[3. AI INFRASTRUCTURE ANALYSIS]\n{parsed.get('domain_assessment', '')}\n\n"
+        dossier_text += f"════════════════════════════════════════════════════════════════════════════════"
+        
+        deep_analysis = {
+            "about_website": {
+                "site_name": parsed.get("site_name", "Unknown"),
+                "category": parsed.get("site_category", "Unknown"),
+                "operator": parsed.get("operator", "Unknown"),
+                "summary_en": parsed.get("summary_en", ""),
+                "summary_hi": parsed.get("summary_hi", ""),
+                "key_offerings": parsed.get("key_offerings", [])
+            },
+            "web_ui_analysis": {
+                "layout_type": parsed.get("layout_analysis", ""),
+                "ui_risk_level": parsed.get("ui_risk_assessment", "UNKNOWN"),
+                "forms_count": dom_evidence.get("forms_detected", 0),
+                "inputs_count": dom_evidence.get("inputs_detected", 0)
+            },
+            "domain_core_forensics": {
+                "domain_age_assessment": parsed.get("domain_assessment", ""),
+                "threat_intel_status": "FLAGGED" if threat_intel_evidence.get("is_known_malicious") else "Clean",
+                "tld_classification": "Official Sovereign" if is_gov_tld else "Commercial/Public TLD"
+            },
+            "sovereign_blockchain_ledger": {
+                "audit_status": (blockchain_audit or {}).get("audit_status", "CLEAN"),
+                "evidence_sha256": blockchain_proof.get("canonical_hash") or blockchain_proof.get("evidence_hash") or "GENESIS-NIC-SOVEREIGN-SEAL"
+            },
+            "executive_dossier_text": dossier_text
+        }
+        
+        return {
+            **deep_analysis,
+            "deep_ai_analysis": deep_analysis,
+            "domain_type": parsed.get("site_category", "Unknown"),
+            "domain_badge": "CRITICAL_PHISHING_CLONE" if v_score >= 60 else ("SOVEREIGN_GOV" if is_gov_tld else "AUTHENTIC_WEB"),
+            "content_type": parsed.get("site_category", "Unknown"),
+            "page_title": dom_evidence.get("page_title") or "No HTML Title Specified",
+            "forms_count": dom_evidence.get("forms_detected", 0),
+            "sensitive_inputs": [s.get("field", str(s)) if isinstance(s, dict) else str(s) for s in dom_evidence.get("sensitive_inputs", [])],
+            "blockchain_forensics": blockchain_audit or {},
+            "ai_summary_en": parsed.get("summary_en", ""),
+            "ai_summary_hi": parsed.get("summary_hi", ""),
+            "ai_summary": parsed.get("summary_en", ""),
+            "is_localhost": url_metadata.get("hostname", "").endswith(".local") or url_metadata.get("hostname") in ["localhost", "127.0.0.1"]
+        }
+
+    def _template_content_synthesis(
+        self,
+        url: str,
+        url_metadata: Dict[str, Any],
+        dom_evidence: Dict[str, Any],
+        brand_evidence: Dict[str, Any],
+        threat_intel_evidence: Dict[str, Any],
+        sovereign_ml_evidence: Optional[Dict[str, Any]] = None,
+        html_sample: str = "",
+        verdict_data: Optional[Dict[str, Any]] = None,
+        blockchain_audit: Optional[Dict[str, Any]] = None,
+        ai_synthesis_data: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Fallback rule-based synthesis using templates.
         """
         hostname = (url_metadata.get("hostname") or "").split(":")[0].lower()
         if not hostname and "://" in url:

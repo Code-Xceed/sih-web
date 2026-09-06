@@ -21,6 +21,15 @@ Enterprise multi-layer threat detection engine integrating:
 
 import sys
 import os
+
+# Load .env file for API keys (must happen before any module reads os.environ)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env'))
+    load_dotenv()  # Also check cwd
+except ImportError:
+    pass  # python-dotenv not installed; rely on system environment variables
+
 import time
 import datetime
 import uuid

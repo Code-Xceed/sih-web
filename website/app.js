@@ -557,6 +557,21 @@ function renderVerdict(res) {
     aiWebsiteOperator.textContent = `Operator: ${about.operator || res.brand_details?.organization || (isGov ? "National Informatics Centre" : "Standard Web Platform")}`;
   }
 
+  const aiConfidenceBadge = document.getElementById('aiConfidenceBadge');
+  if (aiConfidenceBadge) {
+    if (res.ai_generated || deepAi.ai_generated || (res.ai_page_analysis && res.ai_page_analysis.ai_generated)) {
+      aiConfidenceBadge.innerHTML = '✨ Gemini AI Verified';
+      aiConfidenceBadge.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+      aiConfidenceBadge.style.color = '#fff';
+      aiConfidenceBadge.style.border = 'none';
+    } else {
+      aiConfidenceBadge.innerHTML = '⚠️ Rule-Based Analysis';
+      aiConfidenceBadge.style.background = '#f1f5f9';
+      aiConfidenceBadge.style.color = '#475569';
+      aiConfidenceBadge.style.border = '1px solid #cbd5e1';
+    }
+  }
+
   // Subsection 1: About This Website Summary & Offerings
   const aiSummaryEl = document.getElementById('aiWebpageSummary');
   if (aiSummaryEl) {
