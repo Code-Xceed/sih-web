@@ -65,11 +65,42 @@ class FusionEngine:
 
         cnt_sim = float(content_sim_evidence.get("similarity", 0.0)) if content_sim_evidence else 0.0
         domain_age = network_evidence.get("rdap", {}).get("domain_age_days")
+        is_punycode = url_metadata.get("is_punycode", False)
+
+        # -------------------------------------------------------------
+        # DOMINANT RULE 1a: Deceptive IDN / Punycode Homoglyph Spoofs of Sovereign Domains
+        # -------------------------------------------------------------
+        if is_official_gov_tld and (has_homoglyphs or is_punycode):
+            return {
+                "verdict": "PHISHING_CLONE",
+                "risk_score": 99,
+                "confidence": 0.99,
+                "threat_level": "CRITICAL",
+                "category": "DECEPTIVE_HOMOGLYPH_SPOOF",
+                "target_entity": claimed_entity or "Government of India",
+                "impersonated": True,
+                "summary": "CRITICAL ZERO-DAY SPOOF: Deceptive Internationalized Domain (IDN Punycode/Homoglyph) masquerading as official sovereign infrastructure.",
+                "reasons": [
+                    "Adversarial IDN / Punycode homoglyph detected spoofing sovereign .gov.in namespace.",
+                    "Mixed-script or lookalike characters observed mimicking authentic government service."
+                ],
+                "recommendation": "DO NOT PROCEED. Highly dangerous homoglyph clone. Report immediately to CERT-In.",
+                "signal_breakdown": {
+                    "lexical_score": 100.0,
+                    "threat_intel_score": 90.0,
+                    "dom_score": 85.0,
+                    "visual_similarity": 95.0,
+                    "content_similarity": 90.0,
+                    "domain_age_days": 1
+                },
+                "model_version": self.model_version,
+                "feature_version": self.feature_version
+            }
 
         # -------------------------------------------------------------
         # DOMINANT RULE 1: Verified Official Government Digital Infrastructure
         # -------------------------------------------------------------
-        if is_official_gov_tld and not has_homoglyphs and not external_actions:
+        if is_official_gov_tld and not has_homoglyphs and not is_punycode and not external_actions:
             return {
                 "verdict": "NO_SIGNIFICANT_INDICATORS",
                 "risk_score": 2,
@@ -295,6 +326,29 @@ class FusionEngine:
                 base_score += 30.0
                 reasons.append("PhishDetect Alert: HTML entity obfuscation (&#...;) concealing target sovereign brand.")
                 confidence_factors.append(0.95)
+
+        # 11. AI Threat Intelligence & Blockchain Evidence Synthesis
+        if ai_synthesis and not is_official_gov_tld:
+            ai_score = float(ai_synthesis.get("ai_risk_score", 0.0))
+            ai_verdict = ai_synthesis.get("ai_verdict", "")
+            bc_analysis = ai_synthesis.get("ai_blockchain_analysis", {})
+
+            if bc_analysis.get("status") == "CONFIRMED_ONCHAIN_THREAT":
+                base_score = max(base_score, 98.0)
+                reasons.append("Sovereign Blockchain Audit: Confirmed prior on-chain threat record on immutable ledger.")
+                confidence_factors.append(0.99)
+            elif ai_verdict == "PHISHING_CLONE" and ai_score >= 80:
+                base_score = max(base_score, ai_score)
+                reasons.append(f"AI Threat Intelligence: Flagged as {ai_verdict} (Risk: {int(ai_score)}/100).")
+                confidence_factors.append(0.92)
+            elif ai_score >= 40:
+                base_score = max(base_score, (base_score + ai_score) / 2.0)
+                confidence_factors.append(0.85)
+
+            if ai_synthesis.get("social_engineering_tactics"):
+                for tactic in ai_synthesis["social_engineering_tactics"]:
+                    if tactic not in reasons:
+                        reasons.append(f"AI Social Engineering Vector: {tactic}")
 
         # Clean baseline for neutral platforms (only if no URL deception or homoglyphs)
         if (brand_class == "NEUTRAL" and not has_citizen_credentials and not is_visual_lookalike

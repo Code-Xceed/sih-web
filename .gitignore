@@ -28,6 +28,7 @@ dist/
 # Logs & Temporary Files
 *.log
 *.sqlite3
+*.db
 *.zip
 .DS_Store
 Thumbs.db

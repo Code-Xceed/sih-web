@@ -307,7 +307,20 @@ document.addEventListener("DOMContentLoaded", () => {
       } catch (_) {
         activeTabDomain.textContent = tab.url;
       }
-      executeScan(tab.url);
+
+      // Fast check: Did background service worker already scan this tab?
+      if (chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage({ action: "GET_CACHED_SCAN", tabId: tab.id }, (res) => {
+          if (!chrome.runtime.lastError && res && res.found && res.scanData) {
+            currentResult = res.scanData;
+            renderPopupResult(res.scanData);
+          } else {
+            executeScan(tab.url);
+          }
+        });
+      } else {
+        executeScan(tab.url);
+      }
     } else {
       // Internal browser page (e.g. chrome://extensions, chrome://newtab, about:blank)
       currentTabId = (tab && tab.id) || null;
@@ -348,6 +361,41 @@ document.addEventListener("DOMContentLoaded", () => {
       if (detailsToggleIcon) detailsToggleIcon.textContent = isHidden ? "▴" : "▾";
     });
   }
+
+  // Copy Dossier Action
+  const btnCopyDossier = document.getElementById("btnCopyDossier");
+  if (btnCopyDossier) {
+    btnCopyDossier.addEventListener("click", () => {
+      if (!currentResult) return;
+      const d = currentResult;
+      const score = Math.round(d.risk_score || 0);
+      const isGov = Boolean(d.is_genuine_gov_tld);
+      const bc = d.blockchain_proof || {};
+      const dossierText = `=== GOVSHIELD SENTINEL GRID 3.0 — INCIDENT DOSSIER ===
+Target URL: ${d.url || currentUrl || "N/A"}
+Evaluation Timestamp: ${new Date().toISOString()}
+Risk Score: ${score}/100
+Verdict: ${d.verdict || "UNKNOWN"}
+Impersonation Target: ${d.target_entity || (isGov ? "Official Sovereign Portal" : "None")}
+Sovereign TLD Verified: ${isGov ? "YES (.gov.in/.nic.in)" : "NO"}
+Blockchain PoA Block: #${bc.block_index || 1}
+Evidence SHA-256: ${bc.canonical_hash || bc.evidence_hash || "N/A"}
+Ledger Consensus: Proof-of-Authority (PoA) Sovereign Grid
+Forensic Summary: ${d.ai_page_analysis?.ai_summary_en || d.summary || "Multi-signal AI evaluated"}
+Incident Classification: CERT-In Advisory Cyber Phishing Incident
+===========================================================`;
+
+      navigator.clipboard.writeText(dossierText).then(() => {
+        const lang = (document.getElementById("popupLangSelect")?.value) || "en";
+        const t = POPUP_I18N[lang] || POPUP_I18N.en;
+        const orig = btnCopyDossier.textContent;
+        btnCopyDossier.textContent = t.dossierCopied || "✅ Copied!";
+        setTimeout(() => { btnCopyDossier.textContent = orig; }, 2000);
+      }).catch(() => {
+        prompt("Copy Incident Dossier:", dossierText);
+      });
+    });
+  }
 });
 
 async function executeScan(url) {
@@ -364,14 +412,31 @@ async function executeScan(url) {
   renderPopupResult(clientFallback);
 
   try {
+    // 2. Extract DOM HTML from active tab if inspecting current page
+    let extractedHtml = null;
+    if (currentTabId && typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.sendMessage) {
+      try {
+        extractedHtml = await new Promise((resolve) => {
+          chrome.tabs.sendMessage(currentTabId, { action: "GET_DOM_HTML" }, (res) => {
+            if (chrome.runtime.lastError || !res || !res.html) resolve(null);
+            else resolve(res.html);
+          });
+          setTimeout(() => resolve(null), 300);
+        });
+      } catch (_) {}
+    }
+
+    const reqPayload = { url: url };
+    if (extractedHtml) reqPayload.html_content = extractedHtml;
+
     let resp = null;
     try {
       const ctrl1 = new AbortController();
-      const t1 = setTimeout(() => ctrl1.abort(), 1000);
+      const t1 = setTimeout(() => ctrl1.abort(), 6000);
       resp = await fetch(LOCAL_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url }),
+        body: JSON.stringify(reqPayload),
         signal: ctrl1.signal
       });
       clearTimeout(t1);
@@ -382,7 +447,7 @@ async function executeScan(url) {
         resp = await fetch(PROD_API, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: url }),
+          body: JSON.stringify(reqPayload),
           signal: ctrl2.signal
         });
         clearTimeout(t2);
@@ -625,7 +690,9 @@ function renderPopupResult(data) {
 
   // AI Webpage & Domain Analysis Card
   const ai = data.ai_page_analysis || {};
-  const aiSummary = ai.ai_summary_en || ai.ai_summary || data.genai_synthesis?.plain_english_summary || data.summary || "AI Analysis evaluated domain architecture and webpage content.";
+  let aiSummary = (lang === "hi" && ai.ai_summary_hi)
+    ? ai.ai_summary_hi
+    : (ai.ai_summary_en || ai.ai_summary || data.genai_synthesis?.plain_english_summary || data.summary || "AI Analysis evaluated domain architecture and webpage content.");
   const aiBodyEl = document.getElementById("popupAiBodyText");
   if (aiBodyEl) aiBodyEl.textContent = aiSummary;
 
@@ -656,6 +723,53 @@ function renderPopupResult(data) {
   updateRow("3", sensFound ? "🔴" : "🟢", sensFound ? "fail" : "pass", sensFound ? "HARVESTING" : "SECURE");
   updateRow("4", isClone ? "🔴" : "🟢", isClone ? "fail" : "pass", isClone ? "CLONE" : "AUTHENTIC");
   updateRow("5", "🟢", "pass", isGov ? "SOVEREIGN" : "ANALYZED");
+
+  // Sovereign PoA Blockchain Proof Card
+  const bcPill = document.getElementById("popupBlockchainPill");
+  if (bcPill) {
+    bcPill.style.display = "block";
+    const bcProof = data.blockchain_proof || {};
+    const bcAudit = data.blockchain_audit || {};
+    const bcBadge = document.getElementById("popupBcBadge");
+    const bcBlock = document.getElementById("popupBcBlock");
+    const bcRepeat = document.getElementById("popupBcRepeat");
+    const bcHash = document.getElementById("popupBcHash");
+
+    const blockIdx = bcProof.block_index ?? 1;
+    if (bcBlock) bcBlock.textContent = `#${blockIdx}`;
+
+    if (bcRepeat) {
+      if (bcAudit.is_prior_offender) {
+        bcRepeat.textContent = `Yes (${bcAudit.total_sightings || 2} sightings)`;
+        bcRepeat.style.color = "#dc2626";
+      } else {
+        bcRepeat.textContent = "No (Clean)";
+        bcRepeat.style.color = "#166534";
+      }
+    }
+
+    if (bcHash) {
+      const hashStr = bcProof.canonical_hash || bcProof.evidence_hash || bcProof.block_hash || "0000000000000000";
+      bcHash.textContent = `Evidence SHA-256: ${hashStr.substring(0, 20)}...`;
+      bcHash.title = hashStr;
+    }
+
+    if (bcBadge) {
+      if (bcAudit.is_prior_offender) {
+        bcBadge.textContent = "REPEAT THREAT";
+        bcBadge.className = "p-badge fail";
+      } else if (bcProof.tamper_status === "AUTHENTIC" || bcProof.canonical_hash || bcProof.status === "LOGGED_ON_CHAIN") {
+        bcBadge.textContent = "VERIFIED ON-CHAIN";
+        bcBadge.className = "p-badge pass";
+      } else if (isGov) {
+        bcBadge.textContent = "GENESIS VERIFIED";
+        bcBadge.className = "p-badge pass";
+      } else {
+        bcBadge.textContent = "COMMITTED";
+        bcBadge.className = "p-badge pass";
+      }
+    }
+  }
 }
 
 function updateRow(layerNum, icon, badgeClass, badgeText) {

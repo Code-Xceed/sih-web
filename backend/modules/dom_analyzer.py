@@ -96,9 +96,10 @@ class DOMAnalyzer:
             if url_match:
                 meta_refresh_target = url_match.group(1).strip()
 
-        # 4. Form & Sensitive Citizen Identity Input Inspection
+        # 4. Form & Sensitive Citizen Identity Input Inspection (Both inside <form> and standalone SPAs)
         forms = soup.find_all('form')
         sensitive_inputs: List[Dict[str, str]] = []
+        seen_inputs = set()
         external_action_count = 0
         insecure_form_count = 0
         exfiltration_endpoints: List[str] = []
@@ -125,30 +126,55 @@ class DOMAnalyzer:
             elif action in ['#', '', 'about:blank', 'javascript:void(0)']:
                 external_action_count += 1
 
-            # Check input tags
-            for inp in form.find_all(['input', 'textarea', 'select']):
-                inp_type = (inp.get('type') or 'text').lower()
-                inp_name = (inp.get('name') or '').lower()
-                inp_id = (inp.get('id') or '').lower()
-                inp_placeholder = (inp.get('placeholder') or '').lower()
-                inp_autocomplete = (inp.get('autocomplete') or '').lower()
-                combined_ident = f"{inp_name} {inp_id} {inp_placeholder} {inp_autocomplete}"
+        # Universal input tag inspection across full DOM (covers React/Vue/SPA credential harvesting)
+        all_dom_inputs = soup.find_all(['input', 'textarea', 'select'])
+        formless_sensitive_count = 0
 
-                # Match sensitive Indian tokens
-                if inp_type == 'password' or 'password' in combined_ident:
-                    sensitive_inputs.append({"field": "password", "type": inp_type, "identifier": inp_name or inp_id})
-                elif any(k in combined_ident for k in ['aadhaar', 'uid', 'aadhar', '12-digit', 'uidai']):
-                    sensitive_inputs.append({"field": "aadhaar_number", "type": inp_type, "identifier": inp_name or inp_id})
-                elif any(k in combined_ident for k in ['pan', 'pan_no', 'pan_card', 'pancard', '10-digit']):
-                    sensitive_inputs.append({"field": "pan_number", "type": inp_type, "identifier": inp_name or inp_id})
-                elif any(k in combined_ident for k in ['otp', 'one-time-password', 'verification-code', 'mpin', 'tpin']):
-                    sensitive_inputs.append({"field": "otp_code", "type": inp_type, "identifier": inp_name or inp_id})
-                elif any(k in combined_ident for k in ['cvv', 'card_number', 'credit_card', 'debit_card', 'atm_pin']):
-                    sensitive_inputs.append({"field": "financial_card", "type": inp_type, "identifier": inp_name or inp_id})
-                elif any(k in combined_ident for k in ['bank_account', 'account_no', 'ifsc', 'acc_no']):
-                    sensitive_inputs.append({"field": "bank_account", "type": inp_type, "identifier": inp_name or inp_id})
-                elif any(k in combined_ident for k in ['upi', 'vpa', 'bhim']):
-                    sensitive_inputs.append({"field": "upi_id", "type": inp_type, "identifier": inp_name or inp_id})
+        for inp in all_dom_inputs:
+            inp_type = (inp.get('type') or 'text').lower()
+            inp_name = (inp.get('name') or '').lower()
+            inp_id = (inp.get('id') or '').lower()
+            inp_placeholder = (inp.get('placeholder') or '').lower()
+            inp_autocomplete = (inp.get('autocomplete') or '').lower()
+            combined_ident = f"{inp_name} {inp_id} {inp_placeholder} {inp_autocomplete}"
+
+            # Avoid duplicate counting of identical field identifiers
+            field_key = f"{inp_name}:{inp_id}:{inp_placeholder}"
+            if field_key in seen_inputs:
+                continue
+            seen_inputs.add(field_key)
+
+            # Match sensitive Indian tokens
+            matched_field = None
+            if inp_type == 'password' or 'password' in combined_ident:
+                matched_field = "password"
+            elif any(k in combined_ident for k in ['aadhaar', 'uid', 'aadhar', '12-digit', 'uidai']):
+                matched_field = "aadhaar_number"
+            elif any(k in combined_ident for k in ['pan', 'pan_no', 'pan_card', 'pancard', '10-digit']):
+                matched_field = "pan_number"
+            elif any(k in combined_ident for k in ['otp', 'one-time-password', 'verification-code', 'mpin', 'tpin']):
+                matched_field = "otp_code"
+            elif any(k in combined_ident for k in ['cvv', 'card_number', 'credit_card', 'debit_card', 'atm_pin']):
+                matched_field = "financial_card"
+            elif any(k in combined_ident for k in ['bank_account', 'account_no', 'ifsc', 'acc_no']):
+                matched_field = "bank_account"
+            elif any(k in combined_ident for k in ['upi', 'vpa', 'bhim']):
+                matched_field = "upi_id"
+
+            if matched_field:
+                is_inside_form = bool(inp.find_parent('form'))
+                if not is_inside_form:
+                    formless_sensitive_count += 1
+                sensitive_inputs.append({
+                    "field": matched_field,
+                    "type": inp_type,
+                    "identifier": inp_name or inp_id or inp_placeholder,
+                    "is_formless_spa": not is_inside_form,
+                    "is_formless_spa_input": not is_inside_form
+                })
+
+        if formless_sensitive_count > 0:
+            reasons.append(f"Modern SPA credential harvesting: {formless_sensitive_count} sensitive citizen input(s) rendered outside traditional <form> elements.")
 
         # 5. External Government Asset Hotlinking (Images, Logos, CSS)
         hotlinked_gov_assets: List[str] = []
@@ -162,12 +188,23 @@ class DOMAnalyzer:
                     if src_host != current_host:
                         hotlinked_gov_assets.append(src)
 
-        # 6. Script & Anti-Forensics Forensics (PhishDetect / PhishGuard)
+        # 6. Script & Anti-Forensics Forensics (PhishDetect / PhishGuard / Webhook Detection)
         script_risks: List[str] = []
         scripts = soup.find_all('script')
         for s in scripts:
             content = s.string or ""
             if content:
+                # Scan JavaScript code for exfiltration endpoints directly inside fetch/ajax
+                for exfil in SUSPICIOUS_EXFILTRATION_HOSTS:
+                    if exfil in content.lower():
+                        if exfil not in exfiltration_endpoints:
+                            exfiltration_endpoints.append(f"js_webhook:{exfil}")
+                        script_risks.append(f"Client-side script exfiltrates data directly to external webhook ({exfil})")
+
+                # Scan JavaScript code for credential harvesting variables
+                if re.search(r'(aadhaar|aadhar|otp_code|pancard|bank_account)\s*[:=]', content, re.IGNORECASE):
+                    script_risks.append("Client-side script declares sensitive citizen credential variables")
+
                 if "eval(" in content or "unescape(" in content or "String.fromCharCode(" in content:
                     script_risks.append("Dynamic script evaluation / de-obfuscation (eval/unescape)")
                 if "atob(" in content and len(content) > 500:
@@ -239,6 +276,7 @@ class DOMAnalyzer:
             "external_action_count": external_action_count,
             "insecure_form_count": insecure_form_count,
             "exfiltration_endpoints": exfiltration_endpoints,
+            "script_exfiltration_endpoints": exfiltration_endpoints,
             "script_risks": script_risks,
             "html_deception_signals": {
                 "is_deceptive_title": is_deceptive_title,

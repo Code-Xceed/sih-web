@@ -49,6 +49,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       });
       return true; // Keep message channel open for async response
     }
+  } else if (msg.action === "GET_CACHED_SCAN") {
+    const tabId = msg.tabId;
+    if (tabId && tabScanCache.has(tabId)) {
+      sendResponse({ found: true, scanData: tabScanCache.get(tabId) });
+    } else {
+      sendResponse({ found: false });
+    }
+    return true;
   }
   return true;
 });
@@ -68,18 +76,16 @@ async function evaluateTabSecurity(tabId, url) {
   }
 
   // Fast sovereign domain check (.gov.in / .nic.in / .mil.in)
-  const isGov = hostname.endsWith(".gov.in") || hostname.endsWith(".nic.in") || hostname.endsWith(".mil.in");
+  const isGov = hostname.endsWith(".gov.in") || hostname.endsWith(".nic.in") || hostname.endsWith(".mil.in") || hostname.endsWith(".ac.in");
   if (isGov) {
     const govData = {
       url,
-      target_entity: "Official Government of India Portal",
       is_genuine_gov_tld: true,
+      target_entity: "Official Government of India Portal",
       risk_score: 2,
       verdict: "LEGITIMATE",
-      official_domain: hostname,
-      ai_page_analysis: {
-        ai_summary_en: "AI Verification confirms this is an official sovereign portal accredited under NIC national registry."
-      }
+      impersonated: false,
+      reasons: ["Verified sovereign national infrastructure (.gov.in / .nic.in). Accredited by National Informatics Centre."]
     };
     tabScanCache.set(tabId, govData);
     applyBadge(tabId, 2, "LEGITIMATE", true);
@@ -98,14 +104,29 @@ async function evaluateTabSecurity(tabId, url) {
   try {
     let data = null;
 
-    // 1. Probe local dev server with short 1000ms timeout
+    // Extract page DOM HTML if content script is ready
+    let pageHtml = null;
+    try {
+      pageHtml = await new Promise((res) => {
+        chrome.tabs.sendMessage(tabId, { action: "GET_DOM_HTML" }, (r) => {
+          if (chrome.runtime.lastError || !r || !r.html) res(null);
+          else res(r.html);
+        });
+        setTimeout(() => res(null), 300);
+      });
+    } catch (_) {}
+
+    const reqPayload = { url };
+    if (pageHtml) reqPayload.html_content = pageHtml;
+
+    // 1. Probe local dev server with 6000ms timeout for complete AI & PoA blockchain forensics
     try {
       const ctrlLocal = new AbortController();
-      const tLocal = setTimeout(() => ctrlLocal.abort(), 1000);
+      const tLocal = setTimeout(() => ctrlLocal.abort(), 6000);
       const respLocal = await fetch(LOCAL_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify(reqPayload),
         signal: ctrlLocal.signal
       });
       clearTimeout(tLocal);
@@ -120,7 +141,7 @@ async function evaluateTabSecurity(tabId, url) {
         const respProd = await fetch(PROD_API, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url }),
+          body: JSON.stringify(reqPayload),
           signal: ctrlProd.signal
         });
         clearTimeout(tProd);

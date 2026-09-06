@@ -228,6 +228,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (host.endsWith(".gov.in") || host.endsWith(".nic.in") || host.endsWith(".mil.in") || host.endsWith(".ac.in")) {
       renderSafePrompt(msg.scanData || {}, host);
     }
+  } else if (msg.action === "GET_DOM_HTML") {
+    try {
+      const html = (document.documentElement && document.documentElement.outerHTML)
+        ? document.documentElement.outerHTML.substring(0, 150000)
+        : "";
+      sendResponse({ html, url: window.location.href, title: document.title });
+    } catch (e) {
+      sendResponse({ html: null, error: e.message });
+    }
+    return true;
   }
 });
 

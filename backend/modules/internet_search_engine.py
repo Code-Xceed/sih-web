@@ -147,3 +147,16 @@ class InternetSearchEngine:
         }
 
         return evidence
+
+    def get_research_summary_for_ai(self, domain: str, entity_name: Optional[str] = None) -> Dict[str, Any]:
+        """Provides formatted, high-signal OSINT research context specifically curated for AI prompting."""
+        osint_data = self.investigate_domain_osint(domain, entity_name)
+        snippets = [f"{f.get('source')}: {f.get('snippet')}" for f in osint_data.get("advisory_findings", [])]
+        return {
+            "domain": domain,
+            "osint_snippets": snippets[:5],
+            "is_scam_reported": osint_data.get("is_scam_reported", False),
+            "pib_warning_detected": any("pib" in s.lower() for s in snippets),
+            "official_counterpart": osint_data.get("official_gov_counterpart"),
+            "osint_summary": " | ".join(snippets[:3]) if snippets else "No active public cyber complaints or scam alerts found."
+        }

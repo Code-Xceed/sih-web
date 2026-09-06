@@ -127,6 +127,39 @@
             </div>
           </div>
 
+          <!-- Sovereign Blockchain Threat Ledger & Audit Card -->
+          <div class="backend-evidence-card" id="blockchainCard" style="margin-top: 16px; margin-bottom: 20px;">
+            <div class="evidence-accordion-header" id="blockchainAccordionHeader">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 1.1rem;">🔗</span>
+                <span id="blockchainTitle" style="font-size: 0.95rem;">संप्रभु ब्लॉकचेन प्रमाणन व लीनेज ऑडिट (PoA Ledger)</span>
+              </div>
+              <span class="badge-pill-tag verified" id="blockchainStatusTag">ON-CHAIN AUDITED</span>
+            </div>
+            <div class="evidence-accordion-body" id="blockchainBody">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 12px;">
+                <div class="ai-point-chip">
+                  <span class="chip-label" id="lblBcBlock">ब्लॉक इंडेक्स / PoA Block:</span>
+                  <span class="chip-val" id="bcBlockIndex">#1 (Genesis Anchor)</span>
+                </div>
+                <div class="ai-point-chip">
+                  <span class="chip-label" id="lblBcLineage">थ्रेट लीनेज / Threat Lineage:</span>
+                  <span class="chip-val" id="bcRepeatOffender">Clean (0 prior incidents)</span>
+                </div>
+                <div class="ai-point-chip">
+                  <span class="chip-label" id="lblBcValidator">प्रमाणक नोड / Validator:</span>
+                  <span class="chip-val" id="bcValidatorNode">NIC-DELHI-ROOT-01</span>
+                </div>
+              </div>
+              <div class="blockchain-proof-pill" id="bcEvidenceHash">
+                Evidence Hash: SHA256-AUTHENTICATED
+              </div>
+              <div id="bcAiForensics" style="margin-top: 8px; font-size: 0.82rem; color: #475569; font-style: italic;">
+                Ledger Forensics: Sovereign Proof-of-Authority consensus anchor.
+              </div>
+            </div>
+          </div>
+
           <div class="forensics-stack">
             <div class="forensic-tile-item" id="layer1Tile">
               <span class="tile-status-icon" id="layer1Icon">🟢</span>

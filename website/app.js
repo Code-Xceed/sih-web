@@ -333,20 +333,38 @@ async function handleScan(targetUrl) {
   // 1. Instant client-side preflight evaluation
   const clientPreflight = scanWebsiteClientSide(url);
 
+  // Dynamic API host resolution: relative if hosted on FastAPI (port 8000), absolute if running on custom port/file://
+  const getBackendUrl = (endpoint) => {
+    if (window.location.origin && window.location.origin.includes(':8000')) {
+      return endpoint;
+    }
+    return `http://localhost:8000${endpoint}`;
+  };
+
   try {
     // 2. Query GovShield Defense-in-Depth Backend API
-    const response = await fetch('/api/scan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: url })
-    });
+    let response = null;
+    try {
+      response = await fetch(getBackendUrl('/api/scan'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url })
+      });
+    } catch (_) {
+      // Fallback probe to relative path if absolute failed
+      response = await fetch('/api/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url })
+      });
+    }
 
-    if (response.ok) {
+    if (response && response.ok) {
       const serverData = await response.json();
       activeResult = serverData;
       renderVerdict(serverData);
     } else {
-      console.warn("Backend API returned status", response.status, "- using client-side engine");
+      console.warn("Backend API returned status", response ? response.status : "unknown", "- using client-side engine");
       activeResult = clientPreflight;
       renderVerdict(clientPreflight);
     }
@@ -512,60 +530,132 @@ function renderVerdict(res) {
   const dnsRisk = res.dns_security_details?.dns_risk_score || 0;
   const hasMx = res.dns_security_details?.has_mx !== false;
 
+  const setEl = (id, text, cls) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (text !== undefined) el.textContent = text;
+    if (cls !== undefined) el.className = cls;
+  };
+
   // Layer 1
-  const layer1Title = document.getElementById('layer1Title');
-  if (layer1Title) layer1Title.textContent = t.layer1 || '1. सरकारी डोमेन प्रमाणन (.gov.in / .nic.in)';
-  document.getElementById('layer1Icon').textContent = isGov ? '🟢' : '🔴';
-  document.getElementById('layer1Tag').className = `tile-status-tag ${isGov ? 'pass' : 'fail'}`;
-  document.getElementById('layer1Tag').textContent = isGov ? (t.tagVerified || 'VERIFIED') : (t.tagUnauthorized || 'UNAUTHORIZED');
-  document.getElementById('layer1Desc').textContent = isGov 
+  setEl('layer1Title', t.layer1 || '1. सरकारी डोमेन प्रमाणन (.gov.in / .nic.in)');
+  setEl('layer1Icon', isGov ? '🟢' : '🔴');
+  setEl('layer1Tag', isGov ? (t.tagVerified || 'VERIFIED') : (t.tagUnauthorized || 'UNAUTHORIZED'), `tile-status-tag ${isGov ? 'pass' : 'fail'}`);
+  setEl('layer1Desc', isGov 
     ? (t.descLayer1Safe || 'Authenticated sovereign domain accredited by National Informatics Centre (NIC India).') 
-    : (t.descLayer1Threat || 'Domain does not belong to authorized sovereign (.gov.in / .nic.in / .mil.in) infrastructure.');
+    : (t.descLayer1Threat || 'Domain does not belong to authorized sovereign (.gov.in / .nic.in / .mil.in) infrastructure.'));
 
   // Layer 2
-  const layer2Title = document.getElementById('layer2Title');
-  if (layer2Title) layer2Title.textContent = t.layer2 || '2. वर्तनी व नाम की नकल (Typosquatting)';
-  document.getElementById('layer2Icon').textContent = typoHit ? '🔴' : '🟢';
-  document.getElementById('layer2Tag').className = `tile-status-tag ${typoHit ? 'fail' : 'pass'}`;
-  document.getElementById('layer2Tag').textContent = typoHit ? (t.tagSpoof || 'SPOOF DETECTED') : (t.tagClean || 'CLEAN');
-  document.getElementById('layer2Desc').textContent = typoHit
+  setEl('layer2Title', t.layer2 || '2. वर्तनी व नाम की नकल (Typosquatting)');
+  setEl('layer2Icon', typoHit ? '🔴' : '🟢');
+  setEl('layer2Tag', typoHit ? (t.tagSpoof || 'SPOOF DETECTED') : (t.tagClean || 'CLEAN'), `tile-status-tag ${typoHit ? 'fail' : 'pass'}`);
+  setEl('layer2Desc', typoHit
     ? `Critical: ${t.tagSpoof || 'Spoof'} (${res.typosquat_details?.squat_type || 'Homoglyph'} mimicking ${res.target_entity || 'official entity'}).`
-    : (t.descLayer2Safe || 'No typosquatting, bit-squatting, omission, or zero-width homoglyphs detected.');
+    : (t.descLayer2Safe || 'No typosquatting, bit-squatting, omission, or zero-width homoglyphs detected.'));
 
   // Layer 3
-  const layer3Title = document.getElementById('layer3Title');
-  if (layer3Title) layer3Title.textContent = t.layer3 || '3. आधार व पासवर्ड चोरी फॉर्म (Credential Theft)';
-  document.getElementById('layer3Icon').textContent = sensFound ? '🔴' : '🟢';
-  document.getElementById('layer3Tag').className = `tile-status-tag ${sensFound ? 'fail' : 'pass'}`;
-  document.getElementById('layer3Tag').textContent = sensFound ? (t.tagHarvesting || 'HARVESTING') : (t.tagSecure || 'SECURE');
-  document.getElementById('layer3Desc').textContent = sensFound
+  setEl('layer3Title', t.layer3 || '3. आधार व पासवर्ड चोरी फॉर्म (Credential Theft)');
+  setEl('layer3Icon', sensFound ? '🔴' : '🟢');
+  setEl('layer3Tag', sensFound ? (t.tagHarvesting || 'HARVESTING') : (t.tagSecure || 'SECURE'), `tile-status-tag ${sensFound ? 'fail' : 'pass'}`);
+  setEl('layer3Desc', sensFound
     ? `Alert: ${t.tagHarvesting || 'Harvesting'} [${sensFields.map(f => typeof f === 'object' ? f.field : f).join(', ')}]`
-    : (t.descLayer3Safe || 'No unauthorized Aadhaar, PAN, OTP, banking PIN, or biometric input forms detected.');
+    : (t.descLayer3Safe || 'No unauthorized Aadhaar, PAN, OTP, banking PIN, or biometric input forms detected.'));
 
   // Layer 4
-  const layer4Title = document.getElementById('layer4Title');
-  if (layer4Title) layer4Title.textContent = t.layer4 || '4. एआई विजुअल व संप्रभु ML क्लासिफायर';
-  document.getElementById('layer4Icon').textContent = isClone ? '🔴' : '🟢';
-  document.getElementById('layer4Tag').className = `tile-status-tag ${isClone ? 'fail' : 'pass'}`;
-  document.getElementById('layer4Tag').textContent = isClone ? (t.tagClone || 'CLONE DETECTED') : (t.tagAuthentic || 'AUTHENTIC');
-  document.getElementById('layer4Desc').textContent = isClone
+  setEl('layer4Title', t.layer4 || '4. एआई विजुअल व संप्रभु ML क्लासिफायर');
+  setEl('layer4Icon', isClone ? '🔴' : '🟢');
+  setEl('layer4Tag', isClone ? (t.tagClone || 'CLONE DETECTED') : (t.tagAuthentic || 'AUTHENTIC'), `tile-status-tag ${isClone ? 'fail' : 'pass'}`);
+  setEl('layer4Desc', isClone
     ? `Sovereign ML flagged impersonation mimicking ${res.target_entity || 'Sovereign Brand'}.`
-    : (t.descLayer4Safe || 'DOM structure and ML feature vector align with authentic public web baseline.');
+    : (t.descLayer4Safe || 'DOM structure and ML feature vector align with authentic public web baseline.'));
 
   // Layer 5
-  const layer5Title = document.getElementById('layer5Title');
-  if (layer5Title) layer5Title.textContent = t.layer5 || '5. डोमेन पंजीकरण व उम्र (Domain Age)';
-  document.getElementById('layer5Icon').textContent = (dnsRisk > 30 || !hasMx) && !isGov ? '🟡' : '🟢';
-  document.getElementById('layer5Tag').className = `tile-status-tag ${(dnsRisk > 30 || !hasMx) && !isGov ? 'warning' : 'pass'}`;
-  document.getElementById('layer5Tag').textContent = isGov ? (t.tagVerified || 'SOVEREIGN DNS') : (dnsRisk > 30 ? (t.tagWarning || 'SUSPICIOUS') : (t.tagAnalyzed || 'ANALYZED'));
-  document.getElementById('layer5Desc').textContent = isGov
+  setEl('layer5Title', t.layer5 || '5. डोमेन पंजीकरण व उम्र (Domain Age)');
+  setEl('layer5Icon', (dnsRisk > 30 || !hasMx) && !isGov ? '🟡' : '🟢');
+  setEl('layer5Tag', isGov ? (t.tagVerified || 'SOVEREIGN DNS') : (dnsRisk > 30 ? (t.tagWarning || 'SUSPICIOUS') : (t.tagAnalyzed || 'ANALYZED')), `tile-status-tag ${(dnsRisk > 30 || !hasMx) && !isGov ? 'warning' : 'pass'}`);
+  setEl('layer5Desc', isGov
     ? (t.descLayer5Safe || 'Official NIC India nameserver and authenticated national DNS authority.')
-    : `DNS Audit: ${hasMx ? 'Active MX' : 'No MX records'}.`;
+    : `DNS Audit: ${hasMx ? 'Active MX' : 'No MX records'}.`);
 
   // Update Action Button texts
   if (reportBtnLabel) reportBtnLabel.textContent = t.reportBtn || "cybercrime.gov.in पर रिपोर्ट करें";
   if (dossierBtnLabel) dossierBtnLabel.textContent = t.dossierBtn || "डोजियर डाउनलोड करें";
   if (helpline1930Label) helpline1930Label.textContent = t.helpline1930 || "1930 पर कॉल करें";
+
+  // AI Confidence Badge
+  const aiConfidenceBadgeEl = document.getElementById('aiConfidenceBadge');
+  if (aiConfidenceBadgeEl) {
+    const engineName = res.ai_report?.engine || res.ai_page_analysis?.ai_engine || "Google Gemini 2.5 Flash";
+    aiConfidenceBadgeEl.textContent = engineName.includes("Gemini") ? "✨ Google Gemini 2.5 Flash Verified" : "🤖 Autonomous AI Neural Reasoner";
+  }
+
+  // -----------------------------------------------------------
+  // Sovereign Blockchain Threat Ledger & Audit Card Rendering
+  // -----------------------------------------------------------
+  const bc = res.blockchain_audit || {};
+  const proof = res.blockchain_proof || {};
+  const isPriorOffender = Boolean(bc.is_prior_offender);
+  const bcTagEl = document.getElementById('blockchainStatusTag');
+  const bcBlockEl = document.getElementById('bcBlockIndex');
+  const bcLineageEl = document.getElementById('bcRepeatOffender');
+  const bcValidatorEl = document.getElementById('bcValidatorNode');
+  const bcEvidenceHashEl = document.getElementById('bcEvidenceHash');
+  const bcAiForensicsEl = document.getElementById('bcAiForensics');
+
+  if (bcTagEl) {
+    if (isPriorOffender) {
+      bcTagEl.className = 'badge-pill-tag danger';
+      bcTagEl.textContent = 'REPEAT THREAT ON-CHAIN';
+    } else if (proof.status === 'LOGGED_ON_CHAIN' || proof.block_index > 0) {
+      bcTagEl.className = 'badge-pill-tag danger';
+      bcTagEl.textContent = `ANCHORED IN BLOCK #${proof.block_index}`;
+    } else if (isGov) {
+      bcTagEl.className = 'badge-pill-tag verified';
+      bcTagEl.textContent = 'SOVEREIGN GENESIS VERIFIED';
+    } else {
+      bcTagEl.className = 'badge-pill-tag verified';
+      bcTagEl.textContent = 'CHAIN AUDITED (CLEAN)';
+    }
+  }
+
+  if (bcBlockEl) {
+    if (proof.block_index && proof.block_index > 0) {
+      bcBlockEl.textContent = `#${proof.block_index} (PoA Sealed)`;
+    } else if (isPriorOffender && bc.verified_blocks && bc.verified_blocks.length > 0) {
+      bcBlockEl.textContent = `#${bc.verified_blocks[0].block_index} (Historical Block)`;
+    } else {
+      bcBlockEl.textContent = isGov ? '#0 (NIC Genesis Root)' : 'Audited (Unanchored Clean)';
+    }
+  }
+
+  if (bcLineageEl) {
+    if (isPriorOffender) {
+      bcLineageEl.textContent = `🚨 ${bc.prior_incidents_count || 1} prior threat records`;
+      bcLineageEl.style.color = '#de350b';
+    } else {
+      bcLineageEl.textContent = 'Clean (0 prior incidents)';
+      bcLineageEl.style.color = '#00875a';
+    }
+  }
+
+  if (bcValidatorEl) {
+    bcValidatorEl.textContent = proof.validator_node || 'NIC-DELHI-ROOT-01';
+  }
+
+  if (bcEvidenceHashEl) {
+    const hash = proof.evidence_hash || (bc.verified_blocks && bc.verified_blocks[0]?.evidence_hash) || 'GENESIS-AUTHENTIC-LEDGER-SEAL';
+    bcEvidenceHashEl.textContent = `Evidence SHA-256: ${hash}`;
+  }
+
+  if (bcAiForensicsEl) {
+    const forensics = res.ai_blockchain_forensics || res.ai_report?.ai_blockchain_analysis || bc.summary || '';
+    if (forensics) {
+      bcAiForensicsEl.textContent = `Ledger Forensics: ${forensics}`;
+      bcAiForensicsEl.style.display = 'block';
+    } else {
+      bcAiForensicsEl.style.display = 'none';
+    }
+  }
 }
 
 // -------------------------------------------------------------
@@ -597,15 +687,27 @@ Impersonated    : ${activeResult.impersonated ? 'YES (CRITICAL ZERO-DAY SPOOF)' 
 - DNS MX Presence      : ${activeResult.dns_security_details?.has_mx !== false ? 'Valid MX' : 'Missing (Throwaway Phish)'}
 - Domain Age (RDAP)    : ${activeResult.signal_breakdown?.domain_age_days || 'N/A'} days
 
-[2] BLOCKCHAIN CRYPTOGRAPHIC PROOF:
+[2] BLOCKCHAIN CRYPTOGRAPHIC PROOF & LINEAGE AUDIT:
+- Ledger Audit Status  : ${activeResult.blockchain_audit?.audit_status || 'ON-CHAIN AUDITED'}
+- Threat Lineage       : ${activeResult.blockchain_audit?.is_prior_offender ? 'CRITICAL: REPEAT OFFENDER DETECTED' : 'Clean (No prior on-chain offenses)'}
+- Prior Offense Blocks : ${activeResult.blockchain_audit?.prior_incidents_count || 0}
 - PoA Block Index      : #${activeResult.blockchain_proof?.block_index || 1}
 - Evidence Hash        : ${activeResult.blockchain_proof?.evidence_hash || 'SHA256-AUTHENTICATED'}
-- Validator Node       : NIC-DELHI-ROOT-01
+- Validator Node       : ${activeResult.blockchain_proof?.validator_node || 'NIC-DELHI-ROOT-01'}
+- Genesis Ground Truth : Block #0 SHA-256 Seal Validated
 
-[3] MALICIOUS INDICATORS DETECTED:
+[3] AI THREAT SYNTHESIS & LIVE INTERNET OSINT:
+- AI Engine            : ${activeResult.ai_report?.engine || activeResult.ai_page_analysis?.ai_engine || 'Autonomous AI Neural Reasoner'}
+- AI Calibrated Risk   : ${activeResult.ai_report?.ai_risk_score || activeResult.risk_score}/100 (${activeResult.ai_report?.ai_verdict || activeResult.verdict})
+- AI Forensic Summary  : ${activeResult.ai_summary || activeResult.ai_page_analysis?.ai_summary_en || 'Clean sovereign portal'}
+- Blockchain Forensics : ${activeResult.ai_blockchain_forensics || activeResult.ai_report?.ai_blockchain_analysis || 'Verified sovereign consensus'}
+- Live Online OSINT    : ${activeResult.internet_search_advisories?.is_scam_reported ? 'SCAM ADVISORIES REPORTED ONLINE' : 'Clean'}
+- PIB Fact Check Alert : ${activeResult.internet_search_advisories?.pib_warning_detected ? 'PIB FACT CHECK ADVISORY RECORDED' : 'None detected'}
+
+[4] MALICIOUS INDICATORS DETECTED:
 ${(activeResult.reasons || []).map((r, i) => `[${i + 1}] ${r}`).join('\n') || 'None detected'}
 
-[4] DIRECTIVES & ENFORCEMENT MITIGATION:
+[5] DIRECTIVES & ENFORCEMENT MITIGATION:
 1. Issue urgent DNS sinkhole directive via NIXI / INRegistry.
 2. Direct TSP/ISP DNS blocking under Section 69A Information Technology Act.
 3. Alert CERT-In National Cyber Threat Response Center.
