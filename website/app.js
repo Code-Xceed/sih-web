@@ -445,9 +445,9 @@ function renderVerdict(res) {
 
   // Verdict Category
   let type = 'safe';
-  let title = t.verdictSafe || "सत्यापित एवं प्रामाणिक";
+  let title = '';
   let icon = '✅';
-  let badgeTag = t.badgeSafe || 'AUTHENTIC GOVERNMENT SERVICE';
+  let badgeTag = '';
   let badgeClass = 'verified';
 
   if (score >= 66 || res.verdict === 'PHISHING_CLONE' || res.verdict === 'MALICIOUS') {
@@ -462,6 +462,15 @@ function renderVerdict(res) {
     icon = '⚠️';
     badgeTag = t.badgeCaution || 'UNVERIFIED SUSPICIOUS DOMAIN';
     badgeClass = 'warning';
+  } else {
+    // Score <= 25 (Safe)
+    if (res.is_genuine_gov_tld) {
+      title = t.verdictSafe || "सत्यापित एवं प्रामाणिक";
+      badgeTag = t.badgeSafe || 'AUTHENTIC GOVERNMENT SERVICE';
+    } else {
+      title = currentLang === 'hi' ? "सुरक्षित कमर्शियल वेबसाइट" : "SAFE WEB PLATFORM";
+      badgeTag = currentLang === 'hi' ? "पब्लिक कमर्शियल प्लेटफॉर्म" : 'PUBLIC COMMERCIAL PLATFORM';
+    }
   }
 
   // Update Header Banner
@@ -516,7 +525,11 @@ function renderVerdict(res) {
   if (score >= 66 || res.verdict === 'PHISHING_CLONE' || res.verdict === 'MALICIOUS') {
     advisoryBodyText.textContent = t.advisoryThreat || "चेतावनी! यह वेबसाइट फर्जी है जो सरकारी पोर्टल की नकल कर रही है। अपना आधार नंबर, बैंक खाता, पैन या OTP यहाँ कभी दर्ज न करें!";
   } else if (score <= 25) {
-    advisoryBodyText.textContent = t.advisorySafe || "यह वेबसाइट पूरी तरह से प्रामाणिक और आधिकारिक सरकारी पोर्टल है। आप इस पर विश्वास के साथ कार्य कर सकते हैं।";
+    if (res.is_genuine_gov_tld) {
+      advisoryBodyText.textContent = t.advisorySafe || "यह वेबसाइट पूरी तरह से प्रामाणिक और आधिकारिक सरकारी पोर्टल है। आप इस पर विश्वास के साथ कार्य कर सकते हैं।";
+    } else {
+      advisoryBodyText.textContent = currentLang === 'hi' ? "यह वेबसाइट सुरक्षित प्रतीत होती है, लेकिन यह कोई आधिकारिक सरकारी पोर्टल नहीं है।" : "This website appears safe, but it is a public commercial domain and NOT an official government portal.";
+    }
   } else {
     advisoryBodyText.textContent = t.advisoryCaution || "सावधानी बरतें। यह वेबसाइट आधिकारिक सरकारी रजिस्ट्री में दर्ज नहीं है। व्यक्तिगत विवरण दर्ज करने से पहले जांच करें।";
   }
