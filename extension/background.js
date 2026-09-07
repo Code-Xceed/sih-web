@@ -154,7 +154,7 @@ async function evaluateTabSecurity(tabId, url) {
       tabScanCache.set(tabId, data);
       applyBadge(tabId, score, data.verdict, data.is_genuine_gov_tld);
 
-      if (score >= 40 || data.verdict === "PHISHING_CLONE" || data.verdict === "MALICIOUS" || data.verdict === "SUSPICIOUS") {
+      if (score >= 26 || data.verdict === "PHISHING_CLONE" || data.verdict === "MALICIOUS" || data.verdict === "SUSPICIOUS") {
         chrome.tabs.sendMessage(tabId, {
           action: "SHOW_FRAUD_BANNER",
           scanData: data,
