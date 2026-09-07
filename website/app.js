@@ -598,81 +598,83 @@ function renderVerdict(res) {
     aiSummaryEl.textContent = summaryText;
   }
 
-  const aiCoreOfferingsList = document.getElementById('aiCoreOfferingsList');
-  if (aiCoreOfferingsList) {
-    const offerings = about.key_offerings || (isGov
-      ? ["Direct Benefit Transfer (DBT)", "Aadhaar e-KYC", "NIC Sovereign Cloud"]
-      : (score >= 66 ? ["Unauthorized Imitation", "Credential Harvesting Form", "Flagged for CERT-In Takedown"] : ["Public Web Services", "Encrypted TLS", "Authentic Standing"]));
-    aiCoreOfferingsList.innerHTML = '';
-    offerings.forEach(off => {
-      const tag = document.createElement('span');
-      tag.className = 'ai-offering-tag';
-      tag.textContent = off;
-      aiCoreOfferingsList.appendChild(tag);
+  // New Minimal AI Findings Section
+  const riskLevelBadge = document.getElementById('aiRiskLevelBadge');
+  if (riskLevelBadge) {
+    const riskLevel = about.risk_level || (isGov ? "SAFE" : (score >= 66 ? "CRITICAL" : "MODERATE"));
+    riskLevelBadge.textContent = `RISK: ${riskLevel}`;
+    if (riskLevel === "SAFE") riskLevelBadge.style.backgroundColor = "#00875a";
+    else if (riskLevel === "MODERATE") riskLevelBadge.style.backgroundColor = "#f59e0b";
+    else riskLevelBadge.style.backgroundColor = "#de350b";
+  }
+
+  const aiKeyFindingsList = document.getElementById('aiKeyFindingsList');
+  if (aiKeyFindingsList) {
+    aiKeyFindingsList.innerHTML = '';
+    const findings = about.key_findings || (isGov ? ["Verified Sovereign Infrastructure"] : ["General Web Content"]);
+    findings.forEach(f => {
+      const li = document.createElement('li');
+      li.textContent = f;
+      li.style.marginBottom = "4px";
+      aiKeyFindingsList.appendChild(li);
     });
   }
 
-  // Subsection 2: Deep Web UI & Interaction Architecture
-  const aiUiLayoutType = document.getElementById('aiUiLayoutType');
-  if (aiUiLayoutType) {
-    aiUiLayoutType.textContent = webUi.layout_type || (isGov ? "🏛️ Sovereign Citizen Welfare Portal" : (score >= 66 ? "🚨 Adversarial Phishing Trap Form" : "📄 Content-Driven Web Layout"));
+  const aiRecommendedActionsList = document.getElementById('aiRecommendedActionsList');
+  if (aiRecommendedActionsList) {
+    aiRecommendedActionsList.innerHTML = '';
+    const actions = about.recommended_actions || (isGov ? ["Proceed safely"] : ["Exercise normal caution"]);
+    actions.forEach(a => {
+      const li = document.createElement('li');
+      li.textContent = a;
+      li.style.marginBottom = "4px";
+      aiRecommendedActionsList.appendChild(li);
+    });
   }
 
-  const aiUiTrapsAlert = document.getElementById('aiUiTrapsAlert');
-  if (aiUiTrapsAlert) {
-    const traps = webUi.sensitive_inputs_detected || (res.signal_breakdown?.sensitive_fields_found || res.dom_details?.sensitive_inputs || []);
-    if (traps && traps.length > 0 && !isGov) {
-      const cleanTraps = traps.map(t => typeof t === 'object' ? (t.field || JSON.stringify(t)) : String(t));
-      aiUiTrapsAlert.textContent = `🚨 CRITICAL TRAP: [${cleanTraps.join(', ')}]`;
-      aiUiTrapsAlert.style.color = '#de350b';
+  // Security Posture Section
+  const secHeadersGrade = document.getElementById('secHeadersGrade');
+  if (secHeadersGrade) {
+    const obs = (res.external_intel && res.external_intel.observatory) || {};
+    secHeadersGrade.textContent = obs.grade || "N/A";
+  }
+
+  const secTechStackTags = document.getElementById('secTechStackTags');
+  if (secTechStackTags) {
+    secTechStackTags.innerHTML = '';
+    const tech = (res.deep_web_analysis && res.deep_web_analysis.tech_stack) || {};
+    const tags = [];
+    if (tech.web_server) tags.push(`Server: ${tech.web_server}`);
+    if (tech.cms) tags.push(`CMS: ${tech.cms}`);
+    if (tech.programming_language) tags.push(`Lang: ${tech.programming_language}`);
+    if (tags.length === 0) tags.push("Unknown");
+    
+    tags.forEach(t => {
+      const span = document.createElement('span');
+      span.className = 'ai-offering-tag';
+      span.textContent = t;
+      secTechStackTags.appendChild(span);
+    });
+  }
+
+  const secTrackersVal = document.getElementById('secTrackersVal');
+  if (secTrackersVal) {
+    const trackers = (res.deep_web_analysis && res.deep_web_analysis.trackers) || [];
+    secTrackersVal.textContent = trackers.length > 0 ? `${trackers.length} detected` : "None detected";
+  }
+
+  const secExtIntelVal = document.getElementById('secExtIntelVal');
+  if (secExtIntelVal) {
+    const vt = (res.external_intel && res.external_intel.virustotal) || {};
+    const uh = (res.external_intel && res.external_intel.urlhaus) || {};
+    if (vt.malicious > 0 || uh.found) {
+      secExtIntelVal.textContent = `🚨 Flagged (VT: ${vt.malicious || 0}, URLhaus: ${uh.found ? 'Yes' : 'No'})`;
+      secExtIntelVal.style.color = '#de350b';
+      secExtIntelVal.style.fontWeight = '700';
     } else {
-      aiUiTrapsAlert.textContent = currentLang === 'hi' ? '🟢 सुरक्षित — कोई डेटा चोरी फॉर्म नहीं' : '🟢 Safe — Zero Sensitive Traps';
-      aiUiTrapsAlert.style.color = '#00875a';
+      secExtIntelVal.textContent = "Clean";
+      secExtIntelVal.style.color = '#00875a';
     }
-  }
-
-  const aiUiFormsInputs = document.getElementById('aiUiFormsInputs');
-  if (aiUiFormsInputs) {
-    const formsCount = webUi.forms_count ?? (res.dom_details?.forms_detected ?? (isGov ? 1 : 0));
-    const inputsCount = webUi.inputs_count ?? (res.dom_details?.inputs_detected ?? (formsCount * 2));
-    aiUiFormsInputs.textContent = `${formsCount} Form(s) (${inputsCount} Input Elements)`;
-  }
-
-  const aiUiExfilStatus = document.getElementById('aiUiExfilStatus');
-  if (aiUiExfilStatus) {
-    const exfil = webUi.external_exfiltration || res.dom_details?.exfiltration_endpoints || [];
-    if (exfil && exfil.length > 0) {
-      aiUiExfilStatus.textContent = `🚨 Exfil Webhook: ${exfil[0]}`;
-      aiUiExfilStatus.style.color = '#de350b';
-    } else {
-      aiUiExfilStatus.textContent = '🟢 Clean (Local/NIC Sovereign Host)';
-      aiUiExfilStatus.style.color = '#00875a';
-    }
-  }
-
-  // Subsection 3: Domain & Core Network Infrastructure Forensics
-  const aiDomainTldAuth = document.getElementById('aiDomainTldAuth');
-  if (aiDomainTldAuth) {
-    aiDomainTldAuth.textContent = core.tld_classification || (isGov ? ".gov.in / .nic.in (Official Sovereign Infrastructure)" : `.${(res.url_metadata?.tld || 'com')} (Public TLD)`);
-  }
-
-  const aiDomainAgeVal = document.getElementById('aiDomainAgeVal');
-  if (aiDomainAgeVal) {
-    const ageDays = core.domain_age_days ?? (res.network_details?.rdap?.domain_age_days ?? res.signal_breakdown?.domain_age_days ?? (isGov ? 4500 : 1200));
-    const ageDesc = core.domain_age_assessment || (isGov ? "Established Sovereign Infrastructure" : (ageDays < 30 ? "🚨 Newly Registered (<30 days)" : "Established Domain"));
-    aiDomainAgeVal.textContent = `${ageDays} days (${ageDesc})`;
-  }
-
-  const aiSslIssuerVal = document.getElementById('aiSslIssuerVal');
-  if (aiSslIssuerVal) {
-    const issuerRaw = core.ssl_tls_issuer || (res.network_details?.tls?.issuer ? (typeof res.network_details.tls.issuer === 'object' ? (res.network_details.tls.issuer.common_name || res.network_details.tls.issuer.organization) : String(res.network_details.tls.issuer)) : (isGov ? "National Informatics Centre CA (NICCA)" : "Standard Commercial TLS Authority"));
-    aiSslIssuerVal.textContent = issuerRaw;
-  }
-
-  const aiDnsMailVal = document.getElementById('aiDnsMailVal');
-  if (aiDnsMailVal) {
-    const hasMx = res.dns_security_details?.has_mx !== false;
-    aiDnsMailVal.textContent = core.dns_mail_security || (hasMx ? "Active MX Records (Mail Enabled)" : "No MX Records (Disposable Host)");
   }
 
   // Subsection 4: Full Executive Dossier Text Format

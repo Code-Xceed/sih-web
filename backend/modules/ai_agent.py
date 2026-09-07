@@ -404,6 +404,69 @@ class AIAgent:
             }
         }
 
+        # Inject deep web analysis evidence if available
+        deep_web = kwargs.get("deep_web_analysis") or {}
+        if deep_web:
+            sec_headers = deep_web.get("security_headers", {})
+            page_meta = deep_web.get("page_metadata", {})
+            link_info = deep_web.get("link_analysis", {})
+            tech = deep_web.get("tech_stack", {})
+            trackers = deep_web.get("trackers", [])
+
+            evidence_payload["security_posture"] = {
+                "headers_grade": sec_headers.get("grade", "N/A"),
+                "headers_score": sec_headers.get("score", 0),
+                "missing_critical_headers": sec_headers.get("missing_critical", []),
+                "info_leakage": sec_headers.get("info_leakage", {}),
+                "cookie_insecure_count": deep_web.get("cookies", {}).get("insecure_count", 0),
+            }
+            evidence_payload["content_intelligence"] = {
+                "page_title": page_meta.get("title"),
+                "meta_description": page_meta.get("meta_description"),
+                "language": page_meta.get("language"),
+                "has_open_graph": bool(page_meta.get("open_graph")),
+                "has_twitter_card": bool(page_meta.get("twitter_card")),
+                "canonical_url": page_meta.get("canonical_url"),
+                "has_structured_metadata": page_meta.get("has_structured_metadata", False),
+            }
+            evidence_payload["link_topology"] = {
+                "internal_links": link_info.get("internal_count", 0),
+                "external_links": link_info.get("external_count", 0),
+                "external_domains": link_info.get("external_domains", [])[:15],
+                "suspicious_outbound_links": link_info.get("suspicious_external_links", [])[:5],
+            }
+            evidence_payload["technology_fingerprint"] = {
+                "web_server": tech.get("web_server"),
+                "cms": tech.get("cms"),
+                "frameworks": tech.get("frameworks", []),
+                "cdn": tech.get("cdn"),
+                "programming_language": tech.get("programming_language"),
+                "trackers_detected": [t.get("name") for t in trackers[:8]],
+            }
+
+        # Inject external threat intelligence if available
+        ext_intel = kwargs.get("external_intel") or {}
+        if ext_intel:
+            shodan = ext_intel.get("shodan") or {}
+            urlhaus = ext_intel.get("urlhaus") or {}
+            observatory = ext_intel.get("observatory") or {}
+            safebrowsing = ext_intel.get("safe_browsing") or {}
+            vt = ext_intel.get("virustotal") or {}
+
+            evidence_payload["external_threat_intelligence"] = {
+                "shodan_open_ports": shodan.get("open_ports", []),
+                "shodan_cves": shodan.get("vulnerabilities", [])[:10],
+                "shodan_tags": shodan.get("tags", []),
+                "urlhaus_malware_found": urlhaus.get("found", False),
+                "urlhaus_threat": urlhaus.get("threat"),
+                "observatory_grade": observatory.get("grade"),
+                "observatory_score": observatory.get("score"),
+                "safe_browsing_safe": safebrowsing.get("is_safe") if safebrowsing else None,
+                "safe_browsing_threats": safebrowsing.get("threats", []) if safebrowsing else [],
+                "virustotal_malicious": vt.get("malicious", 0) if vt else None,
+                "virustotal_total_engines": vt.get("total_engines", 0) if vt else None,
+            }
+
         nonce = boundary_nonce or secrets.token_hex(6)
         sanitized_dom = sanitize_untrusted_content(raw_html or "", max_chars=4000)
 
@@ -778,7 +841,7 @@ Respond with ONLY a valid JSON object strictly matching this schema:
         )
         
         # Provide extra instructions for the specific format needed for display
-        prompt += "\n\nAdditionally, write a detailed summary (summary_en and summary_hi), list key_offerings, and provide layout and domain assessments."
+        prompt += "\n\nAdditionally, write a highly concise summary (3-4 sentences max), assign a clean risk level (SAFE, MODERATE, HIGH_RISK, or CRITICAL), list the top 3-5 key findings as short bullet points, and provide 1-3 recommended actions for the user."
         
         schema = {
             "type": "OBJECT",
@@ -786,15 +849,19 @@ Respond with ONLY a valid JSON object strictly matching this schema:
                 "site_name": {"type": "STRING"},
                 "site_category": {"type": "STRING"},
                 "operator": {"type": "STRING"},
-                "summary_en": {"type": "STRING", "description": "A 3-5 sentence AI-written analysis of what this website is and its threat level."},
+                "summary_en": {"type": "STRING", "description": "Highly concise 3-4 sentence AI summary. No fluff."},
+                "risk_level": {"type": "STRING", "enum": ["SAFE", "MODERATE", "HIGH_RISK", "CRITICAL"]},
+                "key_findings": {"type": "ARRAY", "items": {"type": "STRING"}},
+                "recommended_actions": {"type": "ARRAY", "items": {"type": "STRING"}},
+                # Keeping these fields for backwards compatibility with legacy UI if needed
                 "summary_hi": {"type": "STRING", "description": "Hindi translation of the summary."},
                 "key_offerings": {"type": "ARRAY", "items": {"type": "STRING"}},
-                "layout_analysis": {"type": "STRING", "description": "Description of the UI/UX structure and forms."},
+                "layout_analysis": {"type": "STRING"},
                 "ui_risk_assessment": {"type": "STRING"},
-                "domain_assessment": {"type": "STRING", "description": "Description of domain infrastructure."},
+                "domain_assessment": {"type": "STRING"},
                 "overall_threat_narrative": {"type": "STRING"}
             },
-            "required": ["site_name", "site_category", "operator", "summary_en", "summary_hi", "key_offerings", "layout_analysis", "ui_risk_assessment", "domain_assessment", "overall_threat_narrative"]
+            "required": ["site_name", "site_category", "operator", "summary_en", "risk_level", "key_findings", "recommended_actions"]
         }
         
         response = self.client.models.generate_content(
@@ -832,6 +899,10 @@ Respond with ONLY a valid JSON object strictly matching this schema:
                 "category": parsed.get("site_category", "Unknown"),
                 "operator": parsed.get("operator", "Unknown"),
                 "summary_en": parsed.get("summary_en", ""),
+                "risk_level": parsed.get("risk_level", "MODERATE"),
+                "key_findings": parsed.get("key_findings", []),
+                "recommended_actions": parsed.get("recommended_actions", []),
+                # Legacy fields
                 "summary_hi": parsed.get("summary_hi", ""),
                 "key_offerings": parsed.get("key_offerings", [])
             },

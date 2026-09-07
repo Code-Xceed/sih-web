@@ -169,7 +169,8 @@ class SafeCrawler:
                             "status_code": status_code,
                             "content_type": content_type,
                             "html_content": html_content,
-                            "byte_length": len(raw_bytes)
+                            "byte_length": len(raw_bytes),
+                            "response_headers": dict(resp.headers),
                         }
 
                 except urllib.error.HTTPError as http_err:

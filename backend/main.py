@@ -79,6 +79,8 @@ from modules.typosquat_engine import TyposquatEngine
 from modules.redirect_unroller import SafeRedirectUnroller
 from modules.dns_security_analyzer import DNSSecurityAnalyzer
 from modules.ct_stream_daemon import ct_stream_daemon
+from modules.deep_web_analyzer import DeepWebAnalyzer
+from modules.external_intel import ExternalIntelligence
 from concurrent.futures import ThreadPoolExecutor
 
 # High-Performance Shared Global Worker Pool (eliminates per-request thread churn)
@@ -120,6 +122,8 @@ sovereign_ml = SovereignMLClassifier.get_instance()
 typosquat_engine = TyposquatEngine()
 redirect_unroller = SafeRedirectUnroller(max_hops=5, timeout=2.5)
 dns_security_analyzer = DNSSecurityAnalyzer(timeout=2.0)
+deep_web_analyzer = DeepWebAnalyzer()
+external_intel = ExternalIntelligence()
 
 # High-Performance Production Cache (TTL 180s, bounded to 2000 entries)
 # C2 Fix: Bounded caches prevent OOM crashes
@@ -924,12 +928,26 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
     # Step 5: Safe Web Crawling (with strict anti-SSRF)
     crawler_res = None
     html_content = req.html_content
+    crawler_response_headers = {}
     if (not html_content or len(html_content.strip()) == 0) and not is_gov_tld and not threat_intel.get("is_known_malicious"):
         crawler_res = _safe_step(safe_crawler.fetch_url, active_url,
             default={"success": False, "error": "Crawler failed"},
             label="Safe Crawler")
         if crawler_res and crawler_res.get("success"):
             html_content = crawler_res.get("html_content")
+            crawler_response_headers = crawler_res.get("response_headers", {})
+
+    # Step 5b: Deep Web Analysis (security headers, metadata, links, tech stack, trackers)
+    deep_analysis = _safe_step(deep_web_analyzer.analyze,
+        active_url, html_content or "", crawler_response_headers,
+        default={"security_headers": {"grade": "N/A", "score": 0}, "page_metadata": {}, "link_analysis": {}, "tech_stack": {}, "trackers": [], "cookies": {}},
+        label="Deep Web Analyzer")
+
+    # Step 5c: External Threat Intelligence (Shodan, URLhaus, Observatory — all free)
+    external_intel_evidence = _safe_step(external_intel.gather,
+        active_url, hostname,
+        default={"shodan": None, "urlhaus": None, "observatory": None, "safe_browsing": None, "virustotal": None},
+        label="External Intelligence")
 
     # Step 6: DOM, Form & Script Analysis
     dom_evidence = _safe_step(dom_analyzer.analyze_html,
@@ -1066,6 +1084,8 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
         network_evidence=network_evidence,
         blockchain_proof=blockchain_proof,
         dns_security_evidence=dns_security_evidence,
+        deep_web_analysis=deep_analysis,
+        external_intel=external_intel_evidence,
         default={},
         label="AI Content Analysis")
     fused_verdict["ai_page_analysis"] = ai_page_analysis
@@ -1096,6 +1116,8 @@ def _execute_scan_pipeline(req: ScanRequest) -> Dict[str, Any]:
     fused_verdict["typosquat_details"] = typosquat_evidence
     fused_verdict["redirect_details"] = redirect_evidence
     fused_verdict["dns_security_details"] = dns_security_evidence
+    fused_verdict["deep_web_analysis"] = deep_analysis
+    fused_verdict["external_intel"] = external_intel_evidence
     if content_sim_res:
         fused_verdict["content_similarity_details"] = content_sim_res
 
