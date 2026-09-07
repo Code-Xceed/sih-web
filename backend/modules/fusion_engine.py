@@ -100,19 +100,23 @@ class FusionEngine:
         # -------------------------------------------------------------
         # DOMINANT RULE 1: Verified Official Government Digital Infrastructure
         # -------------------------------------------------------------
-        if is_official_gov_tld and not has_homoglyphs and not is_punycode and not external_actions:
-            return {
-                "verdict": "NO_SIGNIFICANT_INDICATORS",
-                "risk_score": 2,
-                "confidence": 0.99,
-                "threat_level": "LOW",
-                "category": "OFFICIAL_GOVERNMENT_PORTAL",
-                "target_entity": claimed_entity or "Government of India",
-                "impersonated": False,
-                "summary": "Verified Authentic Indian Sovereign Infrastructure. The domain belongs to official .gov.in / .nic.in national registry.",
-                "reasons": [
-                    "Authenticated sovereign domain accredited by National Informatics Centre (NIC India).",
-                    "Official SSL Certificate and valid government top-level domain."
+        # Fix: Require brand_class == "OFFICIAL" so that typosquats ending in .gov.in do not bypass detection.
+        if (is_official_gov_tld or brand_class == "OFFICIAL") and not has_homoglyphs and not is_punycode and not external_actions:
+            # Additionally, ensure it hasn't been flagged as a typosquat or malicious
+            is_typosquat = bool(typosquat_evidence and typosquat_evidence.get("is_typosquat"))
+            if brand_class == "OFFICIAL" and not is_typosquat and not is_known_malicious:
+                return {
+                    "verdict": "NO_SIGNIFICANT_INDICATORS",
+                    "risk_score": 2,
+                    "confidence": 0.99,
+                    "threat_level": "LOW",
+                    "category": "OFFICIAL_GOVERNMENT_PORTAL",
+                    "target_entity": claimed_entity or "Government of India",
+                    "impersonated": False,
+                    "summary": "Verified Authentic Indian Sovereign Infrastructure. The domain belongs to official .gov.in / .nic.in national registry.",
+                    "reasons": [
+                        "Authenticated sovereign domain accredited by National Informatics Centre (NIC India).",
+                        "Official SSL Certificate and valid government top-level domain."
                 ],
                 "recommendation": "Safe for citizen navigation and official transactions.",
                 "signal_breakdown": {
@@ -174,23 +178,23 @@ class FusionEngine:
             }
 
         # -------------------------------------------------------------
-        # DOMINANT RULE 3: Legitimate Informational / Journalistic Media
+        # DOMINANT RULE 3: Legitimate Informational / Journalistic / Commercial Platforms
         # -------------------------------------------------------------
-        if brand_class == "LEGITIMATE_THIRD_PARTY":
+        if brand_class in ["LEGITIMATE_THIRD_PARTY", "LEGITIMATE_COMMERCIAL"]:
             return {
                 "verdict": "NO_SIGNIFICANT_INDICATORS",
                 "risk_score": 8,
                 "confidence": 0.94,
                 "threat_level": "LOW",
-                "category": "LEGITIMATE_THIRD_PARTY_INFORMATIONAL",
+                "category": brand_class,
                 "target_entity": claimed_entity,
                 "impersonated": False,
-                "summary": f"Authentic news media or informational encyclopedia reporting on '{claimed_entity or 'public policy'}'. No deceptive harvesting detected.",
+                "summary": f"Authentic verified platform reporting on '{claimed_entity or 'public policy'}' or providing commercial services. No deceptive harvesting detected.",
                 "reasons": [
-                    brand_evidence.get("reason", "Verified informational third-party domain."),
-                    "No deceptive credential or Aadhaar/OTP harvesting forms present."
+                    brand_evidence.get("reason", "Verified third-party domain."),
+                    "Expected legitimate forms or informational content."
                 ],
-                "recommendation": "Informational portal. Ensure sensitive credentials are only submitted on official .gov.in portals.",
+                "recommendation": "Safe platform. Ensure sensitive credentials are only submitted on official domains.",
                 "signal_breakdown": {
                     "lexical_score": 10.0,
                     "threat_intel_score": 0.0,
@@ -226,7 +230,7 @@ class FusionEngine:
             confidence_factors.append(0.88)
 
         # 2. Brand & Impersonation Intent
-        if claimed_entity and not is_official_gov_tld:
+        if claimed_entity and brand_class != "OFFICIAL":
             if "ABUSED CLOUD HOSTING" in brand_evidence.get("reason", ""):
                 base_score += 75.0
                 reasons.append(brand_evidence.get("reason"))
@@ -241,39 +245,39 @@ class FusionEngine:
                 confidence_factors.append(0.75)
 
         # 2b. Algorithmic Domain Randomness (DGA / Shannon Entropy from url.vet standards)
-        if url_metadata.get("entropy", 0.0) > 3.85 and not is_official_gov_tld:
+        if url_metadata.get("entropy", 0.0) > 3.85 and brand_class != "OFFICIAL":
             base_score += 25.0
             reasons.append(f"High Shannon entropy ({url_metadata.get('entropy'):.2f}): High randomness typical of DGA or throwaway domains.")
             confidence_factors.append(0.85)
 
         # 3. Form & Sensitive Citizen Credential Harvesting
-        if has_citizen_credentials and not is_official_gov_tld:
+        if has_citizen_credentials and brand_class != "OFFICIAL":
             base_score += 55.0
             reasons.append(f"High-risk credential harvesting form requesting citizen identity: {sens_inputs}")
             confidence_factors.append(0.96)
-        elif len(sens_inputs) > 0 and not is_official_gov_tld:
+        elif len(sens_inputs) > 0 and brand_class != "OFFICIAL":
             base_score += 25.0
             reasons.append(f"Form captures sensitive login credentials on unauthorized domain: {sens_inputs}")
             confidence_factors.append(0.80)
 
         # 4. Visual & Structural Cloning Evidence
-        if is_visual_lookalike and not is_official_gov_tld:
+        if is_visual_lookalike and brand_class != "OFFICIAL":
             base_score += 40.0
             reasons.append(f"Visual perceptual hash matches official {claimed_entity or 'portal'} with {vis_sim}% similarity.")
             confidence_factors.append(0.90)
 
-        if cnt_sim >= 0.50 and not is_official_gov_tld:
+        if cnt_sim >= 0.50 and brand_class != "OFFICIAL":
             base_score += 35.0
             reasons.append(f"MinHash shingling confirms {int(cnt_sim * 100)}% structural DOM cloning of official portal.")
             confidence_factors.append(0.88)
 
         # 5. Domain Age & Registration Evidence
         if domain_age is not None:
-            if domain_age < 7 and not is_official_gov_tld:
+            if domain_age < 7 and brand_class != "OFFICIAL":
                 base_score += 30.0
                 reasons.append(f"Extremely fresh zero-day domain: Registered {domain_age} days ago.")
                 confidence_factors.append(0.85)
-            elif domain_age < 30 and not is_official_gov_tld:
+            elif domain_age < 30 and brand_class != "OFFICIAL":
                 base_score += 15.0
                 reasons.append(f"Newly registered domain ({domain_age} days old).")
                 confidence_factors.append(0.70)
@@ -286,7 +290,7 @@ class FusionEngine:
 
         # 7. openSquat Typosquatting & Permutation Evidence
         is_typosquat = bool(typosquat_evidence and typosquat_evidence.get("is_typosquat"))
-        if is_typosquat and not is_official_gov_tld:
+        if is_typosquat and brand_class != "OFFICIAL":
             sq_type = typosquat_evidence.get("squat_type")
             target_b = typosquat_evidence.get("target_brand")
             base_score += 45.0
@@ -296,7 +300,7 @@ class FusionEngine:
             confidence_factors.append(typosquat_evidence.get("confidence", 0.90))
 
         # 8. url.vet Safe Redirect & Shortener Evidence
-        if redirect_evidence and redirect_evidence.get("redirected") and not is_official_gov_tld:
+        if redirect_evidence and redirect_evidence.get("redirected") and brand_class != "OFFICIAL":
             if redirect_evidence.get("is_shortener"):
                 base_score += 25.0
                 reasons.append(f"Deceptive URL shortener expands to: {redirect_evidence.get('final_url')}")
@@ -306,7 +310,7 @@ class FusionEngine:
             confidence_factors.append(0.85)
 
         # 9. url.vet DNS & Mail Infrastructure Security Evidence
-        if dns_evidence and not is_official_gov_tld:
+        if dns_evidence and brand_class != "OFFICIAL":
             dns_risk = dns_evidence.get("dns_risk_score", 0.0)
             if dns_risk >= 30.0:
                 base_score += dns_risk * 0.20
@@ -317,7 +321,7 @@ class FusionEngine:
 
         # 10. PhishDetect HTML Deception Forensics
         html_deception = dom_evidence.get("html_deception_signals", {})
-        if html_deception and not is_official_gov_tld:
+        if html_deception and brand_class != "OFFICIAL":
             if html_deception.get("is_deceptive_title"):
                 base_score += 35.0
                 reasons.append(f"PhishDetect Alert: Deceptive title claiming '{html_deception.get('deceptive_title_brand')}' on unauthorized host.")
@@ -328,7 +332,7 @@ class FusionEngine:
                 confidence_factors.append(0.95)
 
         # 11. AI Threat Intelligence & Blockchain Evidence Synthesis
-        if ai_synthesis and not is_official_gov_tld:
+        if ai_synthesis and brand_class != "OFFICIAL":
             ai_score = float(ai_synthesis.get("ai_risk_score", 0.0))
             ai_verdict = ai_synthesis.get("ai_verdict", "")
             bc_analysis = ai_synthesis.get("ai_blockchain_analysis", {})

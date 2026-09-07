@@ -97,19 +97,7 @@ class TyposquatEngine:
 
         parsed = urlparse(url_clean)
         hostname = (parsed.netloc or "").split(":")[0].lower()
-
-        # If already official .gov.in or .nic.in, it's not a typosquat
         is_gov_tld = hostname.endswith(".gov.in") or hostname.endswith(".nic.in")
-        if is_gov_tld:
-            return {
-                "is_typosquat": False,
-                "squat_type": "NONE",
-                "target_brand": None,
-                "official_domain": None,
-                "edit_distance": 0,
-                "confidence": 0.0,
-                "details": "Authenticated sovereign domain (.gov.in / .nic.in)."
-            }
 
         domain_parts = hostname.split(".")
         main_part = domain_parts[0]

@@ -33,6 +33,24 @@ LEGITIMATE_INFORMATIONAL_DOMAINS = {
     "jagranjosh.com", "shiksha.com", "careers360.com", "sarkariresult.com"
 }
 
+# Major Indian Banks & Commercial Portals (to prevent false positives)
+LEGITIMATE_COMMERCIAL_DOMAINS = {
+    # Banks
+    "sbi.co.in", "hdfcbank.com", "icicibank.com", "axisbank.com", "pnbindia.in", 
+    "bankofbaroda.in", "kotak.com", "yesbank.in", "indusind.com", "idbibank.in",
+    
+    # Financial Services & UPI
+    "npci.org.in", "bhimupi.org.in", "paytm.com", "phonepe.com", "razorpay.com", "billdesk.com",
+    
+    # Commercial & Travel
+    "irctc.co.in", "makemytrip.com", "goibibo.com", "yatra.com", "cleartrip.com",
+    "airindia.in", "indigo.in", "spicejet.com", "vistara.com",
+    
+    # E-commerce
+    "amazon.in", "flipkart.com", "myntra.com", "nykaa.com", "ajio.com",
+    "google.com"
+}
+
 # Scam / Fraud Action Verbs indicating deceptive phishing lures
 DECEPTIVE_ACTION_TOKENS = {
     "kyc", "e-kyc", "update", "verify", "verification", "refund", "claim",
@@ -61,6 +79,9 @@ class BrandEngine:
         Identifies which sovereign brand or government entity is being referenced or targeted.
         """
         domain_clean = domain.lower()
+        if domain_clean.startswith("www."):
+            domain_clean = domain_clean[4:]
+            
         search_blob = f"{domain_clean} {path.lower()} {page_title.lower()}"
 
         # 1. Exact official domain match
@@ -138,6 +159,8 @@ class BrandEngine:
         - NEUTRAL
         """
         domain_clean = domain.lower()
+        if domain_clean.startswith("www."):
+            domain_clean = domain_clean[4:]
 
         # Check official government TLD
         is_gov_tld = any(domain_clean.endswith(tld) for tld in GOVERNMENT_TLDS)
@@ -149,13 +172,6 @@ class BrandEngine:
                 "risk_multiplier": 0.0,
                 "claimed_entity": entity_info["organization"],
                 "reason": "Authenticated official Indian Government / PSU digital infrastructure."
-            }
-        if is_gov_tld and lexical_risk_score < 20:
-            return {
-                "classification": "OFFICIAL",
-                "risk_multiplier": 0.0,
-                "claimed_entity": entity_info["organization"] if entity_info else "Government of India",
-                "reason": "Verified domain ending in authoritative sovereign TLD (.gov.in / .nic.in)."
             }
 
         # 2. Check if host is a known legitimate informational third party (News, Wikipedia)
@@ -169,6 +185,16 @@ class BrandEngine:
                         "claimed_entity": entity_info["organization"] if entity_info else None,
                         "reason": f"Legitimate news or informational publication ({legit_domain}) discussing public policy or schemes."
                     }
+
+        # 2b. Check if host is a known legitimate commercial platform (Banks, Travel, E-commerce)
+        for legit_domain in LEGITIMATE_COMMERCIAL_DOMAINS:
+            if domain_clean == legit_domain or domain_clean.endswith("." + legit_domain):
+                return {
+                    "classification": "LEGITIMATE_COMMERCIAL",
+                    "risk_multiplier": 0.0,
+                    "claimed_entity": None,
+                    "reason": f"Verified legitimate commercial platform ({legit_domain}). Form inputs are expected."
+                }
 
         # 3. If no government entity was matched
         if not entity_info:

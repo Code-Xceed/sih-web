@@ -721,11 +721,7 @@ function renderPopupResult(data) {
   const typoHit = Boolean(data.typosquat_details?.is_typosquat || (data.signal_breakdown?.lexical_score > 30));
   const sensFound = (data.signal_breakdown?.sensitive_fields_found || []).length > 0 && !isGov;
 
-  updateRow("1", isGov ? "🟢" : "🔴", isGov ? "pass" : "fail", isGov ? "VERIFIED" : "UNAUTHORIZED");
-  updateRow("2", typoHit ? "🔴" : "🟢", typoHit ? "fail" : "pass", typoHit ? "SPOOF" : "CLEAN");
-  updateRow("3", sensFound ? "🔴" : "🟢", sensFound ? "fail" : "pass", sensFound ? "HARVESTING" : "SECURE");
-  updateRow("4", isClone ? "🔴" : "🟢", isClone ? "fail" : "pass", isClone ? "CLONE" : "AUTHENTIC");
-  updateRow("5", "🟢", "pass", isGov ? "SOVEREIGN" : "ANALYZED");
+  // Removed 5 Forensic Layers for minimal UI
 
   // Sovereign PoA Blockchain Proof Card
   const bcPill = document.getElementById("popupBlockchainPill");
@@ -775,15 +771,7 @@ function renderPopupResult(data) {
   }
 }
 
-function updateRow(layerNum, icon, badgeClass, badgeText) {
-  const iconEl = document.getElementById(`pIcon${layerNum}`);
-  const badgeEl = document.getElementById(`pBadge${layerNum}`);
-  if (iconEl) iconEl.textContent = icon;
-  if (badgeEl) {
-    badgeEl.className = `p-badge ${badgeClass}`;
-    badgeEl.textContent = badgeText;
-  }
-}
+
 
 function syncBadge(score, verdict, isGov) {
   let text = "OK";
