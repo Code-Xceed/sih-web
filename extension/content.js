@@ -324,7 +324,7 @@ const INPAGE_DECEPTIVE_PATTERNS = [
           const data = response.scanData;
           const score = Math.round(data.risk_score || 0);
           if (
-            score >= 40 ||
+            score >= 26 ||
             data.verdict === "PHISHING_CLONE" ||
             data.verdict === "MALICIOUS" ||
             data.verdict === "SUSPICIOUS" ||
